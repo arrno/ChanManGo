@@ -1,0 +1,14 @@
+subscriber - websocket to instance riding on a worker for reading messages
+publisher - websocket to instance riding on a worker for writing messages
+subscription - broadcast array of subscribers on worker
+message - a unit of info published to a channel
+channel - a portal scoped message channel listened to by many distributes workers
+portal - client domain
+client - authed client
+worker - pub/sub on instance hosting N client publishers/subscribers
+
+a portal has many clients
+a client has many subscriptions/writes
+a worker hosts many subscriptions/publishers
+a channel is listened to by many workers
+a channel has many messages
