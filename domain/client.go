@@ -1,3 +1,5 @@
 package domain
 
-type Client struct{}
+type Client struct {
+	Id string
+}

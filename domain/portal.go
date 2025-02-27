@@ -1,3 +1,5 @@
 package domain
 
-type Portal struct{}
+type Portal struct {
+	Id string
+}

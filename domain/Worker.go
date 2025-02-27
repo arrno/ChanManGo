@@ -37,3 +37,9 @@ func (w *Worker) UpdateHeartbeat() {
 func (w *Worker) Repr() string {
 	return fmt.Sprintf("{ WORKER: %s, STATE: %s, ARCHIVED: %t, INTERVAL: %d }", w.Id, w.State, w.Archived, w.IntervalSeconds)
 }
+
+func (m *Worker) UpdateState(s STATE) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.State = s
+}

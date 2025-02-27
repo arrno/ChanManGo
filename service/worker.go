@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/arrno/chanban/broker"
-	"github.com/arrno/chanban/datastore"
 	"github.com/arrno/chanban/domain"
 	"github.com/arrno/chanban/util"
 )
@@ -24,17 +23,15 @@ type IWorker interface {
 type Worker struct {
 	mu               sync.Mutex
 	worker           *domain.Worker
-	db               datastore.IDatastore
 	broker           broker.IBroker
 	rootSubscription *domain.Subscription
 	subscribers      map[string]*domain.Subscription
 }
 
-func NewWorker(state *domain.Worker, db datastore.IDatastore, broker broker.IBroker) *Worker {
+func NewWorker(state *domain.Worker, broker broker.IBroker, ack func(message *domain.Message) error) *Worker {
 	w := Worker{
 		worker: state,
 		broker: broker,
-		db:     db,
 		rootSubscription: &domain.Subscription{
 			Id:        util.Nanoid(),
 			ClientId:  state.Channel.PortalId,
@@ -47,19 +44,15 @@ func NewWorker(state *domain.Worker, db datastore.IDatastore, broker broker.IBro
 	}
 	// Broadcast
 	w.rootSubscription.Callback = func(message *domain.Message) (err error) {
-		defer func() {
-			if err != nil {
-				message.UpdateState(domain.ERROR)
-			} else {
-				message.UpdateState(domain.COMPLETE)
-			}
-			w.db.UpdateMessage(message)
 
-		}()
+		defer ack(message)
+
 		var wg sync.WaitGroup
 		wg.Add(len(w.subscribers))
+
 		errChan := make(chan error, 1)
 		done := make(chan any)
+
 		for _, sub := range w.subscribers {
 			go func() {
 				defer wg.Done()
@@ -83,9 +76,11 @@ func NewWorker(state *domain.Worker, db datastore.IDatastore, broker broker.IBro
 	}
 	return &w
 }
+
 func (w *Worker) State() *domain.Worker {
 	return w.worker
 }
+
 func (w *Worker) Publish(message *domain.Message) error {
 	return w.broker.PublishMessage(context.Background(), w.worker.Channel, message)
 }

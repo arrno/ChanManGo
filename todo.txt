@@ -1,7 +1,11 @@
 handler
 tidy system on watcher loop
 archive memory workers when not in use
+---
+interface implementations
+---
 client / portal / groups - store
 message ack/state
-interface implementations
 register / auth
+---
+scale

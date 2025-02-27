@@ -31,7 +31,7 @@ type controllerState struct {
 	mu                sync.RWMutex
 	state             domain.STATE
 	workers           map[*domain.Channel]service.IWorker
-	destroyDependents []chan any
+	destroyDependents map[*domain.Worker][]chan any
 }
 
 func NewController() *Controller {
@@ -86,7 +86,15 @@ func (c *Controller) ExpectChannel(channel *domain.Channel) (service.IWorker, er
 	// spin up worker
 	// worker listen
 	// worker heartbeat
-	worker := service.NewWorker(domain.NewWorker(channel, 60), c.db, c.broker)
+	ack := func(message *domain.Message) (err error) {
+		if err != nil {
+			message.UpdateState(domain.ERROR)
+		} else {
+			message.UpdateState(domain.COMPLETE)
+		}
+		return c.db.UpdateMessage(message)
+	}
+	worker := service.NewWorker(domain.NewWorker(channel, 60), c.broker, ack)
 	if err := worker.Listen(); err != nil {
 		return nil, err
 	}
@@ -96,7 +104,7 @@ func (c *Controller) ExpectChannel(channel *domain.Channel) (service.IWorker, er
 	c.db.StoreWorker(worker.State())
 	// add worker to cache
 	c.state.workers[channel] = worker
-	c.state.destroyDependents = append(c.state.destroyDependents, done)
+	c.state.destroyDependents[worker.State()] = append(c.state.destroyDependents[worker.State()], done)
 	return worker, nil
 }
 
@@ -163,14 +171,36 @@ func (c *Controller) Destroy() {
 		c.state.state = domain.INACTIVE
 		c.state.mu.Unlock()
 	}()
-	for _, dependent := range c.state.destroyDependents {
-		close(dependent)
+	for _, chans := range c.state.destroyDependents {
+		for _, ch := range chans {
+			close(ch)
+		}
 	}
 }
 
-func (c *Controller) DestroyWorker() {
-	// destroy worker
-	// close worker heartbeat
-	// update worker in db
-	// remove worker/hb from cache
+func (c *Controller) DestroyWorker(worker *domain.Worker) (err error) {
+	c.state.mu.Lock()
+	service := c.state.workers[worker.Channel]
+	chans := c.state.destroyDependents[worker]
+	defer func() {
+		c.state.mu.Unlock()
+		// worker is dismounted from controller. Exit mutex
+		// terminate worker
+		for _, ch := range chans {
+			close(ch)
+		}
+		err = service.Destroy()
+		if err != nil {
+			worker.UpdateState(domain.ERROR)
+		} else {
+			worker.UpdateState(domain.INACTIVE)
+		}
+		if writeErr := c.db.UpdateWorker(worker); writeErr != nil {
+			log.Error().Msg(fmt.Sprintf("Failed to write update to worker. Err: %s", writeErr.Error()))
+		}
+	}()
+	// update state
+	delete(c.state.workers, worker.Channel)
+	delete(c.state.destroyDependents, worker)
+	return
 }
