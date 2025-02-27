@@ -12,33 +12,36 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type IOrchestrator interface {
+type ManagerProvider interface {
 	CreateChannel(channel domain.Channel)
 	DestroyChannel(id string)
-	AddSubscription(subscriber *domain.Subscription) bool
-	PublishMessage(channel domain.Channel, message domain.Message) error
+	CreateWorker(channel *domain.Channel) (*Worker, chan any, error)
+	DestroyWorker(worker *domain.Worker) (err error)
+	AddSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error)
+	RemoveSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error)
+	PublishMessage(channel *domain.Channel, message *domain.Message) (err error)
 }
 
-type Orchestrator struct {
+type Manager struct {
 	cleanupIntervalSec uint
-	db                 datastore.IDatastore
-	broker             broker.IBroker
+	db                 datastore.DatastoreProvider
+	broker             broker.BrokerProvider
 	state              controllerState
 }
 
 type controllerState struct {
 	mu                sync.RWMutex
 	state             domain.STATE
-	workers           map[*domain.Channel]IWorker
+	workers           map[*domain.Channel]WorkerProvider
 	destroyDependents map[*domain.Worker][]chan any
 }
 
-func NewOrchestrator() *Orchestrator {
+func NewManager() *Manager {
 	// broker / dn
-	return new(Orchestrator)
+	return new(Manager)
 }
 
-func (c *Orchestrator) cannelExistsTx(tx datastore.IDatastore, channel *domain.Channel) (bool, error) {
+func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain.Channel) (bool, error) {
 	_, err := tx.GetChannel(channel.Id)
 	if err == nil {
 		return true, nil
@@ -49,7 +52,7 @@ func (c *Orchestrator) cannelExistsTx(tx datastore.IDatastore, channel *domain.C
 	return false, err
 }
 
-func (c *Orchestrator) ExpectChannel(channel *domain.Channel) (IWorker, error) {
+func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error) {
 	c.state.mu.Lock()
 	defer c.state.mu.Unlock()
 	if worker, ok := c.state.workers[channel]; ok {
@@ -58,7 +61,7 @@ func (c *Orchestrator) ExpectChannel(channel *domain.Channel) (IWorker, error) {
 
 	var channelExists bool
 	var err error
-	err = c.db.WithTx(func(tx datastore.IDatastore) error {
+	err = c.db.WithTx(func(tx datastore.DatastoreProvider) error {
 		channelExists, err = c.cannelExistsTx(tx, channel)
 		if err != nil {
 			return err
@@ -82,32 +85,17 @@ func (c *Orchestrator) ExpectChannel(channel *domain.Channel) (IWorker, error) {
 		return nil, nil
 	}
 
-	// spin up worker
-	// worker listen
-	// worker heartbeat
-	ack := func(message *domain.Message) (err error) {
-		if err != nil {
-			message.UpdateState(domain.ERROR)
-		} else {
-			message.UpdateState(domain.COMPLETE)
-		}
-		return c.db.UpdateMessage(message)
-	}
-	worker := NewWorker(domain.NewWorker(channel, 60), c.broker, ack)
-	if err := worker.Listen(); err != nil {
+	worker, done, err := c.CreateWorker(channel)
+	if err != nil {
 		return nil, err
 	}
-	done := make(chan any)
-	worker.Heartbeat(done, c.handleHeartbeat)
-	// store channel + worker in db
-	c.db.StoreWorker(worker.State())
 	// add worker to cache
 	c.state.workers[channel] = worker
 	c.state.destroyDependents[worker.State()] = append(c.state.destroyDependents[worker.State()], done)
 	return worker, nil
 }
 
-func (c *Orchestrator) RemoveSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
+func (c *Manager) RemoveSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
 		return false, err
@@ -115,7 +103,7 @@ func (c *Orchestrator) RemoveSubscription(subscriber *domain.Subscription, chann
 	return worker.RemoveSubscription(subscriber.Id), nil
 }
 
-func (c *Orchestrator) AddSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
+func (c *Manager) AddSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
 		return false, err
@@ -123,7 +111,7 @@ func (c *Orchestrator) AddSubscription(subscriber *domain.Subscription, channel 
 	return worker.AddSubscription(subscriber), nil
 }
 
-func (c *Orchestrator) PublishMessage(channel *domain.Channel, message *domain.Message) (err error) {
+func (c *Manager) PublishMessage(channel *domain.Channel, message *domain.Message) (err error) {
 	defer func() {
 		if err != nil {
 			message.State = domain.ERROR
@@ -139,7 +127,7 @@ func (c *Orchestrator) PublishMessage(channel *domain.Channel, message *domain.M
 	return worker.Publish(message)
 }
 
-func (c *Orchestrator) handleHeartbeat(worker *domain.Worker) {
+func (c *Manager) handleHeartbeat(worker *domain.Worker) {
 	worker.UpdateHeartbeat()
 	err := c.db.UpdateWorker(worker)
 	if err != nil {
@@ -147,7 +135,7 @@ func (c *Orchestrator) handleHeartbeat(worker *domain.Worker) {
 	}
 }
 
-func (c *Orchestrator) SpawnWatcher() chan any {
+func (c *Manager) SpawnWatcher() chan any {
 	destroy := make(chan any)
 	go func() {
 		for {
@@ -164,7 +152,7 @@ func (c *Orchestrator) SpawnWatcher() chan any {
 	return destroy
 }
 
-func (c *Orchestrator) Destroy() {
+func (c *Manager) Destroy() {
 	c.state.mu.Lock()
 	defer func() {
 		c.state.state = domain.INACTIVE
@@ -177,7 +165,33 @@ func (c *Orchestrator) Destroy() {
 	}
 }
 
-func (c *Orchestrator) DestroyWorker(worker *domain.Worker) (err error) {
+func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, error) {
+	ack := func(message *domain.Message) (err error) {
+		if err != nil {
+			message.UpdateState(domain.ERROR)
+		} else {
+			message.UpdateState(domain.COMPLETE)
+		}
+		return c.db.UpdateMessage(message)
+	}
+	worker := NewWorker(domain.NewWorker(channel, 60), c.broker, ack)
+	if err := worker.Listen(); err != nil {
+		return nil, nil, err
+	}
+	done := make(chan any)
+	worker.Heartbeat(done, c.handleHeartbeat)
+	// store channel + worker in db
+	if err := c.db.StoreWorker(worker.State()); err != nil {
+		close(done)
+		return nil, nil, err
+	}
+	return worker, done, nil
+}
+
+func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
+	if worker == nil {
+		return
+	}
 	c.state.mu.Lock()
 	svc := c.state.workers[worker.Channel]
 	chans := c.state.destroyDependents[worker]

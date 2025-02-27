@@ -11,7 +11,7 @@ import (
 )
 
 type Controller struct {
-	orc service.Orchestrator
+	mgr service.ManagerProvider
 }
 
 func NewController() *Controller {
@@ -39,7 +39,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Read error or client disconnected: %v", err)
 			break
 		}
-		c.orc.PublishMessage(channel, domain.NewMessage(clientId, msg))
+		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, msg))
 		log.Printf("Received message (type %v): %s", typ, msg)
 	}
 }
@@ -71,6 +71,6 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		log.Println("Sent message to client")
 		return nil
 	}
-	c.orc.AddSubscription(sub, channel)
+	c.mgr.AddSubscription(sub, channel)
 	<-r.Context().Done()
 }

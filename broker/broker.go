@@ -6,7 +6,7 @@ import (
 	"github.com/arrno/chanban/domain"
 )
 
-type IBroker interface {
+type BrokerProvider interface {
 	CreateChannel(channel *domain.Channel) error
 	DestroyChannel(channel *domain.Channel) error
 	PublishMessage(ctx context.Context, channel *domain.Channel, m *domain.Message) error

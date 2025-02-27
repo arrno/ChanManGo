@@ -10,7 +10,7 @@ import (
 	"github.com/arrno/chanban/util"
 )
 
-type IWorker interface {
+type WorkerProvider interface {
 	Listen() error // open subscription... on message, broadcast
 	Destroy() error
 	Publish(*domain.Message) error
@@ -23,12 +23,12 @@ type IWorker interface {
 type Worker struct {
 	mu               sync.Mutex
 	worker           *domain.Worker
-	broker           broker.IBroker
+	broker           broker.BrokerProvider
 	rootSubscription *domain.Subscription
 	subscribers      map[string]*domain.Subscription
 }
 
-func NewWorker(state *domain.Worker, broker broker.IBroker, ack func(message *domain.Message) error) *Worker {
+func NewWorker(state *domain.Worker, broker broker.BrokerProvider, ack func(message *domain.Message) error) *Worker {
 	w := Worker{
 		worker: state,
 		broker: broker,

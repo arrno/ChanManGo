@@ -16,7 +16,7 @@ var (
 )
 
 // Client / Portal / Groups
-type IDatastore interface {
+type DatastoreProvider interface {
 	StoreChannel(*domain.Channel) error
 	GetChannel(id string) (*domain.Channel, error)
 	UpdateChannel(*domain.Channel) error
@@ -37,5 +37,5 @@ type IDatastore interface {
 	UpdateMessage(*domain.Message) error
 	ArchiveMessage(id string) error
 	//
-	WithTx(f func(tx IDatastore) error) error
+	WithTx(f func(tx DatastoreProvider) error) error
 }
