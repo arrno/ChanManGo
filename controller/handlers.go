@@ -1,57 +1,67 @@
 package controller
 
 import (
+	"context"
+	"log"
 	"net/http"
 
+	"github.com/arrno/chanban/domain"
 	"github.com/coder/websocket"
 )
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
-
-	// Parse payload
-	// if chan does not exist, c.CreateChannel
-
-	// body, err := io.ReadAll(r.Body)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer r.Body.Close()
-
-	// var data map[string]any
-	// err = json.Unmarshal(body, &data)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	clientId := r.Header.Get("clientId")
+	portalId := r.Header.Get("portalId")
+	topic := r.Header.Get("topic")
+	channel := domain.NewChannel(portalId, topic)
 
 	conn, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to accept WebSocket connection: %v", err)
+		return
 	}
-	defer conn.CloseNow()
+	defer conn.Close(websocket.StatusNormalClosure, "Closing connection")
 
-	// incr publisher count
-	// defer decrement publisher count
+	log.Println("Client connected for reading")
 
-	// c.PublishMessage as they come in
-
-	conn.Close(websocket.StatusNormalClosure, "")
-
+	for {
+		typ, msg, err := conn.Read(r.Context())
+		if err != nil {
+			log.Printf("Read error or client disconnected: %v", err)
+			break
+		}
+		c.PublishMessage(channel, domain.NewMessage(clientId, msg))
+		log.Printf("Received message (type %v): %s", typ, msg)
+	}
 }
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
-
-	// Parse payload
-	// if chan does not exist, err
+	clientId := r.Header.Get("clientId")
+	portalId := r.Header.Get("portalId")
+	topic := r.Header.Get("topic")
+	channel := domain.NewChannel(portalId, topic)
+	sub := domain.NewSubscription(clientId, topic)
 
 	conn, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to accept WebSocket connection: %v", err)
+		return
 	}
-	defer conn.CloseNow()
+	defer conn.Close(websocket.StatusNormalClosure, "Closing connection")
 
-	// NewSubscription
-	// c.AddSubscription()
-	// defer unsubscribe
+	log.Println("Client connected for writing")
 
-	conn.Close(websocket.StatusNormalClosure, "")
+	ctx := context.Background()
+
+	sub.Callback = func(message *domain.Message) error {
+		err := conn.Write(ctx, websocket.MessageText, message.Payload)
+		if err != nil {
+			log.Printf("Write error or client disconnected: %v", err)
+			return err
+		}
+		log.Println("Sent message to client")
+		return nil
+	}
+	c.AddSubscription(sub, channel)
+	<-r.Context().Done()
 }

@@ -19,7 +19,10 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+		// w.Header().Set("Content-Type", "application/json")
+		r.Header.Add("portalId", "testPortal")
+		r.Header.Add("clientId", "testClient")
+		r.Header.Add("topic", "testTopic")
 		handler(w, r)
 	}
 }

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/arrno/chanban/datastore"
 	"github.com/arrno/chanban/domain"
 	"github.com/arrno/chanban/service"
-	"github.com/arrno/chanban/util"
 	"github.com/rs/zerolog/log"
 )
 
@@ -39,6 +39,17 @@ func NewController() *Controller {
 	return new(Controller)
 }
 
+func (c *Controller) cannelExistsTx(tx datastore.IDatastore, channel *domain.Channel) (bool, error) {
+	_, err := tx.GetChannel(channel.Id)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, datastore.ErrNotFound) {
+		return false, nil
+	}
+	return false, err
+}
+
 func (c *Controller) ExpectChannel(channel *domain.Channel) (service.IWorker, error) {
 	c.state.mu.Lock()
 	defer c.state.mu.Unlock()
@@ -46,33 +57,36 @@ func (c *Controller) ExpectChannel(channel *domain.Channel) (service.IWorker, er
 		return worker, nil
 	}
 
-	channelExists := false // TODO check datastore
-	if !channelExists {
-		// init channel in DB
-		// init channel in broker
-		_, err := util.InParallel(
-			func() (any, error) {
-				if err := c.broker.CreateChannel(channel); err != nil {
-					return nil, err
-				}
-				return nil, nil
-			},
-			func() (any, error) {
-				if err := c.db.StoreChannel(channel); err != nil {
-					return nil, err
-				}
-				return nil, nil
-			},
-		)
+	var channelExists bool
+	var err error
+	err = c.db.WithTx(func(tx datastore.IDatastore) error {
+		channelExists, err = c.cannelExistsTx(tx, channel)
 		if err != nil {
+			return err
+		}
+		if channelExists {
+			return nil
+		}
+		if err := c.db.StoreChannel(channel); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !channelExists {
+		if err := c.broker.CreateChannel(channel); err != nil {
 			return nil, err
 		}
+		return nil, nil
 	}
 
 	// spin up worker
 	// worker listen
 	// worker heartbeat
-	worker := service.NewWorker(domain.NewWorker(channel, 60), c.broker)
+	worker := service.NewWorker(domain.NewWorker(channel, 60), c.db, c.broker)
 	if err := worker.Listen(); err != nil {
 		return nil, err
 	}
@@ -84,14 +98,6 @@ func (c *Controller) ExpectChannel(channel *domain.Channel) (service.IWorker, er
 	c.state.workers[channel] = worker
 	c.state.destroyDependents = append(c.state.destroyDependents, done)
 	return worker, nil
-}
-
-func (c *Controller) DestroyChannel() {
-	// destroy worker
-	// remove channel in broker
-	// close worker heartbeat
-	// update channel + worker in db
-	// remove worker/hb from cache
 }
 
 func (c *Controller) RemoveSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
@@ -127,6 +133,7 @@ func (c *Controller) PublishMessage(channel *domain.Channel, message *domain.Mes
 }
 
 func (c *Controller) handleHeartbeat(worker *domain.Worker) {
+	worker.UpdateHeartbeat()
 	err := c.db.UpdateWorker(worker)
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("Worker heartbeat failed to update: %s. Err: %s ", worker.Repr(), err.Error()))
@@ -142,7 +149,8 @@ func (c *Controller) SpawnWatcher() chan any {
 				return
 			case <-time.After(time.Duration(c.cleanupIntervalSec) * time.Second):
 				// check worker state/heartbeats, check message failures, check channel states
-				// when there are no publishers and no subscribers to a channel, archive the worker
+				// fix broken workers/messages
+				// when there are no publishers and no subscribers to a channel, prune worker from memory
 			}
 		}
 	}()
@@ -160,4 +168,9 @@ func (c *Controller) Destroy() {
 	}
 }
 
-func (c *Controller) HandleArchiveChannel() {}
+func (c *Controller) DestroyWorker() {
+	// destroy worker
+	// close worker heartbeat
+	// update worker in db
+	// remove worker/hb from cache
+}

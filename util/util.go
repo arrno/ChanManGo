@@ -1,6 +1,8 @@
 package util
 
 import (
+	"crypto/sha256"
+	"math/big"
 	"math/rand/v2"
 	"strconv"
 	"strings"
@@ -52,4 +54,27 @@ func InParallel[T any](funcs ...func() (T, error)) ([]T, error) {
 		}
 	}
 	return results, nil
+}
+
+func CreateHashedID(identifier string) string {
+	// return identifier
+	// Create a SHA-256 hash of the identifier
+	hash := sha256.Sum256([]byte(identifier))
+
+	// Define the character set: uppercase, lowercase, and all numbers (0-9)
+	charSet := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	base := len(charSet)
+
+	// Convert the hash to an integer
+	hashInt := new(big.Int).SetBytes(hash[:])
+
+	// Create a 20-character identifier using the custom character set
+	hashedID := make([]byte, 20)
+	for i := 19; i >= 0; i-- {
+		remainder := new(big.Int)
+		hashInt.DivMod(hashInt, big.NewInt(int64(base)), remainder)
+		hashedID[i] = charSet[remainder.Int64()]
+	}
+
+	return string(hashedID)
 }

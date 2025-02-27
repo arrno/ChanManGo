@@ -22,16 +22,18 @@ func NewWorker(channel *Channel, hbIntervalSec uint) *Worker {
 	return &Worker{
 		Id:              util.Nanoid(),
 		Channel:         channel,
-		State:           PENDING,
+		State:           RUNNING,
 		IntervalSeconds: hbIntervalSec,
 	}
 }
-func (w *Worker) RLock() func() {
-	w.mu.RLock()
-	return func() {
-		defer w.mu.RUnlock()
-	}
+
+func (w *Worker) UpdateHeartbeat() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	t := time.Now()
+	w.Heartbeat = &t
 }
+
 func (w *Worker) Repr() string {
 	return fmt.Sprintf("{ WORKER: %s, STATE: %s, ARCHIVED: %t, INTERVAL: %d }", w.Id, w.State, w.Archived, w.IntervalSeconds)
 }

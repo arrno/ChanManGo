@@ -5,8 +5,10 @@ message - a unit of info published to a channel
 channel - a portal scoped message channel listened to by many distributes workers
 portal - client domain
 client - authed client
+group - a permission scope for clients/channelExists
 worker - pub/sub on instance hosting N client publishers/subscribers
 
+a channel/client belongs to many groups
 a portal has many clients
 a client has many subscriptions/writes
 a worker hosts many subscriptions/publishers

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/arrno/chanban/broker"
+	"github.com/arrno/chanban/datastore"
 	"github.com/arrno/chanban/domain"
 	"github.com/arrno/chanban/util"
 )
@@ -23,18 +24,20 @@ type IWorker interface {
 type Worker struct {
 	mu               sync.Mutex
 	worker           *domain.Worker
+	db               datastore.IDatastore
 	broker           broker.IBroker
 	rootSubscription *domain.Subscription
 	subscribers      map[string]*domain.Subscription
 }
 
-func NewWorker(state *domain.Worker, broker broker.IBroker) *Worker {
+func NewWorker(state *domain.Worker, db datastore.IDatastore, broker broker.IBroker) *Worker {
 	w := Worker{
 		worker: state,
 		broker: broker,
+		db:     db,
 		rootSubscription: &domain.Subscription{
 			Id:        util.Nanoid(),
-			ClientId:  state.Channel.ClientId,
+			ClientId:  state.Channel.PortalId,
 			TopicName: state.Channel.TopicName,
 			State:     domain.PENDING,
 			Archived:  false,
@@ -43,7 +46,16 @@ func NewWorker(state *domain.Worker, broker broker.IBroker) *Worker {
 		subscribers: map[string]*domain.Subscription{},
 	}
 	// Broadcast
-	w.rootSubscription.Callback = func(message domain.Message) error {
+	w.rootSubscription.Callback = func(message *domain.Message) (err error) {
+		defer func() {
+			if err != nil {
+				message.UpdateState(domain.ERROR)
+			} else {
+				message.UpdateState(domain.COMPLETE)
+			}
+			w.db.UpdateMessage(message)
+
+		}()
 		var wg sync.WaitGroup
 		wg.Add(len(w.subscribers))
 		errChan := make(chan error, 1)
@@ -63,11 +75,11 @@ func NewWorker(state *domain.Worker, broker broker.IBroker) *Worker {
 		}
 		wg.Wait()
 		select {
-		case err := <-errChan:
-			return err
+		case err = <-errChan:
+			return
 		default:
 		}
-		return nil
+		return
 	}
 	return &w
 }
@@ -152,8 +164,6 @@ func (w *Worker) Heartbeat(done chan any, f func(*domain.Worker)) {
 				return
 			case <-time.After(time.Duration(w.worker.IntervalSeconds) * time.Second):
 				func() {
-					unlock := w.worker.RLock()
-					defer unlock()
 					f(w.worker)
 				}()
 			}

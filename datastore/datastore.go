@@ -1,6 +1,8 @@
 package datastore
 
 import (
+	"errors"
+
 	"github.com/arrno/chanban/domain"
 )
 
@@ -9,6 +11,11 @@ import (
 // many workers to a channel
 // many messages in a channel
 
+var (
+	ErrNotFound = errors.New("Target record not found")
+)
+
+// Client / Portal / Groups
 type IDatastore interface {
 	StoreChannel(*domain.Channel) error
 	GetChannel(id string) (*domain.Channel, error)
@@ -29,4 +36,6 @@ type IDatastore interface {
 	GetMessage(id string) (*domain.Message, error)
 	UpdateMessage(*domain.Message) error
 	ArchiveMessage(id string) error
+	//
+	WithTx(f func(tx IDatastore) error) error
 }
