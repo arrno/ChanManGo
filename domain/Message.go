@@ -8,13 +8,17 @@ import (
 )
 
 type Message struct {
-	mu             sync.Mutex
-	Id             string     `json:"id"`
-	ClientId       string     `json:"clientId"`
-	AcknowledgedAt *time.Time `json:"acknowledged"`
-	State          STATE      `json:"state"`
-	Archived       bool       `json:"archived"`
-	Payload        []byte     `json:"payload"`
+	mu                     sync.Mutex
+	Id                     string     `json:"id"`
+	ClientId               string     `json:"clientId"`
+	ProcessedByWorkerId    string     `json:"processedByWorkerId"`
+	ProcessedAt            *time.Time `json:"processedAt"`
+	AcknowledgedByWorkerId string     `json:"acknowledgedByWorkerId"`
+	AcknowledgedAt         *time.Time `json:"acknowledged"`
+	State                  STATE      `json:"state"`
+	Archived               bool       `json:"archived"`
+	Payload                []byte     `json:"payload"`
+	Attempts               uint       `json:"attempts"`
 }
 
 func NewMessage(clientId string, payload []byte) *Message {
@@ -30,4 +34,21 @@ func (m *Message) UpdateState(s STATE) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.State = s
+}
+
+func (m *Message) Process(w *Worker) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t := time.Now()
+	m.ProcessedByWorkerId = w.Id
+	m.ProcessedAt = &t
+	m.Attempts++
+}
+
+func (m *Message) Acknowledge(w *Worker) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t := time.Now()
+	m.AcknowledgedByWorkerId = w.Id
+	m.AcknowledgedAt = &t
 }

@@ -13,6 +13,7 @@ import (
 )
 
 type ManagerProvider interface {
+	ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
 	CreateChannel(channel domain.Channel)
 	DestroyChannel(id string)
 	CreateWorker(channel *domain.Channel) (*Worker, chan any, error)
@@ -82,7 +83,6 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
 		if err := c.broker.CreateChannel(channel); err != nil {
 			return nil, err
 		}
-		return nil, nil
 	}
 
 	worker, done, err := c.CreateWorker(channel)
@@ -143,9 +143,18 @@ func (c *Manager) SpawnWatcher() chan any {
 			case <-destroy:
 				return
 			case <-time.After(time.Duration(c.cleanupIntervalSec) * time.Second):
-				// check worker state/heartbeats, check message failures, check channel states
-				// fix broken workers/messages
-				// when there are no publishers and no subscribers to a channel, prune worker from memory
+				if err := c.HealChannels(); err != nil {
+					log.Error().Msg("Failed to heal channels. Err: " + err.Error())
+				}
+				if err := c.HealWorkers(); err != nil {
+					log.Error().Msg("Failed to heal workers. Err: " + err.Error())
+				}
+				if err := c.HealMessages(); err != nil {
+					log.Error().Msg("Failed to heal messages. Err: " + err.Error())
+				}
+				if err := c.PruneWorkers(); err != nil {
+					log.Error().Msg("Failed to prune workers. Err: " + err.Error())
+				}
 			}
 		}
 	}()
@@ -166,7 +175,7 @@ func (c *Manager) Destroy() {
 }
 
 func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, error) {
-	ack := func(message *domain.Message) (err error) {
+	update := func(message *domain.Message) (err error) {
 		if err != nil {
 			message.UpdateState(domain.ERROR)
 		} else {
@@ -174,7 +183,7 @@ func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, erro
 		}
 		return c.db.UpdateMessage(message)
 	}
-	worker := NewWorker(domain.NewWorker(channel, 60), c.broker, ack)
+	worker := NewWorker(domain.NewWorker(channel, 60), c.broker, update)
 	if err := worker.Listen(); err != nil {
 		return nil, nil, err
 	}
@@ -216,4 +225,43 @@ func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
 	delete(c.state.workers, worker.Channel)
 	delete(c.state.destroyDependents, worker)
 	return
+}
+
+// TODO
+func (c *Manager) HealWorkers() error {
+	// fetch all workers owned by this manager that errored or stopped heartbeat
+	// reboot workers
+	return nil
+}
+
+// TODO
+func (c *Manager) HealMessages() error {
+	// fetch all messages processed by owned workers that failed
+	// reprocess all messages if attempts < max
+	return nil
+}
+func (c *Manager) HealChannels() error {
+	// channels are abstract... they can't really be broken
+	return nil
+}
+func (c *Manager) PruneWorkers() (err error) {
+	for worker := range c.workersReport() {
+		if worker.Idle() {
+			if desErr := c.DestroyWorker(worker.State()); desErr != nil {
+				err = desErr
+			}
+		}
+	}
+	return
+}
+
+func (c *Manager) workersReport() <-chan WorkerProvider {
+	workers := make(chan WorkerProvider)
+	go func() {
+		defer close(workers)
+		for _, w := range c.state.workers {
+			workers <- w
+		}
+	}()
+	return workers
 }

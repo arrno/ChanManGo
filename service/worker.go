@@ -11,10 +11,14 @@ import (
 )
 
 type WorkerProvider interface {
+	State() *domain.Worker
 	Listen() error // open subscription... on message, broadcast
 	Destroy() error
+	Reboot() error
+	Idle() bool
 	Publish(*domain.Message) error
 	Heartbeat(done chan any, f func(*domain.Worker))
+	IncrPublishers() func()
 	AddSubscription(subscriber *domain.Subscription) bool
 	RemoveSubscription(id string) bool
 }
@@ -26,9 +30,10 @@ type Worker struct {
 	broker           broker.BrokerProvider
 	rootSubscription *domain.Subscription
 	subscribers      map[string]*domain.Subscription
+	publishers       uint
 }
 
-func NewWorker(state *domain.Worker, broker broker.BrokerProvider, ack func(message *domain.Message) error) *Worker {
+func NewWorker(state *domain.Worker, broker broker.BrokerProvider, update func(message *domain.Message) error) *Worker {
 	w := Worker{
 		worker: state,
 		broker: broker,
@@ -45,7 +50,8 @@ func NewWorker(state *domain.Worker, broker broker.BrokerProvider, ack func(mess
 	// Broadcast
 	w.rootSubscription.Callback = func(message *domain.Message) (err error) {
 
-		defer ack(message)
+		message.Acknowledge(w.worker)
+		defer update(message)
 
 		var wg sync.WaitGroup
 		wg.Add(len(w.subscribers))
@@ -82,7 +88,19 @@ func (w *Worker) State() *domain.Worker {
 }
 
 func (w *Worker) Publish(message *domain.Message) error {
+	message.Process(w.worker)
 	return w.broker.PublishMessage(context.Background(), w.worker.Channel, message)
+}
+
+func (w *Worker) IncrPublishers() func() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.publishers++
+	return func() {
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		w.publishers--
+	}
 }
 
 func (w *Worker) Listen() (err error) {
@@ -121,6 +139,13 @@ func (w *Worker) Destroy() (err error) {
 		w.rootSubscription,
 	)
 	return
+}
+func (w *Worker) Reboot() (err error) {
+	return nil
+}
+
+func (w *Worker) Idle() bool {
+	return w.publishers == 0 && len(w.subscribers) == 0
 }
 
 func (w *Worker) AddSubscription(subscriber *domain.Subscription) bool {

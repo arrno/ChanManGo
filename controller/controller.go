@@ -33,6 +33,14 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Client connected for reading")
 
+	worker, err := c.mgr.ExpectChannel(channel)
+	if err != nil {
+		log.Printf("Failed to open channel: %v", err)
+		return
+	}
+	decrement := worker.IncrPublishers()
+	defer decrement()
+
 	for {
 		typ, msg, err := conn.Read(r.Context())
 		if err != nil {
