@@ -27,10 +27,15 @@ type DatastoreProvider interface {
 	UpdateWorker(*domain.Worker) error
 	ArchiveWorker(id string) error
 	//
-	StoreSubscriber(*domain.Subscription) error
-	GetSubscriber(id string) (*domain.Subscription, error)
-	UpdateSubscriber(*domain.Subscription) error
-	ArchiveSubscriber(id string) error
+	StoreTopicSubscriber(*domain.TopicSubscription) error
+	GetTopicSubscriber(id string) (*domain.TopicSubscription, error)
+	UpdateTopicSubscriber(*domain.TopicSubscription) error
+	ArchiveTopicSubscriber(id string) error
+	//
+	StoreChannelSubscriber(*domain.ChannelSubscription) error
+	GetChannelSubscriber(id string) (*domain.ChannelSubscription, error)
+	UpdateChannelSubscriber(*domain.ChannelSubscription) error
+	ArchiveChannelSubscriber(id string) error
 	//
 	StoreMessage(*domain.Message) error
 	GetMessage(id string) (*domain.Message, error)

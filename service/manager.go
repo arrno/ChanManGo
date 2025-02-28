@@ -18,8 +18,8 @@ type ManagerProvider interface {
 	DestroyChannel(id string)
 	CreateWorker(channel *domain.Channel) (*Worker, chan any, error)
 	DestroyWorker(worker *domain.Worker) (err error)
-	AddSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error)
-	RemoveSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error)
+	AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error)
+	RemoveSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) error
 	PublishMessage(channel *domain.Channel, message *domain.Message) (err error)
 }
 
@@ -95,15 +95,16 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
 	return worker, nil
 }
 
-func (c *Manager) RemoveSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
+func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) error {
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return worker.RemoveSubscription(subscriber.Id), nil
+	worker.RemoveSubscription(subscriber.Topics, subscriber.Id)
+	return nil
 }
 
-func (c *Manager) AddSubscription(subscriber *domain.Subscription, channel *domain.Channel) (bool, error) {
+func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error) {
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
 		return false, err

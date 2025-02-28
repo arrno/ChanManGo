@@ -10,6 +10,6 @@ type BrokerProvider interface {
 	CreateChannel(channel *domain.Channel) error
 	DestroyChannel(channel *domain.Channel) error
 	PublishMessage(ctx context.Context, channel *domain.Channel, m *domain.Message) error
-	SubscribeForMessages(ctx context.Context, channel *domain.Channel, subscriber *domain.Subscription) error
-	UnsubscribeForMessages(ctx context.Context, channel *domain.Channel, subscriber *domain.Subscription) error
+	SubscribeForMessages(ctx context.Context, channel *domain.Channel, subscriber *domain.ChannelSubscription) error
+	UnsubscribeForMessages(ctx context.Context, channel *domain.Channel, subscriber *domain.ChannelSubscription) error
 }

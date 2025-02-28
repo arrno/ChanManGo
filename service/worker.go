@@ -7,7 +7,6 @@ import (
 
 	"github.com/arrno/chanban/broker"
 	"github.com/arrno/chanban/domain"
-	"github.com/arrno/chanban/util"
 )
 
 type WorkerProvider interface {
@@ -19,8 +18,8 @@ type WorkerProvider interface {
 	Publish(*domain.Message) error
 	Heartbeat(done chan any, f func(*domain.Worker))
 	IncrPublishers() func()
-	AddSubscription(subscriber *domain.Subscription) bool
-	RemoveSubscription(id string) bool
+	AddSubscription(subscriber *domain.TopicSubscription) bool
+	RemoveSubscription(topics []string, id string)
 }
 
 // One worker per channel
@@ -28,8 +27,8 @@ type Worker struct {
 	mu               sync.Mutex
 	worker           *domain.Worker
 	broker           broker.BrokerProvider
-	rootSubscription *domain.Subscription
-	subscribers      map[string]*domain.Subscription
+	rootSubscription *domain.ChannelSubscription
+	subscriptionBook AddressBookProvider
 	publishers       uint
 }
 
@@ -37,15 +36,14 @@ func NewWorker(state *domain.Worker, broker broker.BrokerProvider, update func(m
 	w := Worker{
 		worker: state,
 		broker: broker,
-		rootSubscription: &domain.Subscription{
-			Id:        util.Nanoid(),
-			ClientId:  state.Channel.PortalId,
-			TopicName: state.Channel.TopicName,
-			State:     domain.PENDING,
-			Archived:  false,
-			Callback:  nil,
+		rootSubscription: &domain.ChannelSubscription{
+			Id:       state.Id,
+			PortalId: state.Channel.PortalId,
+			State:    domain.PENDING,
+			Archived: false,
+			Callback: nil,
 		},
-		subscribers: map[string]*domain.Subscription{},
+		subscriptionBook: NewAddressBook(state.Id),
 	}
 	// Broadcast
 	w.rootSubscription.Callback = func(message *domain.Message) (err error) {
@@ -53,16 +51,24 @@ func NewWorker(state *domain.Worker, broker broker.BrokerProvider, update func(m
 		message.Acknowledge(w.worker)
 		defer update(message)
 
+		var subscribers []*domain.TopicSubscription
+		if message.Topic != "all" {
+			subscribers = w.subscriptionBook.FetchTopicSubscriptions([]string{"all"})
+		}
+		for _, v := range w.subscriptionBook.FetchTopicSubscriptions([]string{message.Topic}) {
+			subscribers = append(subscribers, v)
+		}
+
 		var wg sync.WaitGroup
-		wg.Add(len(w.subscribers))
+		wg.Add(len(subscribers))
 
 		errChan := make(chan error, 1)
 		done := make(chan any)
-
-		for _, sub := range w.subscribers {
+		for _, sub := range subscribers {
 			go func() {
 				defer wg.Done()
-				if err := sub.Callback(message); err != nil {
+				messageClone := message.Clone() // safe
+				if err := sub.Callback(&messageClone); err != nil {
 					select {
 					case errChan <- err:
 						close(done)
@@ -132,7 +138,7 @@ func (w *Worker) Destroy() (err error) {
 			w.worker.State = domain.INACTIVE
 		}
 	}()
-	w.subscribers = nil
+	w.subscriptionBook.Clear()
 	err = w.broker.UnsubscribeForMessages(
 		context.Background(),
 		w.worker.Channel,
@@ -145,33 +151,26 @@ func (w *Worker) Reboot() (err error) {
 }
 
 func (w *Worker) Idle() bool {
-	return w.publishers == 0 && len(w.subscribers) == 0
+	return w.publishers == 0 && w.subscriptionBook.Size() == 0
 }
 
-func (w *Worker) AddSubscription(subscriber *domain.Subscription) bool {
+func (w *Worker) AddSubscription(subscriber *domain.TopicSubscription) bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.worker.State != domain.RUNNING {
 		return false
 	}
-	if _, ok := w.subscribers[subscriber.Id]; ok {
-		return false
-	}
-	w.subscribers[subscriber.Id] = subscriber
+	w.subscriptionBook.CacheSubscription(subscriber)
 	return true
 }
 
-func (w *Worker) RemoveSubscription(id string) bool {
+func (w *Worker) RemoveSubscription(topics []string, id string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.worker.State != domain.RUNNING {
-		return false
+		return
 	}
-	if _, ok := w.subscribers[id]; !ok {
-		return false
-	}
-	delete(w.subscribers, id)
-	return true
+	w.subscriptionBook.UnCacheWorkerSubscription(topics, id)
 }
 
 func (w *Worker) Heartbeat(done chan any, f func(*domain.Worker)) {

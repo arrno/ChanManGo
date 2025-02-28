@@ -10,6 +10,7 @@ import (
 type Message struct {
 	mu                     sync.Mutex
 	Id                     string     `json:"id"`
+	Topic                  string     `json:"topic"`
 	ClientId               string     `json:"clientId"`
 	ProcessedByWorkerId    string     `json:"processedByWorkerId"`
 	ProcessedAt            *time.Time `json:"processedAt"`
@@ -21,12 +22,28 @@ type Message struct {
 	Attempts               uint       `json:"attempts"`
 }
 
-func NewMessage(clientId string, payload []byte) *Message {
+func NewMessage(clientId, topic string, payload []byte) *Message {
 	return &Message{
 		Id:       util.Nanoid(),
 		ClientId: clientId,
+		Topic:    topic,
 		State:    PENDING,
 		Payload:  payload,
+	}
+}
+
+func (m *Message) Clone() Message {
+	return Message{
+		Id:                     m.Id,
+		ClientId:               m.ClientId,
+		ProcessedByWorkerId:    m.ProcessedByWorkerId,
+		ProcessedAt:            m.ProcessedAt,
+		AcknowledgedByWorkerId: m.AcknowledgedByWorkerId,
+		AcknowledgedAt:         m.AcknowledgedAt,
+		State:                  m.State,
+		Archived:               m.Archived,
+		Payload:                m.Payload,
+		Attempts:               m.Attempts,
 	}
 }
 
