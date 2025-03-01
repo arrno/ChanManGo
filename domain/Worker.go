@@ -9,13 +9,16 @@ import (
 )
 
 type Worker struct {
-	mu              sync.RWMutex
-	Id              string     `json:"id"`
-	Channel         *Channel   `json:"channel"`
-	State           STATE      `json:"state"`
-	Archived        bool       `json:"archived"`
-	IntervalSeconds uint       `json:"intervalSeconds"`
-	Heartbeat       *time.Time `json:"heartbeat"`
+	mu              sync.RWMutex `json:"-"`
+	Id              string       `json:"id"`
+	Channel         *Channel     `json:"channel"`
+	State           STATE        `json:"state"`
+	Archived        bool         `json:"archived"`
+	IntervalSeconds uint         `json:"intervalSeconds"`
+	Heartbeat       *time.Time   `json:"heartbeat"`
+	CreatedAt       time.Time    `json:"createdAt"`
+	UpdatedAt       time.Time    `json:"updateAt"`
+	ArchivedAt      *time.Time   `json:"archivedAt"`
 }
 
 func NewWorker(channel *Channel, hbIntervalSec uint) *Worker {

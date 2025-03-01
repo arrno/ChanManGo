@@ -8,7 +8,7 @@ import (
 )
 
 type Message struct {
-	mu                     sync.Mutex
+	mu                     sync.Mutex `json:"-"`
 	Id                     string     `json:"id"`
 	Topic                  string     `json:"topic"`
 	ClientId               string     `json:"clientId"`
@@ -20,6 +20,9 @@ type Message struct {
 	Archived               bool       `json:"archived"`
 	Payload                []byte     `json:"payload"`
 	Attempts               uint       `json:"attempts"`
+	CreatedAt              time.Time  `json:"createdAt"`
+	UpdatedAt              time.Time  `json:"updateAt"`
+	ArchivedAt             *time.Time `json:"archivedAt"`
 }
 
 func NewMessage(clientId, topic string, payload []byte) *Message {
@@ -44,6 +47,9 @@ func (m *Message) Clone() Message {
 		Archived:               m.Archived,
 		Payload:                m.Payload,
 		Attempts:               m.Attempts,
+		CreatedAt:              m.CreatedAt,
+		UpdatedAt:              m.UpdatedAt,
+		ArchivedAt:             m.ArchivedAt,
 	}
 }
 
