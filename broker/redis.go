@@ -32,12 +32,14 @@ const (
 
 // RedisBroker implements the BrokerProvider interface using Redis
 type RedisBroker struct {
-	client *redis.Client
 	// workerId         string
-	subscriptions    sync.Map
-	subscribedTopics sync.Map
-	shutdownCh       chan struct{}
-	wg               sync.WaitGroup
+	// subscriptions          sync.Map
+	client                 *redis.Client
+	subscriptionsMu        sync.RWMutex
+	subscriptionsByChannel map[string]map[string]*domain.ChannelSubscription
+	subscribedTopics       sync.Map
+	shutdownCh             chan struct{}
+	wg                     sync.WaitGroup
 }
 
 // NewRedisBroker creates a new Redis-based message broker
@@ -61,9 +63,9 @@ func NewRedisBroker(redisAddr, redisPassword string, redisDB int) (*RedisBroker,
 
 	broker := &RedisBroker{
 		// workerId:      workerId,
-		client:        client,
-		subscriptions: sync.Map{},
-		shutdownCh:    make(chan struct{}),
+		client:                 client,
+		subscriptionsByChannel: make(map[string]map[string]*domain.ChannelSubscription),
+		shutdownCh:             make(chan struct{}),
 	}
 
 	// Start stream cleanup goroutine
@@ -100,6 +102,7 @@ func (r *RedisBroker) CreateChannel(channel *domain.Channel) error {
 	pipe := r.client.Pipeline()
 
 	// Create stream with a dummy message that will be trimmed later
+	// ... this doesn't actually get trimmed as is
 	pipe.XAdd(ctx, &redis.XAddArgs{
 		Stream: streamKey,
 		ID:     "*",
@@ -119,11 +122,6 @@ func (r *RedisBroker) CreateChannel(channel *domain.Channel) error {
 		"createdAt", time.Now().UnixNano(),
 	)
 
-	// Set expiry on metadata if channel is archived
-	if channel.Archived {
-		pipe.Expire(ctx, metadataKey, 7*24*time.Hour) // 7 days retention for archived channels
-	}
-
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
@@ -131,6 +129,36 @@ func (r *RedisBroker) CreateChannel(channel *domain.Channel) error {
 
 	// Trim the stream to remove initialization message if it's the only one
 	r.client.XTrimMaxLen(ctx, streamKey, maxStreamLength)
+
+	return nil
+}
+
+func (r *RedisBroker) UpdateChannel(channel *domain.Channel) error {
+	ctx := context.Background()
+	metadataKey := fmt.Sprintf(metadataPrefix, channel.Id)
+	notificationChannel := fmt.Sprintf(notificationPrefix, channel.Id)
+
+	pipe := r.client.Pipeline()
+	// Store channel metadata
+	pipe.HSet(ctx, metadataKey,
+		"id", channel.Id,
+		"portalId", channel.PortalId,
+		"name", channel.Name,
+		"state", string(channel.State),
+		"archived", channel.Archived,
+		"createdAt", time.Now().UnixNano(),
+	)
+	pipe.Publish(ctx, notificationChannel, "channel.updated")
+
+	// Set expiry on metadata if channel is archived
+	if channel.Archived {
+		pipe.Expire(ctx, metadataKey, 7*24*time.Hour) // 7 days retention for archived channels
+	}
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to update channel: %w", err)
+	}
 
 	return nil
 }
@@ -220,17 +248,24 @@ func (r *RedisBroker) PublishMessage(ctx context.Context, channel *domain.Channe
 
 // SubscribeForMessages subscribes to messages on a channel
 func (r *RedisBroker) SubscribeForMessages(ctx context.Context, channel *domain.Channel, subscriber *domain.ChannelSubscription) error {
-	// Store subscription in local registry with channel ID as key
-	subscriptionKey := fmt.Sprintf("%s:%s", channel.Id, subscriber.Id)
-	r.subscriptions.Store(subscriptionKey, subscriber)
+
+	r.subscriptionsMu.Lock()
+	// Initialize map for this channel if it doesn't exist
+	if _, ok := r.subscriptionsByChannel[channel.Id]; !ok {
+		r.subscriptionsByChannel[channel.Id] = make(map[string]*domain.ChannelSubscription)
+	}
+	// Store subscription directly in the channel-specific map
+	r.subscriptionsByChannel[channel.Id][subscriber.Id] = subscriber
+	_, alreadySubscribed := r.subscribedTopics.LoadOrStore(channel.Id, true)
+	r.subscriptionsMu.Unlock()
 
 	// Check if we're already subscribed to this channel's notifications
-	if _, alreadySubscribed := r.subscribedTopics.LoadOrStore(channel.Id, true); !alreadySubscribed {
+	if !alreadySubscribed {
 		// Start a new goroutine for this channel's subscription
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			r.subscribeToChannelMessages(ctx, channel)
+			r.subscribeToChannelMessages(ctx, false, channel)
 		}()
 	}
 
@@ -239,23 +274,15 @@ func (r *RedisBroker) SubscribeForMessages(ctx context.Context, channel *domain.
 
 // UnsubscribeForMessages removes a subscription from a channel
 func (r *RedisBroker) UnsubscribeForMessages(ctx context.Context, channel *domain.Channel, subscriber *domain.ChannelSubscription) error {
-	subscriptionKey := fmt.Sprintf("%s:%s", channel.Id, subscriber.Id)
-	r.subscriptions.Delete(subscriptionKey)
-
-	// Count remaining subscriptions for this channel
 	hasSubscribers := false
-	r.subscriptions.Range(func(key, value interface{}) bool {
-		k, ok := key.(string)
-		if !ok {
-			return true
-		}
 
-		if k[:len(channel.Id)] == channel.Id {
-			hasSubscribers = true
-			return false // stop iteration
-		}
-		return true
-	})
+	r.subscriptionsMu.Lock()
+	defer r.subscriptionsMu.Unlock()
+
+	if subscriptions, ok := r.subscriptionsByChannel[channel.Id]; ok {
+		hasSubscribers = len(subscriptions) > 1
+		delete(subscriptions, subscriber.Id)
+	}
 
 	// If no more subscribers for this channel, remove from subscribed topics
 	if !hasSubscribers {
@@ -266,12 +293,23 @@ func (r *RedisBroker) UnsubscribeForMessages(ctx context.Context, channel *domai
 }
 
 // subscribeToChannelMessages handles the subscription process for a specific channel
-func (r *RedisBroker) subscribeToChannelMessages(ctx context.Context, channel *domain.Channel) {
+func (r *RedisBroker) subscribeToChannelMessages(ctx context.Context, withHistory bool, channel *domain.Channel) {
 	streamKey := fmt.Sprintf(streamPrefix, channel.Id)
 	notificationChannel := fmt.Sprintf(notificationPrefix, channel.Id)
 
 	// Keep track of the last processed message ID
 	lastId := "0" // Start from beginning
+
+	// For subscribers that want only new messages
+	if !withHistory {
+		// Get the latest ID from the stream
+		latestInfo, err := r.client.XInfoStream(ctx, streamKey).Result()
+		if err == nil && latestInfo.LastGeneratedID != "" {
+			lastId = latestInfo.LastGeneratedID
+		} else {
+			lastId = "$" // Fallback to the special "$" ID meaning "latest"
+		}
+	}
 
 	// Subscribe to notifications
 	pubsub := r.client.Subscribe(context.Background(), notificationChannel)
@@ -294,7 +332,6 @@ func (r *RedisBroker) subscribeToChannelMessages(ctx context.Context, channel *d
 	// Listen for notifications and read messages
 	ch := pubsub.Channel()
 
-	// TODO what if we don't want to catch up tho.
 	// Read initial messages to catch up
 	r.readAndProcessMessages(subCtx, streamKey, channel, &lastId)
 
@@ -302,9 +339,12 @@ func (r *RedisBroker) subscribeToChannelMessages(ctx context.Context, channel *d
 		select {
 		case <-subCtx.Done():
 			return
-		case <-ch:
-			// Read new messages when notified
-			r.readAndProcessMessages(subCtx, streamKey, channel, &lastId)
+		case msg := <-ch:
+			log.Printf("Received message on notification channel %s: %s", notificationChannel, msg.String())
+			if msg.Payload == "new-message" {
+				// Read new messages when notified
+				r.readAndProcessMessages(subCtx, streamKey, channel, &lastId)
+			}
 		case <-time.After(5 * time.Second):
 			// Periodically poll for messages in case we missed a notification
 			r.readAndProcessMessages(subCtx, streamKey, channel, &lastId)
@@ -353,17 +393,15 @@ func (r *RedisBroker) readAndProcessMessages(ctx context.Context, streamKey stri
 
 // deliverMessageToSubscribers sends a message to all subscribers of a channel
 func (r *RedisBroker) deliverMessageToSubscribers(channel *domain.Channel, message *domain.Message) {
-	// Collect all subscribers for this channel
-	r.subscriptions.Range(func(key, value interface{}) bool {
-		k, ok := key.(string)
-		if !ok {
-			return true
-		}
 
-		// Check if subscription belongs to this channel
-		if k[:len(channel.Id)] == channel.Id {
-			subscription, ok := value.(*domain.ChannelSubscription)
-			if ok && subscription.Callback != nil && subscription.State != domain.STATE_ARCHIVED {
+	// r.subscriptionsMu.RLock()
+	// subscriptions := r.subscriptionsByChannel[channel.Id]
+	// r.subscriptionsMu.RUnlock()
+
+	// Collect all subscribers for this channel
+	if subscriptions, ok := r.subscriptionsByChannel[channel.Id]; ok {
+		for _, subscription := range subscriptions {
+			if subscription.Callback != nil && subscription.State != domain.STATE_ARCHIVED {
 				// Execute callback in a new goroutine to prevent blocking
 				r.wg.Add(1)
 				go func(sub *domain.ChannelSubscription, msg *domain.Message) {
@@ -374,9 +412,7 @@ func (r *RedisBroker) deliverMessageToSubscribers(channel *domain.Channel, messa
 				}(subscription, message)
 			}
 		}
-
-		return true
-	})
+	}
 }
 
 // mapRedisMessageToDomainMessage converts a Redis XMessage to a domain Message
@@ -475,7 +511,6 @@ func (r *RedisBroker) cleanupStreams() {
 }
 
 // Helper functions for converting Redis values
-
 func getString(values map[string]interface{}, key string) string {
 	if val, ok := values[key]; ok {
 		if str, ok := val.(string); ok {
