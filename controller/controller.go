@@ -15,7 +15,7 @@ type Controller struct {
 }
 
 func NewController() *Controller {
-	return new(Controller)
+	return &Controller{service.NewManager()}
 }
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {

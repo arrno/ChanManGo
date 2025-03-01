@@ -14,8 +14,8 @@ import (
 
 type ManagerProvider interface {
 	ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
-	CreateChannel(channel domain.Channel)
-	DestroyChannel(id string)
+	// CreateChannel(channel domain.Channel)
+	// DestroyChannel(id string)
 	CreateWorker(channel *domain.Channel) (*Worker, chan any, error)
 	DestroyWorker(worker *domain.Worker) (err error)
 	AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error)
@@ -27,10 +27,10 @@ type Manager struct {
 	cleanupIntervalSec uint
 	db                 datastore.DatastoreProvider
 	broker             broker.BrokerProvider
-	state              controllerState
+	state              managerState
 }
 
-type controllerState struct {
+type managerState struct {
 	mu                sync.RWMutex
 	state             domain.STATE
 	workers           map[*domain.Channel]WorkerProvider
@@ -38,8 +38,15 @@ type controllerState struct {
 }
 
 func NewManager() *Manager {
-	// broker / dn
-	return new(Manager)
+	return &Manager{
+		broker: broker.NewInMemoryBroker(),
+		db:     datastore.NewInMemoryDB(),
+		state: managerState{
+			state:             domain.STATE_RUNNING,
+			workers:           map[*domain.Channel]WorkerProvider{},
+			destroyDependents: map[*domain.Worker][]chan any{},
+		},
+	}
 }
 
 func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain.Channel) (bool, error) {

@@ -1,11 +1,7 @@
-handler
-tidy system on watcher loop
-    archive memory workers when not in use
----
-interface implementations
----
+self-healing / tidy
 client / portal / groups - store
 message ack/state
-register / auth
+register / auth / permission
+rate-limits
 ---
 scale
