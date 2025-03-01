@@ -115,7 +115,7 @@ func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel 
 func (c *Manager) PublishMessage(channel *domain.Channel, message *domain.Message) (err error) {
 	defer func() {
 		if err != nil {
-			message.State = domain.ERROR
+			message.State = domain.STATE_ERROR
 		}
 		if storeErr := c.db.StoreMessage(message); storeErr != nil {
 			err = fmt.Errorf("%w. %w", err, storeErr)
@@ -165,7 +165,7 @@ func (c *Manager) SpawnWatcher() chan any {
 func (c *Manager) Destroy() {
 	c.state.mu.Lock()
 	defer func() {
-		c.state.state = domain.INACTIVE
+		c.state.state = domain.STATE_INACTIVE
 		c.state.mu.Unlock()
 	}()
 	for _, chans := range c.state.destroyDependents {
@@ -178,9 +178,9 @@ func (c *Manager) Destroy() {
 func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, error) {
 	update := func(message *domain.Message) (err error) {
 		if err != nil {
-			message.UpdateState(domain.ERROR)
+			message.UpdateState(domain.STATE_ERROR)
 		} else {
-			message.UpdateState(domain.COMPLETE)
+			message.UpdateState(domain.STATE_COMPLETE)
 		}
 		return c.db.UpdateMessage(message)
 	}
@@ -214,9 +214,9 @@ func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
 		}
 		err = svc.Destroy()
 		if err != nil {
-			worker.UpdateState(domain.ERROR)
+			worker.UpdateState(domain.STATE_ERROR)
 		} else {
-			worker.UpdateState(domain.INACTIVE)
+			worker.UpdateState(domain.STATE_INACTIVE)
 		}
 		if writeErr := c.db.UpdateWorker(worker); writeErr != nil {
 			log.Error().Msg(fmt.Sprintf("Failed to write update to worker. Err: %s", writeErr.Error()))

@@ -27,7 +27,7 @@ func NewMessage(clientId, topic string, payload []byte) *Message {
 		Id:       util.Nanoid(),
 		ClientId: clientId,
 		Topic:    topic,
-		State:    PENDING,
+		State:    STATE_PENDING,
 		Payload:  payload,
 	}
 }
@@ -58,6 +58,7 @@ func (m *Message) Process(w *Worker) {
 	defer m.mu.Unlock()
 	t := time.Now()
 	m.ProcessedByWorkerId = w.Id
+	m.State = STATE_PROCESSED
 	m.ProcessedAt = &t
 	m.Attempts++
 }

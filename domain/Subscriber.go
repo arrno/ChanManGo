@@ -26,6 +26,6 @@ func NewTopicSubscription(clientId string, topics []string) *TopicSubscription {
 		Id:       util.Nanoid(),
 		ClientId: clientId,
 		Topics:   topics,
-		State:    ACTIVE,
+		State:    STATE_ACTIVE,
 	}
 }

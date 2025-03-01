@@ -17,6 +17,6 @@ func NewChannel(portalId, name string) *Channel {
 		Id:       fmt.Sprintf("%s__%s", portalId, name),
 		PortalId: portalId,
 		Name:     name,
-		State:    ACTIVE,
+		State:    STATE_ACTIVE,
 	}
 }

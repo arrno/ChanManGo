@@ -3,10 +3,12 @@ package domain
 type STATE string
 
 const (
-	PENDING  STATE = "pending"
-	RUNNING  STATE = "running"
-	ACTIVE   STATE = "active"
-	COMPLETE STATE = "complete"
-	INACTIVE STATE = "inactive"
-	ERROR    STATE = "error"
+	STATE_PENDING   STATE = "pending"
+	STATE_PROCESSED STATE = "processed"
+	STATE_RUNNING   STATE = "running"
+	STATE_ACTIVE    STATE = "active"
+	STATE_COMPLETE  STATE = "complete"
+	STATE_INACTIVE  STATE = "inactive"
+	STATE_ARCHIVED  STATE = "archived"
+	STATE_ERROR     STATE = "error"
 )

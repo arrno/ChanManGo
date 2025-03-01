@@ -22,7 +22,7 @@ func NewWorker(channel *Channel, hbIntervalSec uint) *Worker {
 	return &Worker{
 		Id:              util.Nanoid(),
 		Channel:         channel,
-		State:           RUNNING,
+		State:           STATE_RUNNING,
 		IntervalSeconds: hbIntervalSec,
 	}
 }

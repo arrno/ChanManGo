@@ -39,7 +39,7 @@ func NewWorker(state *domain.Worker, broker broker.BrokerProvider, update func(m
 		rootSubscription: &domain.ChannelSubscription{
 			Id:       state.Id,
 			PortalId: state.Channel.PortalId,
-			State:    domain.PENDING,
+			State:    domain.STATE_PENDING,
 			Archived: false,
 			Callback: nil,
 		},
@@ -112,9 +112,9 @@ func (w *Worker) IncrPublishers() func() {
 func (w *Worker) Listen() (err error) {
 	defer func() {
 		if err != nil {
-			w.worker.State = domain.ERROR
+			w.worker.State = domain.STATE_ERROR
 		} else {
-			w.worker.State = domain.RUNNING
+			w.worker.State = domain.STATE_RUNNING
 		}
 	}()
 	err = w.broker.SubscribeForMessages(
@@ -128,14 +128,14 @@ func (w *Worker) Listen() (err error) {
 func (w *Worker) Destroy() (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.worker.State == domain.INACTIVE {
+	if w.worker.State == domain.STATE_INACTIVE {
 		return nil
 	}
 	defer func() {
 		if err != nil {
-			w.worker.State = domain.ERROR
+			w.worker.State = domain.STATE_ERROR
 		} else {
-			w.worker.State = domain.INACTIVE
+			w.worker.State = domain.STATE_INACTIVE
 		}
 	}()
 	w.subscriptionBook.Clear()
@@ -157,7 +157,7 @@ func (w *Worker) Idle() bool {
 func (w *Worker) AddSubscription(subscriber *domain.TopicSubscription) bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.worker.State != domain.RUNNING {
+	if w.worker.State != domain.STATE_RUNNING {
 		return false
 	}
 	w.subscriptionBook.CacheSubscription(subscriber)
@@ -167,7 +167,7 @@ func (w *Worker) AddSubscription(subscriber *domain.TopicSubscription) bool {
 func (w *Worker) RemoveSubscription(topics []string, id string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.worker.State != domain.RUNNING {
+	if w.worker.State != domain.STATE_RUNNING {
 		return
 	}
 	w.subscriptionBook.UnCacheWorkerSubscription(topics, id)
