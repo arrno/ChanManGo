@@ -51,18 +51,22 @@ func NewManager() *Manager {
 
 func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain.Channel) (bool, error) {
 	_, err := tx.GetChannel(channel.Id)
+
 	if err == nil {
 		return true, nil
 	}
+
 	if errors.Is(err, datastore.ErrNotFound) {
 		return false, nil
 	}
+
 	return false, err
 }
 
 func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error) {
 	c.state.mu.Lock()
 	defer c.state.mu.Unlock()
+
 	if worker, ok := c.state.workers[channel]; ok {
 		return worker, nil
 	}
@@ -82,6 +86,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
 		}
 		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +101,11 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
 	if err != nil {
 		return nil, err
 	}
+
 	// add worker to cache
 	c.state.workers[channel] = worker
 	c.state.destroyDependents[worker.State()] = append(c.state.destroyDependents[worker.State()], done)
+
 	return worker, nil
 }
 
@@ -107,6 +114,7 @@ func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, chann
 	if err != nil {
 		return err
 	}
+
 	worker.RemoveSubscription(subscriber.Topics, subscriber.Id)
 	return nil
 }
@@ -128,10 +136,12 @@ func (c *Manager) PublishMessage(channel *domain.Channel, message *domain.Messag
 			err = fmt.Errorf("%w. %w", err, storeErr)
 		}
 	}()
+
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
 		return err
 	}
+
 	return worker.Publish(message)
 }
 
@@ -166,15 +176,18 @@ func (c *Manager) SpawnWatcher() chan any {
 			}
 		}
 	}()
+
 	return destroy
 }
 
 func (c *Manager) Destroy() {
 	c.state.mu.Lock()
+
 	defer func() {
 		c.state.state = domain.STATE_INACTIVE
 		c.state.mu.Unlock()
 	}()
+
 	for _, chans := range c.state.destroyDependents {
 		for _, ch := range chans {
 			close(ch)
@@ -191,13 +204,16 @@ func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, erro
 		}
 		return c.db.UpdateMessage(message)
 	}
+
 	worker := NewWorker(domain.NewWorker(channel, 60), c.broker, update)
 	if err := worker.Listen(); err != nil {
 		return nil, nil, err
 	}
+
 	done := make(chan any)
 	worker.Heartbeat(done, c.handleHeartbeat)
 	// store channel + worker in db
+
 	if err := c.db.StoreWorker(worker.State()); err != nil {
 		close(done)
 		return nil, nil, err
@@ -209,9 +225,11 @@ func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
 	if worker == nil {
 		return
 	}
+
 	c.state.mu.Lock()
 	svc := c.state.workers[worker.Channel]
 	chans := c.state.destroyDependents[worker]
+
 	defer func() {
 		c.state.mu.Unlock()
 		// worker is dismounted from controller. Exit mutex
@@ -229,6 +247,7 @@ func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
 			log.Error().Msg(fmt.Sprintf("Failed to write update to worker. Err: %s", writeErr.Error()))
 		}
 	}()
+
 	// update state
 	delete(c.state.workers, worker.Channel)
 	delete(c.state.destroyDependents, worker)

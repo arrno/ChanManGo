@@ -51,6 +51,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		}
 		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, topic, msg))
 		log.Printf("Received message (type %v): %s", typ, msg)
+		// TODO send receipt
 	}
 }
 
@@ -60,6 +61,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	// topics := r.Header.Get("topics")
 	channelName := r.Header.Get("channel")
 	channel := domain.NewChannel(portalId, channelName)
+	// todo handle topics
 	sub := domain.NewTopicSubscription(clientId, []string{"all"})
 
 	conn, err := websocket.Accept(w, r, nil)
@@ -79,6 +81,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Write error or client disconnected: %v", err)
 			return err
 		}
+		// todo listen for ack
 		log.Println("Sent message to client")
 		return nil
 	}

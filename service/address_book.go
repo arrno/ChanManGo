@@ -52,8 +52,10 @@ func (b *AddressBook) dec(n uint) {
 func (b *AddressBook) CacheSubscription(subscription *domain.TopicSubscription) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
 	var n uint = 0
 	defer b.inc(n)
+
 	for _, topic := range subscription.Topics {
 		if _, ok := b.subscribers[topic]; !ok {
 			b.subscribers[topic] = map[string]*domain.TopicSubscription{}
@@ -61,14 +63,17 @@ func (b *AddressBook) CacheSubscription(subscription *domain.TopicSubscription) 
 		b.subscribers[topic][subscription.Id] = subscription
 		n++
 	}
+
 	return true
 }
 
 func (b *AddressBook) UnCacheWorkerSubscription(topics []string, id string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
 	var n uint = 0
 	defer b.dec(n)
+
 	for _, topic := range topics {
 		if _, ok := b.subscribers[topic]; !ok {
 			continue
@@ -80,6 +85,7 @@ func (b *AddressBook) UnCacheWorkerSubscription(topics []string, id string) {
 
 func (b *AddressBook) FetchTopicSubscriptions(topics []string) []*domain.TopicSubscription {
 	var subs []*domain.TopicSubscription
+
 	for _, topic := range topics {
 		subMap, ok := b.subscribers[topic]
 		if !ok {
@@ -89,5 +95,6 @@ func (b *AddressBook) FetchTopicSubscriptions(topics []string) []*domain.TopicSu
 			subs = append(subs, sub)
 		}
 	}
+
 	return subs
 }
