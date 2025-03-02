@@ -130,7 +130,7 @@ func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel 
 func (c *Manager) PublishMessage(channel *domain.Channel, message *domain.Message) (err error) {
 	defer func() {
 		if err != nil {
-			message.State = domain.STATE_ERROR
+			message.UpdateState(domain.STATE_ERROR)
 		}
 		if storeErr := c.db.StoreMessage(message); storeErr != nil {
 			err = fmt.Errorf("%w. %w", err, storeErr)

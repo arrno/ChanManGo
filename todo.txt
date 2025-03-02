@@ -1,7 +1,19 @@
+Roadmap:
+
+[prototype] -done
+---
+[base-case]
+implement postgres
 self-healing / tidy
 client / portal / groups - store
-message ack/state
+test segmentation - portals / groups / topics
+test retention / free - subs / messages
+message and worker ack/state
 register / auth / permission
 rate-limits
 ---
-scale
+[differentiators]
+---
+[transforms]
+---
+[scale]

@@ -60,6 +60,9 @@ func (b *AddressBook) CacheSubscription(subscription *domain.TopicSubscription) 
 		if _, ok := b.subscribers[topic]; !ok {
 			b.subscribers[topic] = map[string]*domain.TopicSubscription{}
 		}
+		if _, ok := b.subscribers[topic][subscription.Id]; ok {
+			continue
+		}
 		b.subscribers[topic][subscription.Id] = subscription
 		n++
 	}
@@ -78,8 +81,10 @@ func (b *AddressBook) UnCacheWorkerSubscription(topics []string, id string) {
 		if _, ok := b.subscribers[topic]; !ok {
 			continue
 		}
-		n++
-		delete(b.subscribers[topic], id)
+		if _, ok := b.subscribers[topic][id]; ok {
+			n++
+			delete(b.subscribers[topic], id)
+		}
 	}
 }
 

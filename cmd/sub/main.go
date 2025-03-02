@@ -4,36 +4,56 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
+	"net/http"
+	"sync"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
 
 func main() {
-	fmt.Println("[SUBSCRIBER]")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	c, _, err := websocket.Dial(ctx, "ws://localhost:8080/subscribe", nil)
-	if err != nil {
-		panic(err)
+	var wg sync.WaitGroup
+	for i := range 3 {
+		wg.Add(1)
+		makeSubscriber(&wg, fmt.Sprintf("%d", i))
 	}
-	defer c.CloseNow()
+	wg.Wait()
+}
 
-	for {
-		fmt.Println("[CLIENT] subscribing for signal")
-		var data map[string]any
-		err = wsjson.Read(ctx, c, &data)
+func makeSubscriber(wg *sync.WaitGroup, id string) {
+	go func() {
+		defer wg.Done()
+		fmt.Println("[SUBSCRIBER] -> " + id)
+
+		headers := http.Header{}
+		headers.Set("Authorization", "Bearer auth-token")
+		headers.Set("channel", "MyChannel")
+		if id == "1" {
+			headers.Set("topics", "topicOne")
+		} else {
+			headers.Set("topics", "topicTwo")
+		}
+		c, _, err := websocket.Dial(context.Background(), "ws://localhost:8080/subscribe", &websocket.DialOptions{HTTPHeader: headers})
 		if err != nil {
 			panic(err)
 		}
-		b, err := json.MarshalIndent(data, "", "    ")
-		if err != nil {
-			fmt.Println(err.Error())
-			break
+		defer c.CloseNow()
+
+		for {
+			fmt.Println("[CLIENT] subscribing for signal: " + id)
+			var data map[string]any
+			// ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+			err = wsjson.Read(context.Background(), c, &data)
+			if err != nil {
+				panic(err)
+			}
+			b, err := json.MarshalIndent(data, "", "    ")
+			if err != nil {
+				fmt.Println(err.Error())
+				break
+			}
+			fmt.Println(string(b))
 		}
-		fmt.Println(string(b))
-	}
-	c.Close(websocket.StatusNormalClosure, "")
+		c.Close(websocket.StatusNormalClosure, "")
+	}()
 }

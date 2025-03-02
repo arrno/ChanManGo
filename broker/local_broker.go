@@ -14,10 +14,38 @@ type InMemoryBroker struct {
 	channels    sync.Map // key: channel ID, value: *domain.Channel
 	subscribers sync.Map // key: channel ID, value: []*domain.ChannelSubscription
 	messages    sync.Map // key: message ID, value: *domain.Message
+	cleanup     chan string
+	shutdown    chan any
 }
 
 func NewInMemoryBroker() *InMemoryBroker {
-	return &InMemoryBroker{}
+	b := InMemoryBroker{
+		channels:    sync.Map{},
+		subscribers: sync.Map{},
+		messages:    sync.Map{},
+		cleanup:     make(chan string),
+		shutdown:    make(chan any),
+	}
+	// Drop message after retention time
+	go func() {
+		ticker := time.NewTicker(time.Duration(60) * time.Second)
+		deleteIds := []string{}
+		for {
+			select {
+			case <-b.shutdown:
+				return
+			case id := <-b.cleanup:
+				deleteIds = append(deleteIds, id)
+			case <-ticker.C:
+				for _, id := range deleteIds {
+					b.messages.Delete(id)
+				}
+				deleteIds = nil
+			}
+		}
+
+	}()
+	return &b
 }
 
 func (b *InMemoryBroker) CreateChannel(channel *domain.Channel) error {
@@ -61,8 +89,11 @@ func (b *InMemoryBroker) PublishMessage(ctx context.Context, channel *domain.Cha
 	wg.Add(len(subscribers))
 	go func() {
 		wg.Wait()
-		<-time.After(time.Duration(60) * time.Second)
-		b.messages.Delete(m.Id)
+		select {
+		case <-b.shutdown:
+			return
+		case b.cleanup <- m.Id:
+		}
 	}()
 
 	// Broadcast message to all subscribers

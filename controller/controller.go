@@ -2,8 +2,10 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/arrno/chanban/domain"
 	"github.com/arrno/chanban/service"
@@ -14,6 +16,11 @@ type Controller struct {
 	mgr service.ManagerProvider
 }
 
+type MessageWrapper struct {
+	Topic   string `json:"topic"`
+	Message []byte `json:"message"`
+}
+
 func NewController() *Controller {
 	return &Controller{service.NewManager()}
 }
@@ -22,7 +29,6 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	clientId := r.Header.Get("clientId")
 	portalId := r.Header.Get("portalId")
 	channelName := r.Header.Get("channel")
-	topic := r.Header.Get("all")
 	channel := domain.NewChannel(portalId, channelName)
 
 	conn, err := websocket.Accept(w, r, nil)
@@ -32,7 +38,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "Closing connection")
 
-	log.Println("Client connected for reading")
+	log.Println("Client connected for writing")
 
 	worker, err := c.mgr.ExpectChannel(channel)
 	if err != nil {
@@ -49,7 +55,13 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Read error or client disconnected: %v", err)
 			break
 		}
-		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, topic, msg))
+		var wrapper MessageWrapper
+		err = json.Unmarshal(msg, &wrapper)
+		if err != nil {
+			log.Printf("Json unmarshal err: %v", err)
+			break
+		}
+		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, wrapper.Topic, wrapper.Message))
 		log.Printf("Received message (type %v): %s", typ, msg)
 		// TODO send receipt
 	}
@@ -58,11 +70,17 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	clientId := r.Header.Get("clientId")
 	portalId := r.Header.Get("portalId")
-	// topics := r.Header.Get("topics")
 	channelName := r.Header.Get("channel")
+	topicSet := r.Header.Get("topics")
+	var topics []string
+	if len(topicSet) == 0 {
+		topics = []string{"all"}
+	} else {
+		topics = strings.Split(topicSet, ",")
+	}
 	channel := domain.NewChannel(portalId, channelName)
 	// todo handle topics
-	sub := domain.NewTopicSubscription(clientId, []string{"all"})
+	sub := domain.NewTopicSubscription(clientId, topics)
 
 	conn, err := websocket.Accept(w, r, nil)
 	if err != nil {
@@ -71,7 +89,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "Closing connection")
 
-	log.Println("Client connected for writing")
+	log.Println("Client connected for reading")
 
 	ctx := context.Background()
 
@@ -85,6 +103,14 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		log.Println("Sent message to client")
 		return nil
 	}
-	c.mgr.AddSubscription(sub, channel)
+	if _, err := c.mgr.AddSubscription(sub, channel); err != nil {
+		log.Printf("Failed to add subscription: %v", err)
+		return
+	}
+	defer func() {
+		if err := c.mgr.RemoveSubscription(sub, channel); err != nil {
+			log.Printf("Failed to remove subscription: %v", err)
+		}
+	}()
 	<-r.Context().Done()
 }
