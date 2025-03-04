@@ -92,9 +92,17 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	log.Println("Client connected for reading")
 
 	ctx := context.Background()
-
 	sub.Callback = func(message *domain.Message) error {
-		err := conn.Write(ctx, websocket.MessageText, message.Payload)
+		wrapper := MessageWrapper{
+			Topic:   message.Topic,
+			Message: message.Payload,
+		}
+		b, err := json.Marshal(wrapper)
+		if err != nil {
+			log.Panicln("Marshal err")
+			return err
+		}
+		err = conn.Write(ctx, websocket.MessageText, b)
 		if err != nil {
 			log.Printf("Write error or client disconnected: %v", err)
 			return err
