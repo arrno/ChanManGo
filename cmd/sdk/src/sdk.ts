@@ -5,6 +5,16 @@ export type streamOptions = {
     headers: { [key: string]: string };
 };
 
+export type message = {
+    topic: string;
+    payload: { [key: string]: any };
+};
+
+export type messageSer = {
+    topic: string;
+    payload: string;
+};
+
 export class StreamingSDK {
     baseUrl: string;
     authToken: string;
@@ -13,7 +23,9 @@ export class StreamingSDK {
     pubSocket: null | WebSocket;
     subSocket: null | WebSocket;
     listeners: {
-        [key: string]: Array<(topic: string, message: Object) => void>;
+        [key: string]: Array<
+            (topic: string, message: { [key: string]: any }) => void
+        >;
     };
 
     constructor({ baseUrl, authToken, channel, headers = {} }: streamOptions) {
@@ -73,19 +85,22 @@ export class StreamingSDK {
                 // console.warn("Sub WebSocket closed:", event.code, event.reason);
             };
             this.subSocket.onmessage = (event) => {
-                const message = JSON.parse(event.data);
+                const message: messageSer = JSON.parse(event.data);
                 if (this.listeners[message.topic]) {
                     this.listeners[message.topic].forEach((callback) =>
-                        callback(message.topic, message.payload)
+                        callback(message.topic, JSON.parse(message.payload))
                     );
                 }
             };
         });
     }
 
-    async publish(topic: string, payload: Object) {
+    async publish(topic: string, payload: { [key: string]: any }) {
         await this.ensurePublisherConnected();
-        this.pubSocket?.send(JSON.stringify({ topic, payload }));
+        let payloadStr = JSON.stringify(payload);
+        this.pubSocket?.send(
+            JSON.stringify(<messageSer>{ topic, payload: payloadStr })
+        );
         return { success: true };
     }
 

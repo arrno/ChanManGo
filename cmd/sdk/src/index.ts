@@ -16,7 +16,7 @@ async function fun() {
         });
 
     try {
-        const response = await client.publish("topicOne", `{ Hello: "World" }`);
+        const response = await client.publish("topicOne", { Hello: "world" });
         console.log("Message publish response: ", response);
     } catch (err) {
         console.log("Message publish failed: ", err);
