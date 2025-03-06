@@ -3,6 +3,7 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
+idle timeout on handlers
 implement postgres
 self-healing / tidy
 client / portal / groups - store

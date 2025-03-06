@@ -9,8 +9,11 @@ import (
 // Auth
 func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tokens := strings.Split(r.Header.Get("Authorization"), "Bearer ")
-		var token string
+		token := r.Header.Get("Authorization")
+		if len(token) == 0 {
+			token = r.URL.Query().Get("Authorization")
+		}
+		tokens := strings.Split(token, " ")
 		if len(tokens) == 2 {
 			token = tokens[1]
 		}
@@ -19,8 +22,12 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
 			return
 		}
+		channel := r.URL.Query().Get("channel")
+		topics := r.URL.Query().Get("topics")
 		// w.Header().Set("Content-Type", "application/json")
 		// TODO these come from auth token
+		r.Header.Add("channel", channel)
+		r.Header.Add("topics", topics)
 		r.Header.Add("portalId", "testPortal")
 		r.Header.Add("clientId", "testClient")
 		handler(w, r)

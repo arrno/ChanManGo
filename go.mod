@@ -6,6 +6,7 @@ require (
 	github.com/coder/websocket v1.8.12
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
 )

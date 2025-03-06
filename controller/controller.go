@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,8 +8,15 @@ import (
 
 	"github.com/arrno/chanban/domain"
 	"github.com/arrno/chanban/service"
-	"github.com/coder/websocket"
+
+	"github.com/gorilla/websocket"
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all connections, modify this in production for better security
+	},
+}
 
 type Controller struct {
 	mgr service.ManagerProvider
@@ -18,7 +24,7 @@ type Controller struct {
 
 type MessageWrapper struct {
 	Topic   string `json:"topic"`
-	Message []byte `json:"message"`
+	Payload string `json:"payload"`
 }
 
 func NewController() *Controller {
@@ -31,12 +37,12 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	channelName := r.Header.Get("channel")
 	channel := domain.NewChannel(portalId, channelName)
 
-	conn, err := websocket.Accept(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Failed to accept WebSocket connection: %v", err)
 		return
 	}
-	defer conn.Close(websocket.StatusNormalClosure, "Closing connection")
+	defer conn.Close()
 
 	log.Println("Client connected for writing")
 
@@ -50,9 +56,17 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		// TODO topic should be embedded in message
-		typ, msg, err := conn.Read(r.Context())
+		messageType, msg, err := conn.ReadMessage()
 		if err != nil {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
+				log.Println("Received CloseMessage from client, closing WebSocket")
+				break
+			}
 			log.Printf("Read error or client disconnected: %v", err)
+			break
+		}
+		if messageType == websocket.CloseMessage {
+			log.Println("Received CloseMessage from client, closing WebSocket")
 			break
 		}
 		var wrapper MessageWrapper
@@ -61,8 +75,8 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Json unmarshal err: %v", err)
 			break
 		}
-		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, wrapper.Topic, wrapper.Message))
-		log.Printf("Received message (type %v): %s", typ, msg)
+		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+		log.Printf("Received message (type %v): %s", messageType, msg)
 		// TODO send receipt
 	}
 }
@@ -82,27 +96,46 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	// todo handle topics
 	sub := domain.NewTopicSubscription(clientId, topics)
 
-	conn, err := websocket.Accept(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Failed to accept WebSocket connection: %v", err)
 		return
 	}
-	defer conn.Close(websocket.StatusNormalClosure, "Closing connection")
+	defer conn.Close()
+
+	done := make(chan any)
+	go func() {
+		defer close(done)
+		for {
+			messageType, _, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
+					log.Println("Received CloseMessage from client, closing WebSocket")
+					break
+				}
+				log.Printf("Read error or client disconnected: %v", err)
+				break
+			}
+			if messageType == websocket.CloseMessage {
+				log.Println("Received CloseMessage from client, closing WebSocket")
+				break
+			}
+		}
+	}()
 
 	log.Println("Client connected for reading")
 
-	ctx := context.Background()
 	sub.Callback = func(message *domain.Message) error {
 		wrapper := MessageWrapper{
 			Topic:   message.Topic,
-			Message: message.Payload,
+			Payload: string(message.Payload),
 		}
 		b, err := json.Marshal(wrapper)
 		if err != nil {
 			log.Panicln("Marshal err")
 			return err
 		}
-		err = conn.Write(ctx, websocket.MessageText, b)
+		err = conn.WriteMessage(websocket.TextMessage, b)
 		if err != nil {
 			log.Printf("Write error or client disconnected: %v", err)
 			return err
@@ -120,5 +153,5 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Failed to remove subscription: %v", err)
 		}
 	}()
-	<-r.Context().Done()
+	<-done
 }

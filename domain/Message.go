@@ -38,6 +38,7 @@ func NewMessage(clientId, topic string, payload []byte) *Message {
 func (m *Message) Clone() Message {
 	return Message{
 		Id:                     m.Id,
+		Topic:                  m.Topic,
 		ClientId:               m.ClientId,
 		ProcessedByWorkerId:    m.ProcessedByWorkerId,
 		ProcessedAt:            m.ProcessedAt,
