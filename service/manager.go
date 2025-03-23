@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arrno/chanban/broker"
-	"github.com/arrno/chanban/datastore"
-	"github.com/arrno/chanban/domain"
+	"github.com/arrno/chanman/broker"
+	"github.com/arrno/chanman/datastore"
+	"github.com/arrno/chanman/domain"
 	"github.com/rs/zerolog/log"
 )
 

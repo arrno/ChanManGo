@@ -3,7 +3,7 @@ package service
 import (
 	"sync"
 
-	"github.com/arrno/chanban/domain"
+	"github.com/arrno/chanman/domain"
 )
 
 type AddressBookProvider interface {

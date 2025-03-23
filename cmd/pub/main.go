@@ -28,7 +28,7 @@ func main() {
 	for i := range 10 {
 		fmt.Printf("[PUBLISHER] sending signal %d\n", i)
 		data := map[string]any{
-			"Hello": "Chanban",
+			"Hello": "ChanMan",
 			"Val":   i,
 		}
 		if i%2 == 0 {

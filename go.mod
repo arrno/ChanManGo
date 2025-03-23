@@ -1,4 +1,4 @@
-module github.com/arrno/chanban
+module github.com/arrno/chanman
 
 go 1.23.5
 

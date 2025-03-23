@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arrno/chanban/domain"
-	"github.com/arrno/chanban/util"
+	"github.com/arrno/chanman/domain"
+	"github.com/arrno/chanman/util"
 )
 
 type InMemoryBroker struct {

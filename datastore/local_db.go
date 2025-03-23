@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/arrno/chanban/domain"
-	"github.com/arrno/chanban/util"
+	"github.com/arrno/chanman/domain"
+	"github.com/arrno/chanman/util"
 )
 
 func docId(docType string, docId string) string {

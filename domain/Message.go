@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arrno/chanban/util"
+	"github.com/arrno/chanman/util"
 )
 
 type Message struct {

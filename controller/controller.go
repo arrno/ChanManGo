@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/arrno/chanban/domain"
-	"github.com/arrno/chanban/service"
+	"github.com/arrno/chanman/domain"
+	"github.com/arrno/chanman/service"
 	"github.com/rs/zerolog/log"
 
 	"github.com/gorilla/websocket"

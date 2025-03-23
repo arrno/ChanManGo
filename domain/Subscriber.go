@@ -3,7 +3,7 @@ package domain
 import (
 	"time"
 
-	"github.com/arrno/chanban/util"
+	"github.com/arrno/chanman/util"
 )
 
 // ChannelSubscription is a connection from a channel worker to a broker channel

@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/arrno/chanban/controller"
+	"github.com/arrno/chanman/controller"
 )
 
 func main() {
-	fmt.Println("chanban")
+	fmt.Println("chanman")
 	controller.RunWeb()
 }

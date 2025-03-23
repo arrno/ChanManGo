@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arrno/chanban/broker"
-	"github.com/arrno/chanban/domain"
+	"github.com/arrno/chanman/broker"
+	"github.com/arrno/chanman/domain"
 )
 
 type ChannelProvider interface {

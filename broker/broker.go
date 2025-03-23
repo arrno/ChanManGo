@@ -3,7 +3,7 @@ package broker
 import (
 	"context"
 
-	"github.com/arrno/chanban/domain"
+	"github.com/arrno/chanman/domain"
 )
 
 type BrokerProvider interface {

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/arrno/chanban/domain"
+	"github.com/arrno/chanman/domain"
 	"github.com/rs/zerolog/log"
 
 	"github.com/go-redis/redis/v8"

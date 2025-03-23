@@ -3,7 +3,7 @@ package datastore
 import (
 	"errors"
 
-	"github.com/arrno/chanban/domain"
+	"github.com/arrno/chanman/domain"
 )
 
 // many messages from a subscriber
