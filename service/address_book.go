@@ -12,6 +12,7 @@ type AddressBookProvider interface {
 	UnCacheChannelSubscription(topics []string, id string)
 	Clear()
 	Size() uint
+	Info() bookSummary
 }
 
 // Can offload to cache server. Represents one worker-channel
@@ -102,4 +103,15 @@ func (b *AddressBook) FetchTopicSubscriptions(topics []string) []*domain.TopicSu
 	}
 
 	return subs
+}
+
+func (b *AddressBook) Info() bookSummary {
+	topicSubCount := make(map[string]uint, len(b.subscribers))
+	for topic, subs := range b.subscribers {
+		topicSubCount[topic] = uint(len(subs))
+	}
+	return bookSummary{
+		Size:          b.size,
+		TopicSubCount: topicSubCount,
+	}
 }

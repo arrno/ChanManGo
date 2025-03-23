@@ -10,6 +10,7 @@ import (
 )
 
 type ChannelProvider interface {
+	Info() channelSummary
 	Object() *domain.Channel
 	Listen() error // open subscription... on message, broadcast
 	Destroy() error
@@ -207,4 +208,13 @@ func (c *Channel) Heartbeat(done chan any, f func(*domain.Channel)) {
 	}()
 
 	<-started
+}
+
+func (c *Channel) Info() channelSummary {
+	return channelSummary{
+		Name:             c.object.Name,
+		State:            c.object.State,
+		Publishers:       c.publishers,
+		TopicSubscribers: c.subscriptionBook.Info(),
+	}
 }

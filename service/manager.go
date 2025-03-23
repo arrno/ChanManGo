@@ -13,6 +13,7 @@ import (
 )
 
 type ManagerProvider interface {
+	Info() managerSummary
 	Destroy()
 	ExpectChannel(channel *domain.Channel) (ChannelProvider, error)
 	CreateChannel(channel *domain.Channel) (*Channel, chan any, error)
@@ -28,6 +29,7 @@ type Manager struct {
 	broker             broker.BrokerProvider
 	state              managerState
 	destroy            chan any
+	debugMode          bool
 }
 
 type managerState struct {
@@ -42,6 +44,7 @@ func NewManager() *Manager {
 		broker:             broker.NewInMemoryBroker(),
 		db:                 datastore.NewInMemoryDB(),
 		cleanupIntervalSec: 600,
+		debugMode:          true,
 		state: managerState{
 			state:             domain.STATE_RUNNING,
 			channels:          map[*domain.Channel]ChannelProvider{},
@@ -84,6 +87,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 		if channelExists {
 			return nil
 		}
+		log.Info().Msg("Creating channel n DB: " + channel.Id)
 		if err := c.db.StoreChannel(channel); err != nil {
 			return err
 		}
@@ -95,11 +99,13 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 	}
 
 	if !channelExists {
+		log.Info().Msg("Creating channel in broker: " + channel.Id)
 		if err := c.broker.CreateChannel(channel); err != nil {
 			return nil, err
 		}
 	}
 
+	log.Info().Msg("Creating channel in memory: " + channel.Id)
 	worker, done, err := c.CreateChannel(channel)
 	if err != nil {
 		return nil, err
@@ -113,6 +119,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 }
 
 func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) error {
+	log.Info().Msg(fmt.Sprintf("Removing subscription %s for client %s from channel %s", subscriber.Id, subscriber.ClientId, channel.Id))
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
 		return err
@@ -123,7 +130,7 @@ func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, chann
 }
 
 func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error) {
-
+	log.Info().Msg(fmt.Sprintf("Adding subscription %s for client %s from channel %s", subscriber.Id, subscriber.ClientId, channel.Id))
 	if !c.Permitted(channel.Id, subscriber.ClientId, domain.SUBSCRIBE) {
 		return false, domain.ErrChanOpNotPermitted
 	}
@@ -136,7 +143,7 @@ func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel 
 }
 
 func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, message *domain.Message) (err error) {
-
+	log.Info().Msg(fmt.Sprintf("Publishing message %s from client %s to channel %s", message.Id, clientId, channel.Id))
 	if !c.Permitted(channel.Id, clientId, domain.PUBLISH) {
 		return domain.ErrChanOpNotPermitted
 	}
@@ -174,6 +181,9 @@ func (c *Manager) SpawnWatcher() chan any {
 			case <-destroy:
 				return
 			case <-time.After(time.Duration(c.cleanupIntervalSec) * time.Second):
+				if c.debugMode {
+					c.Info().Print()
+				}
 				if err := c.HealChannels(); err != nil {
 					log.Error().Msg("Failed to heal channels. Err: " + err.Error())
 				}
@@ -191,6 +201,7 @@ func (c *Manager) SpawnWatcher() chan any {
 }
 
 func (c *Manager) Destroy() {
+	log.Info().Msg("Destroying ChanMan")
 	c.state.mu.Lock()
 
 	defer func() {
@@ -234,6 +245,7 @@ func (c *Manager) CreateChannel(channel *domain.Channel) (*Channel, chan any, er
 }
 
 func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
+	log.Info().Msg("destroying channel " + channel.Id)
 	if channel == nil {
 		return
 	}
@@ -268,6 +280,7 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 
 // TODO
 func (c *Manager) HealChannels() error {
+	log.Info().Msg("haling channels")
 	// fetch all workers owned by this manager that errored or stopped heartbeat
 	// reboot workers
 	return nil
@@ -275,12 +288,14 @@ func (c *Manager) HealChannels() error {
 
 // TODO
 func (c *Manager) HealMessages() error {
+	log.Info().Msg("haling messages")
 	// fetch all messages processed by owned workers that failed
 	// reprocess all messages if attempts < max
 	return nil
 }
 
 func (c *Manager) PruneChannels() (err error) {
+	log.Info().Msg("pruning channels")
 	for worker := range c.workersReport() {
 		if worker.Idle() {
 			if desErr := c.DestroyChannel(worker.Object()); desErr != nil {
@@ -293,6 +308,7 @@ func (c *Manager) PruneChannels() (err error) {
 
 // TODO
 func (c *Manager) Permitted(channelId, clientId string, operation domain.Operation) bool {
+	// channel and client must be in the same group
 	return true
 }
 
@@ -305,4 +321,21 @@ func (c *Manager) workersReport() <-chan ChannelProvider {
 		}
 	}()
 	return workers
+}
+
+func (c *Manager) Info() managerSummary {
+	var idleChannels uint = 0
+	channelSummaries := make([]channelSummary, 0, len(c.state.channels))
+	for _, channel := range c.state.channels {
+		if channel.Idle() {
+			idleChannels++
+		}
+		channelSummaries = append(channelSummaries, channel.Info())
+	}
+	return managerSummary{
+		State:            c.state.state,
+		AllChannels:      uint(len(c.state.channels)),
+		IdleChannels:     idleChannels,
+		ChannelSummaries: channelSummaries,
+	}
 }

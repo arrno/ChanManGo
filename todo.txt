@@ -7,10 +7,11 @@ idle timeout on handlers
 implement postgres
 self-healing / tidy
 client / portal / groups - store
+permissions - store and check
 test segmentation - portals / groups / topics
 test retention / free - subs / messages
 message and worker ack/state
-register / auth / permission
+register / auth / permission / signup
 rate-limits
 ---
 [differentiators]
