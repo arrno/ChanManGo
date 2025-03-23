@@ -9,7 +9,7 @@ import (
 type AddressBookProvider interface {
 	FetchTopicSubscriptions(topics []string) []*domain.TopicSubscription
 	CacheSubscription(subscription *domain.TopicSubscription) bool
-	UnCacheWorkerSubscription(topics []string, id string)
+	UnCacheChannelSubscription(topics []string, id string)
 	Clear()
 	Size() uint
 }
@@ -18,14 +18,14 @@ type AddressBookProvider interface {
 type AddressBook struct {
 	mu          sync.RWMutex
 	sizeMu      sync.RWMutex
-	WorkerId    string
+	ChannelId   string
 	size        uint
 	subscribers map[string]map[string]*domain.TopicSubscription // map[topic]map[id]
 }
 
 func NewAddressBook(id string) *AddressBook {
 	return &AddressBook{
-		WorkerId: id,
+		ChannelId: id,
 		subscribers: map[string]map[string]*domain.TopicSubscription{
 			"all": map[string]*domain.TopicSubscription{},
 		},
@@ -70,7 +70,7 @@ func (b *AddressBook) CacheSubscription(subscription *domain.TopicSubscription) 
 	return true
 }
 
-func (b *AddressBook) UnCacheWorkerSubscription(topics []string, id string) {
+func (b *AddressBook) UnCacheChannelSubscription(topics []string, id string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

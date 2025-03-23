@@ -44,7 +44,7 @@ func (db *LocalDB) ArchiveChannel(id string) error {
 	return nil
 }
 
-func (db *LocalDB) StoreWorker(w *domain.Worker) error {
+func (db *LocalDB) StoreWorker(w *domain.Channel) error {
 	if w.Id == "" {
 		w.Id = util.Nanoid()
 	}
@@ -52,15 +52,15 @@ func (db *LocalDB) StoreWorker(w *domain.Worker) error {
 	return nil
 }
 
-func (db *LocalDB) GetWorker(id string) (*domain.Worker, error) {
+func (db *LocalDB) GetWorker(id string) (*domain.Channel, error) {
 	val, ok := db.data.Load(docId("worker", id))
 	if ok {
-		return val.(*domain.Worker), nil
+		return val.(*domain.Channel), nil
 	}
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) UpdateWorker(w *domain.Worker) error {
+func (db *LocalDB) UpdateWorker(w *domain.Channel) error {
 	return db.StoreWorker(w)
 }
 

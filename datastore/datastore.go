@@ -22,9 +22,9 @@ type DatastoreProvider interface {
 	UpdateChannel(*domain.Channel) error
 	ArchiveChannel(id string) error
 	//
-	StoreWorker(*domain.Worker) error
-	GetWorker(id string) (*domain.Worker, error)
-	UpdateWorker(*domain.Worker) error
+	StoreWorker(*domain.Channel) error
+	GetWorker(id string) (*domain.Channel, error)
+	UpdateWorker(*domain.Channel) error
 	ArchiveWorker(id string) error
 	//
 	StoreTopicSubscriber(*domain.TopicSubscription) error

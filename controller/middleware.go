@@ -28,8 +28,8 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 		// TODO these come from auth token
 		r.Header.Add("channel", channel)
 		r.Header.Add("topics", topics)
-		r.Header.Add("portalId", "testPortal")
-		r.Header.Add("clientId", "testClient")
+		r.Header.Add("portalId", "main")
+		r.Header.Add("clientId", "dev")
 		handler(w, r)
 	}
 }

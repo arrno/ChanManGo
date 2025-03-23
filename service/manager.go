@@ -13,14 +13,13 @@ import (
 )
 
 type ManagerProvider interface {
-	ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
-	// CreateChannel(channel domain.Channel)
-	// DestroyChannel(id string)
-	CreateWorker(channel *domain.Channel) (*Worker, chan any, error)
-	DestroyWorker(worker *domain.Worker) (err error)
+	Destroy()
+	ExpectChannel(channel *domain.Channel) (ChannelProvider, error)
+	CreateChannel(channel *domain.Channel) (*Channel, chan any, error)
+	DestroyChannel(worker *domain.Channel) (err error)
 	AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error)
 	RemoveSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) error
-	PublishMessage(channel *domain.Channel, message *domain.Message) (err error)
+	PublishMessage(clientId string, channel *domain.Channel, message *domain.Message) (err error)
 }
 
 type Manager struct {
@@ -28,25 +27,29 @@ type Manager struct {
 	db                 datastore.DatastoreProvider
 	broker             broker.BrokerProvider
 	state              managerState
+	destroy            chan any
 }
 
 type managerState struct {
 	mu                sync.RWMutex
 	state             domain.STATE
-	workers           map[*domain.Channel]WorkerProvider
-	destroyDependents map[*domain.Worker][]chan any
+	channels          map[*domain.Channel]ChannelProvider
+	destroyDependents map[*domain.Channel][]chan any
 }
 
 func NewManager() *Manager {
-	return &Manager{
-		broker: broker.NewInMemoryBroker(),
-		db:     datastore.NewInMemoryDB(),
+	m := Manager{
+		broker:             broker.NewInMemoryBroker(),
+		db:                 datastore.NewInMemoryDB(),
+		cleanupIntervalSec: 600,
 		state: managerState{
 			state:             domain.STATE_RUNNING,
-			workers:           map[*domain.Channel]WorkerProvider{},
-			destroyDependents: map[*domain.Worker][]chan any{},
+			channels:          map[*domain.Channel]ChannelProvider{},
+			destroyDependents: map[*domain.Channel][]chan any{},
 		},
 	}
+	m.destroy = m.SpawnWatcher()
+	return &m
 }
 
 func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain.Channel) (bool, error) {
@@ -63,11 +66,11 @@ func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain
 	return false, err
 }
 
-func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error) {
+func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error) {
 	c.state.mu.Lock()
 	defer c.state.mu.Unlock()
 
-	if worker, ok := c.state.workers[channel]; ok {
+	if worker, ok := c.state.channels[channel]; ok {
 		return worker, nil
 	}
 
@@ -97,14 +100,14 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (WorkerProvider, error)
 		}
 	}
 
-	worker, done, err := c.CreateWorker(channel)
+	worker, done, err := c.CreateChannel(channel)
 	if err != nil {
 		return nil, err
 	}
 
 	// add worker to cache
-	c.state.workers[channel] = worker
-	c.state.destroyDependents[worker.State()] = append(c.state.destroyDependents[worker.State()], done)
+	c.state.channels[channel] = worker
+	c.state.destroyDependents[worker.Object()] = append(c.state.destroyDependents[worker.Object()], done)
 
 	return worker, nil
 }
@@ -120,6 +123,11 @@ func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, chann
 }
 
 func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error) {
+
+	if !c.Permitted(channel.Id, subscriber.ClientId, domain.SUBSCRIBE) {
+		return false, domain.ErrChanOpNotPermitted
+	}
+
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
 		return false, err
@@ -127,7 +135,12 @@ func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel 
 	return worker.AddSubscription(subscriber), nil
 }
 
-func (c *Manager) PublishMessage(channel *domain.Channel, message *domain.Message) (err error) {
+func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, message *domain.Message) (err error) {
+
+	if !c.Permitted(channel.Id, clientId, domain.PUBLISH) {
+		return domain.ErrChanOpNotPermitted
+	}
+
 	defer func() {
 		if err != nil {
 			message.UpdateState(domain.STATE_ERROR)
@@ -145,11 +158,11 @@ func (c *Manager) PublishMessage(channel *domain.Channel, message *domain.Messag
 	return worker.Publish(message)
 }
 
-func (c *Manager) handleHeartbeat(worker *domain.Worker) {
+func (c *Manager) handleHeartbeat(worker *domain.Channel) {
 	worker.UpdateHeartbeat()
-	err := c.db.UpdateWorker(worker)
+	err := c.db.UpdateChannel(worker)
 	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Worker heartbeat failed to update: %s. Err: %s ", worker.Repr(), err.Error()))
+		log.Error().Msg(fmt.Sprintf("Channel heartbeat failed to update: %s. Err: %s ", worker.Repr(), err.Error()))
 	}
 }
 
@@ -164,13 +177,10 @@ func (c *Manager) SpawnWatcher() chan any {
 				if err := c.HealChannels(); err != nil {
 					log.Error().Msg("Failed to heal channels. Err: " + err.Error())
 				}
-				if err := c.HealWorkers(); err != nil {
-					log.Error().Msg("Failed to heal workers. Err: " + err.Error())
-				}
 				if err := c.HealMessages(); err != nil {
 					log.Error().Msg("Failed to heal messages. Err: " + err.Error())
 				}
-				if err := c.PruneWorkers(); err != nil {
+				if err := c.PruneChannels(); err != nil {
 					log.Error().Msg("Failed to prune workers. Err: " + err.Error())
 				}
 			}
@@ -193,9 +203,11 @@ func (c *Manager) Destroy() {
 			close(ch)
 		}
 	}
+	close(c.destroy)
+
 }
 
-func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, error) {
+func (c *Manager) CreateChannel(channel *domain.Channel) (*Channel, chan any, error) {
 	update := func(message *domain.Message) (err error) {
 		if err != nil {
 			message.UpdateState(domain.STATE_ERROR)
@@ -205,7 +217,7 @@ func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, erro
 		return c.db.UpdateMessage(message)
 	}
 
-	worker := NewWorker(domain.NewWorker(channel, 60), c.broker, update)
+	worker := NewChannel(channel, c.broker, update)
 	if err := worker.Listen(); err != nil {
 		return nil, nil, err
 	}
@@ -214,21 +226,21 @@ func (c *Manager) CreateWorker(channel *domain.Channel) (*Worker, chan any, erro
 	worker.Heartbeat(done, c.handleHeartbeat)
 	// store channel + worker in db
 
-	if err := c.db.StoreWorker(worker.State()); err != nil {
+	if err := c.db.StoreChannel(worker.Object()); err != nil {
 		close(done)
 		return nil, nil, err
 	}
 	return worker, done, nil
 }
 
-func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
-	if worker == nil {
+func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
+	if channel == nil {
 		return
 	}
 
 	c.state.mu.Lock()
-	svc := c.state.workers[worker.Channel]
-	chans := c.state.destroyDependents[worker]
+	svc := c.state.channels[channel]
+	chans := c.state.destroyDependents[channel]
 
 	defer func() {
 		c.state.mu.Unlock()
@@ -239,23 +251,23 @@ func (c *Manager) DestroyWorker(worker *domain.Worker) (err error) {
 		}
 		err = svc.Destroy()
 		if err != nil {
-			worker.UpdateState(domain.STATE_ERROR)
+			channel.UpdateState(domain.STATE_ERROR)
 		} else {
-			worker.UpdateState(domain.STATE_INACTIVE)
+			channel.UpdateState(domain.STATE_INACTIVE)
 		}
-		if writeErr := c.db.UpdateWorker(worker); writeErr != nil {
+		if writeErr := c.db.UpdateChannel(channel); writeErr != nil {
 			log.Error().Msg(fmt.Sprintf("Failed to write update to worker. Err: %s", writeErr.Error()))
 		}
 	}()
 
 	// update state
-	delete(c.state.workers, worker.Channel)
-	delete(c.state.destroyDependents, worker)
+	delete(c.state.channels, channel)
+	delete(c.state.destroyDependents, channel)
 	return
 }
 
 // TODO
-func (c *Manager) HealWorkers() error {
+func (c *Manager) HealChannels() error {
 	// fetch all workers owned by this manager that errored or stopped heartbeat
 	// reboot workers
 	return nil
@@ -267,14 +279,11 @@ func (c *Manager) HealMessages() error {
 	// reprocess all messages if attempts < max
 	return nil
 }
-func (c *Manager) HealChannels() error {
-	// channels are abstract... they can't really be broken
-	return nil
-}
-func (c *Manager) PruneWorkers() (err error) {
+
+func (c *Manager) PruneChannels() (err error) {
 	for worker := range c.workersReport() {
 		if worker.Idle() {
-			if desErr := c.DestroyWorker(worker.State()); desErr != nil {
+			if desErr := c.DestroyChannel(worker.Object()); desErr != nil {
 				err = desErr
 			}
 		}
@@ -282,11 +291,16 @@ func (c *Manager) PruneWorkers() (err error) {
 	return
 }
 
-func (c *Manager) workersReport() <-chan WorkerProvider {
-	workers := make(chan WorkerProvider)
+// TODO
+func (c *Manager) Permitted(channelId, clientId string, operation domain.Operation) bool {
+	return true
+}
+
+func (c *Manager) workersReport() <-chan ChannelProvider {
+	workers := make(chan ChannelProvider)
 	go func() {
 		defer close(workers)
-		for _, w := range c.state.workers {
+		for _, w := range c.state.channels {
 			workers <- w
 		}
 	}()

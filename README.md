@@ -1,3 +1,3 @@
-# CHANBAN
+# ChanMan
 
-Messaging system
+Channel Manager in Go

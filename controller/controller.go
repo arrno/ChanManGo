@@ -2,12 +2,15 @@ package controller
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/arrno/chanban/domain"
 	"github.com/arrno/chanban/service"
+	"github.com/rs/zerolog/log"
 
 	"github.com/gorilla/websocket"
 )
@@ -32,59 +35,127 @@ func NewController() *Controller {
 }
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
+
 	clientId := r.Header.Get("clientId")
 	portalId := r.Header.Get("portalId")
 	channelName := r.Header.Get("channel")
-	channel := domain.NewChannel(portalId, channelName)
+
+	if channelName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
+		return
+	}
+
+	channel := domain.NewChannel(portalId, channelName, 60)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to parse message"})
+		return
+	}
+	defer r.Body.Close()
+
+	var wrapper MessageWrapper
+	err = json.Unmarshal(body, &wrapper)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to parse message"})
+		return
+	}
+	err = c.mgr.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
+		log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"Response": err.Error()})
+		return
+	} else if err != nil {
+		log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Error encountered publishing message: " + err.Error()})
+		return
+	}
+}
+
+func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
+
+	clientId := r.Header.Get("clientId")
+	portalId := r.Header.Get("portalId")
+	channelName := r.Header.Get("channel")
+
+	if channelName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
+		return
+	}
+	channel := domain.NewChannel(portalId, channelName, 60)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Failed to accept WebSocket connection: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to accept WebSocket connection: " + err.Error()})
 		return
 	}
 	defer conn.Close()
 
-	log.Println("Client connected for writing")
+	log.Info().Msg("Client connected for writing")
 
 	worker, err := c.mgr.ExpectChannel(channel)
 	if err != nil {
-		log.Printf("Failed to open channel: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to open channel: " + err.Error()})
 		return
 	}
 	decrement := worker.IncrPublishers()
 	defer decrement()
 
 	for {
-		// TODO topic should be embedded in message
 		messageType, msg, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
-				log.Println("Received CloseMessage from client, closing WebSocket")
+				log.Info().Msg("Received CloseMessage from client, closing WebSocket")
 				break
 			}
-			log.Printf("Read error or client disconnected: %v", err)
+			log.Error().Msg(fmt.Sprintf("Read error or client disconnected: %v", err))
 			break
 		}
 		if messageType == websocket.CloseMessage {
-			log.Println("Received CloseMessage from client, closing WebSocket")
+			log.Info().Msg("Received CloseMessage from client, closing WebSocket")
 			break
 		}
 		var wrapper MessageWrapper
 		err = json.Unmarshal(msg, &wrapper)
 		if err != nil {
-			log.Printf("Json unmarshal err: %v", err)
+			log.Error().Msg(fmt.Sprintf("Json unmarshal err: %v", err))
 			break
 		}
-		c.mgr.PublishMessage(channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
-		log.Printf("Received message (type %v): %s", messageType, msg)
-		// TODO send receipt
+		err = c.mgr.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+		if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
+			log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]string{"Response": err.Error()})
+			return
+		} else if err != nil {
+			log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"Response": "Error encountered publishing message: " + err.Error()})
+			return
+		}
+		log.Info().Msg(fmt.Sprintf("Received message (type %v): %s", messageType, msg))
 	}
 }
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
+
 	clientId := r.Header.Get("clientId")
 	portalId := r.Header.Get("portalId")
 	channelName := r.Header.Get("channel")
+
+	if channelName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
+		return
+	}
 	topicSet := r.Header.Get("topics")
 	var topics []string
 	if len(topicSet) == 0 {
@@ -92,38 +163,38 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	} else {
 		topics = strings.Split(topicSet, ",")
 	}
-	channel := domain.NewChannel(portalId, channelName)
-	// todo handle topics
-	sub := domain.NewTopicSubscription(clientId, topics)
+	channel := domain.NewChannel(portalId, channelName, 60)
+	sub := domain.NewTopicSubscription(clientId, channel.Id, topics)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Failed to accept WebSocket connection: %v", err)
+		log.Error().Msg(fmt.Sprintf("Failed to accept WebSocket connection: %v", err))
 		return
 	}
 	defer conn.Close()
 
 	done := make(chan any)
+
 	go func() {
 		defer close(done)
 		for {
 			messageType, _, err := conn.ReadMessage()
 			if err != nil {
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
-					log.Println("Received CloseMessage from client, closing WebSocket")
+					log.Info().Msg("Received CloseMessage from client, closing WebSocket")
 					break
 				}
-				log.Printf("Read error or client disconnected: %v", err)
+				log.Error().Msg(fmt.Sprintf("Read error or client disconnected: %v", err))
 				break
 			}
 			if messageType == websocket.CloseMessage {
-				log.Println("Received CloseMessage from client, closing WebSocket")
+				log.Info().Msg("Received CloseMessage from client, closing WebSocket")
 				break
 			}
 		}
 	}()
 
-	log.Println("Client connected for reading")
+	log.Info().Msg("Client connected for reading")
 
 	sub.Callback = func(message *domain.Message) error {
 		wrapper := MessageWrapper{
@@ -132,26 +203,35 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		}
 		b, err := json.Marshal(wrapper)
 		if err != nil {
-			log.Panicln("Marshal err")
+			log.Error().Msg("Marshal err")
 			return err
 		}
 		err = conn.WriteMessage(websocket.TextMessage, b)
 		if err != nil {
-			log.Printf("Write error or client disconnected: %v", err)
+			log.Error().Msg(fmt.Sprintf("Write error or client disconnected: %v", err))
 			return err
 		}
-		// todo listen for ack
-		log.Println("Sent message to client")
+		log.Info().Msg("Sent message to client")
 		return nil
 	}
-	if _, err := c.mgr.AddSubscription(sub, channel); err != nil {
-		log.Printf("Failed to add subscription: %v", err)
+
+	_, err = c.mgr.AddSubscription(sub, channel)
+
+	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"Response": err.Error()})
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to add subscription: " + err.Error()})
 		return
 	}
+
 	defer func() {
 		if err := c.mgr.RemoveSubscription(sub, channel); err != nil {
-			log.Printf("Failed to remove subscription: %v", err)
+			log.Error().Msg(fmt.Sprintf("Failed to remove subscription: %v", err))
 		}
 	}()
+
 	<-done
 }

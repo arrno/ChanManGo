@@ -3,11 +3,11 @@ package broker
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/arrno/chanban/domain"
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -209,13 +209,12 @@ func (r *RedisBroker) PublishMessage(ctx context.Context, channel *domain.Channe
 
 	// Convert message to map for Redis
 	values := map[string]interface{}{
-		"id":                  m.Id,
-		"topic":               m.Topic,
-		"clientId":            m.ClientId,
-		"processedByWorkerId": m.ProcessedByWorkerId,
-		"processedAt":         m.ProcessedAt.UnixNano(),
-		"state":               string(m.State),
-		"attempts":            m.Attempts,
+		"id":          m.Id,
+		"topic":       m.Topic,
+		"clientId":    m.ClientId,
+		"processedAt": m.ProcessedAt.UnixNano(),
+		"state":       string(m.State),
+		"attempts":    m.Attempts,
 	}
 
 	// Add payload as either string or byte array depending on content
@@ -340,7 +339,7 @@ func (r *RedisBroker) subscribeToChannelMessages(ctx context.Context, withHistor
 		case <-subCtx.Done():
 			return
 		case msg := <-ch:
-			log.Printf("Received message on notification channel %s: %s", notificationChannel, msg.String())
+			log.Info().Msg(fmt.Sprintf("Received message on notification channel %s: %s", notificationChannel, msg.String()))
 			if msg.Payload == "new-message" {
 				// Read new messages when notified
 				r.readAndProcessMessages(subCtx, streamKey, channel, &lastId)
@@ -424,7 +423,6 @@ func (r *RedisBroker) mapRedisMessageToDomainMessage(xMessage redis.XMessage) *d
 	// Set basic fields
 	msg.Topic = getString(xMessage.Values, "topic")
 	msg.ClientId = getString(xMessage.Values, "clientId")
-	msg.ProcessedByWorkerId = getString(xMessage.Values, "processedByWorkerId")
 	msg.State = domain.STATE(getString(xMessage.Values, "state"))
 	msg.Attempts = getUint(xMessage.Values, "attempts")
 
