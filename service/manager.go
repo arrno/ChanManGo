@@ -27,12 +27,12 @@ type Manager struct {
 	cleanupIntervalSec uint
 	db                 datastore.DatastoreProvider
 	broker             broker.BrokerProvider
-	state              managerState
+	object             managerObject
 	destroy            chan any
 	debugMode          bool
 }
 
-type managerState struct {
+type managerObject struct {
 	mu                sync.RWMutex
 	state             domain.STATE
 	channels          map[*domain.Channel]ChannelProvider
@@ -45,7 +45,7 @@ func NewManager() *Manager {
 		db:                 datastore.NewInMemoryDB(),
 		cleanupIntervalSec: 600,
 		debugMode:          true,
-		state: managerState{
+		object: managerObject{
 			state:             domain.STATE_RUNNING,
 			channels:          map[*domain.Channel]ChannelProvider{},
 			destroyDependents: map[*domain.Channel][]chan any{},
@@ -70,10 +70,10 @@ func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain
 }
 
 func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error) {
-	c.state.mu.Lock()
-	defer c.state.mu.Unlock()
+	c.object.mu.Lock()
+	defer c.object.mu.Unlock()
 
-	if worker, ok := c.state.channels[channel]; ok {
+	if worker, ok := c.object.channels[channel]; ok {
 		return worker, nil
 	}
 
@@ -112,8 +112,8 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 	}
 
 	// add worker to cache
-	c.state.channels[channel] = worker
-	c.state.destroyDependents[worker.Object()] = append(c.state.destroyDependents[worker.Object()], done)
+	c.object.channels[channel] = worker
+	c.object.destroyDependents[worker.Object()] = append(c.object.destroyDependents[worker.Object()], done)
 
 	return worker, nil
 }
@@ -202,14 +202,14 @@ func (c *Manager) SpawnWatcher() chan any {
 
 func (c *Manager) Destroy() {
 	log.Info().Msg("Destroying ChanMan")
-	c.state.mu.Lock()
+	c.object.mu.Lock()
 
 	defer func() {
-		c.state.state = domain.STATE_INACTIVE
-		c.state.mu.Unlock()
+		c.object.state = domain.STATE_INACTIVE
+		c.object.mu.Unlock()
 	}()
 
-	for _, chans := range c.state.destroyDependents {
+	for _, chans := range c.object.destroyDependents {
 		for _, ch := range chans {
 			close(ch)
 		}
@@ -250,12 +250,12 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 		return
 	}
 
-	c.state.mu.Lock()
-	svc := c.state.channels[channel]
-	chans := c.state.destroyDependents[channel]
+	c.object.mu.Lock()
+	svc := c.object.channels[channel]
+	chans := c.object.destroyDependents[channel]
 
 	defer func() {
-		c.state.mu.Unlock()
+		c.object.mu.Unlock()
 		// worker is dismounted from controller. Exit mutex
 		// terminate worker
 		for _, ch := range chans {
@@ -273,8 +273,8 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 	}()
 
 	// update state
-	delete(c.state.channels, channel)
-	delete(c.state.destroyDependents, channel)
+	delete(c.object.channels, channel)
+	delete(c.object.destroyDependents, channel)
 	return
 }
 
@@ -316,7 +316,7 @@ func (c *Manager) workersReport() <-chan ChannelProvider {
 	workers := make(chan ChannelProvider)
 	go func() {
 		defer close(workers)
-		for _, w := range c.state.channels {
+		for _, w := range c.object.channels {
 			workers <- w
 		}
 	}()
@@ -325,16 +325,16 @@ func (c *Manager) workersReport() <-chan ChannelProvider {
 
 func (c *Manager) Info() managerSummary {
 	var idleChannels uint = 0
-	channelSummaries := make([]channelSummary, 0, len(c.state.channels))
-	for _, channel := range c.state.channels {
+	channelSummaries := make([]channelSummary, 0, len(c.object.channels))
+	for _, channel := range c.object.channels {
 		if channel.Idle() {
 			idleChannels++
 		}
 		channelSummaries = append(channelSummaries, channel.Info())
 	}
 	return managerSummary{
-		State:            c.state.state,
-		AllChannels:      uint(len(c.state.channels)),
+		State:            c.object.state,
+		AllChannels:      uint(len(c.object.channels)),
 		IdleChannels:     idleChannels,
 		ChannelSummaries: channelSummaries,
 	}

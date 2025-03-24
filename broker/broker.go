@@ -7,6 +7,7 @@ import (
 )
 
 type BrokerProvider interface {
+	Shutdown(ctx context.Context) error
 	CreateChannel(channel *domain.Channel) error
 	DestroyChannel(channel *domain.Channel) error
 	UpdateChannel(channel *domain.Channel) error

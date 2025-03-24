@@ -28,7 +28,7 @@ func NewInMemoryBroker() *InMemoryBroker {
 	}
 	// Drop message after retention time
 	go func() {
-		ticker := time.NewTicker(time.Duration(60) * time.Second)
+		ticker := time.NewTicker(time.Duration(180) * time.Second)
 		deleteIds := []string{}
 		for {
 			select {
@@ -138,5 +138,13 @@ func (b *InMemoryBroker) UnsubscribeForMessages(ctx context.Context, channel *do
 	}
 
 	b.subscribers.Store(channel.Id, updatedSubs)
+	return nil
+}
+
+func (b *InMemoryBroker) Shutdown(ctx context.Context) error {
+	close(b.shutdown)
+	b.channels.Clear()
+	b.subscribers.Clear()
+	b.messages.Clear()
 	return nil
 }
