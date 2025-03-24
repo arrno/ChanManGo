@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	fmt.Println("chanman")
+	fmt.Println("ChanMan")
 	controller.RunWeb()
 }

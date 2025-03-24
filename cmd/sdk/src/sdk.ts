@@ -44,7 +44,7 @@ export class StreamingSDK {
         }
         const queryParams = new URLSearchParams(this.headers).toString();
         this.pubSocket = new WebSocket(
-            `${this.baseUrl}/publish?channel=${this.channel}&${queryParams}`
+            `${this.baseUrl}/pub-ws?channel=${this.channel}&${queryParams}`
         );
         await new Promise((resolve, reject) => {
             if (!this.pubSocket) {
@@ -67,7 +67,7 @@ export class StreamingSDK {
 
         const queryParams = new URLSearchParams(this.headers).toString();
         this.subSocket = new WebSocket(
-            `${this.baseUrl}/subscribe?channel=${this.channel}&${queryParams}`
+            `${this.baseUrl}/sub?channel=${this.channel}&${queryParams}`
         );
         await new Promise((resolve, reject) => {
             if (!this.subSocket) {

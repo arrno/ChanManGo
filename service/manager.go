@@ -35,20 +35,21 @@ type Manager struct {
 type managerObject struct {
 	mu                sync.RWMutex
 	state             domain.STATE
-	channels          map[*domain.Channel]ChannelProvider
-	destroyDependents map[*domain.Channel][]chan any
+	channels          map[string]ChannelProvider // map[channelId]ChannelProvider
+	destroyDependents map[string][]chan any      // map[channel.Id][]chan any
 }
 
 func NewManager() *Manager {
 	m := Manager{
 		broker:             broker.NewInMemoryBroker(),
 		db:                 datastore.NewInMemoryDB(),
-		cleanupIntervalSec: 600,
-		debugMode:          true,
+		cleanupIntervalSec: 60,
+		// cleanupIntervalSec: 600,
+		debugMode: true,
 		object: managerObject{
 			state:             domain.STATE_RUNNING,
-			channels:          map[*domain.Channel]ChannelProvider{},
-			destroyDependents: map[*domain.Channel][]chan any{},
+			channels:          map[string]ChannelProvider{},
+			destroyDependents: map[string][]chan any{},
 		},
 	}
 	m.destroy = m.SpawnWatcher()
@@ -73,7 +74,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 	c.object.mu.Lock()
 	defer c.object.mu.Unlock()
 
-	if worker, ok := c.object.channels[channel]; ok {
+	if worker, ok := c.object.channels[channel.Id]; ok {
 		return worker, nil
 	}
 
@@ -112,8 +113,8 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 	}
 
 	// add worker to cache
-	c.object.channels[channel] = worker
-	c.object.destroyDependents[worker.Object()] = append(c.object.destroyDependents[worker.Object()], done)
+	c.object.channels[channel.Id] = worker
+	c.object.destroyDependents[worker.Object().Id] = append(c.object.destroyDependents[worker.Object().Id], done)
 
 	return worker, nil
 }
@@ -251,8 +252,8 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 	}
 
 	c.object.mu.Lock()
-	svc := c.object.channels[channel]
-	chans := c.object.destroyDependents[channel]
+	svc := c.object.channels[channel.Id]
+	chans := c.object.destroyDependents[channel.Id]
 
 	defer func() {
 		c.object.mu.Unlock()
@@ -273,8 +274,8 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 	}()
 
 	// update state
-	delete(c.object.channels, channel)
-	delete(c.object.destroyDependents, channel)
+	delete(c.object.channels, channel.Id)
+	delete(c.object.destroyDependents, channel.Id)
 	return
 }
 
