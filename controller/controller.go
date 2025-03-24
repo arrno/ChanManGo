@@ -22,7 +22,8 @@ var upgrader = websocket.Upgrader{
 }
 
 type Controller struct {
-	mgr service.ManagerProvider
+	chanMan service.ManagerProvider
+	system  service.SystemProvider
 }
 
 type MessageWrapper struct {
@@ -31,7 +32,10 @@ type MessageWrapper struct {
 }
 
 func NewController() *Controller {
-	return &Controller{service.NewManager()}
+	return &Controller{
+		chanMan: service.NewManager(),
+		system:  service.NewSystem(),
+	}
 }
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +67,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to parse message"})
 		return
 	}
-	err = c.mgr.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+	err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
 	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
 		log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
 		w.WriteHeader(http.StatusForbidden)
@@ -100,7 +104,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 
 	log.Info().Msg("Client connected for writing")
 
-	worker, err := c.mgr.ExpectChannel(channel)
+	worker, err := c.chanMan.ExpectChannel(channel)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to open channel: " + err.Error()})
@@ -129,7 +133,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 			log.Error().Msg(fmt.Sprintf("Json unmarshal err: %v", err))
 			break
 		}
-		err = c.mgr.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+		err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
 		if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
 			log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
 			w.WriteHeader(http.StatusForbidden)
@@ -215,7 +219,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		return nil
 	}
 
-	_, err = c.mgr.AddSubscription(sub, channel)
+	_, err = c.chanMan.AddSubscription(sub, channel)
 
 	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
 		w.WriteHeader(http.StatusForbidden)
@@ -228,10 +232,39 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		if err := c.mgr.RemoveSubscription(sub, channel); err != nil {
+		if err := c.chanMan.RemoveSubscription(sub, channel); err != nil {
 			log.Error().Msg(fmt.Sprintf("Failed to remove subscription: %v", err))
 		}
 	}()
 
 	<-done
 }
+
+// Client
+func (c *Controller) SignUp(w http.ResponseWriter, r *http.Request) {
+	// TODO create new client and return secret token
+}
+func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
+	// rotate client token
+}
+func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
+}
+
+func (c *Controller) GetChannel(w http.ResponseWriter, r *http.Request)     {}
+func (c *Controller) CreateChannel(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) UpdateChannel(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) ArchiveChannel(w http.ResponseWriter, r *http.Request) {}
+
+func (c *Controller) GetGroup(w http.ResponseWriter, r *http.Request)     {}
+func (c *Controller) CreateGroup(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) UpdateGroup(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) ArchiveGroup(w http.ResponseWriter, r *http.Request) {}
+
+func (c *Controller) AddClientToGroup(w http.ResponseWriter, r *http.Request)       {}
+func (c *Controller) RemoveClientFromGroup(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) AddChannelToGroup(w http.ResponseWriter, r *http.Request)      {}
+func (c *Controller) RemoveChannelFromGroup(w http.ResponseWriter, r *http.Request) {}
+
+func (c *Controller) CreatePortal(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) UpdatePortal(w http.ResponseWriter, r *http.Request)  {}
+func (c *Controller) ArchivePortal(w http.ResponseWriter, r *http.Request) {}

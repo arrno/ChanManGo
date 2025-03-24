@@ -15,17 +15,18 @@ var (
 	ErrNotFound = errors.New("Target record not found")
 )
 
-// Client / Portal / Groups
 type DatastoreProvider interface {
+	MessageDatastoreProvider
+	SystemDatastoreProvider
+	WithTx(f func(tx DatastoreProvider) error) error
+}
+
+// Channel / Subscriptions /Messages
+type MessageDatastoreProvider interface {
 	StoreChannel(*domain.Channel) error
 	GetChannel(id string) (*domain.Channel, error)
 	UpdateChannel(*domain.Channel) error
 	ArchiveChannel(id string) error
-	//
-	StoreWorker(*domain.Channel) error
-	GetWorker(id string) (*domain.Channel, error)
-	UpdateWorker(*domain.Channel) error
-	ArchiveWorker(id string) error
 	//
 	StoreTopicSubscriber(*domain.TopicSubscription) error
 	GetTopicSubscriber(id string) (*domain.TopicSubscription, error)
@@ -41,6 +42,37 @@ type DatastoreProvider interface {
 	GetMessage(id string) (*domain.Message, error)
 	UpdateMessage(*domain.Message) error
 	ArchiveMessage(id string) error
+}
+
+// Client / Portal / Groups
+type SystemDatastoreProvider interface {
+	StoreClient(*domain.Client) error
+	GetClient(id string) (*domain.Client, error)
+	UpdateClient(*domain.Client) error
+	ArchiveClient(id string) error
 	//
-	WithTx(f func(tx DatastoreProvider) error) error
+	StoreClientSecret(*domain.ClientSecret) error
+	GetClientSecret(id string) (*domain.ClientSecret, error)
+	UpdateClientSecret(*domain.ClientSecret) error
+	ArchiveClientSecret(id string) error
+	//
+	StoreGroup(*domain.Group) error
+	GetGroup(id string) (*domain.Group, error)
+	UpdateGroup(*domain.Group) error
+	ArchiveGroup(id string) error
+	//
+	StoreClientGroup(*domain.ClientGroup) error
+	GetClientGroup(id string) (*domain.ClientGroup, error)
+	UpdateClientGroup(*domain.ClientGroup) error
+	ArchiveClientGroup(id string) error
+	//
+	StoreChannelGroup(*domain.ChannelGroup) error
+	GetChannelGroup(id string) (*domain.ChannelGroup, error)
+	UpdateChannelGroup(*domain.ChannelGroup) error
+	ArchiveChannelGroup(id string) error
+	//
+	StorePortal(*domain.Portal) error
+	GetPortal(id string) (*domain.Portal, error)
+	UpdatePortal(*domain.Portal) error
+	ArchivePortal(id string) error
 }

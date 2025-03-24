@@ -39,10 +39,27 @@ CREATE INDEX idx_groups_portal_id ON groups(portal_id);
 -- Create Clients table
 CREATE TABLE clients (
   id VARCHAR(255) PRIMARY KEY,
+  active BOOLEAN NOT NULL DEFAULT true,
+  admin BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP
 );
+
+CREATE TABLE client_secret_tokens (
+  id VARCHAR(255) PRIMARY KEY,
+  client_id VARCHAR(255) NOT NULL,
+  hash VARCHAR(255) NOT NULL,
+  salt VARCHAR(255) NOT NULL,
+  state state_enum NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  archived_at TIMESTAMP,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+-- Create index on portal_id for groups
+CREATE INDEX idx_secret_token_client_id ON client_secret_tokens(client_id);
 
 -- Create Channels table
 CREATE TABLE channels (
@@ -55,6 +72,7 @@ CREATE TABLE channels (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
+  heartbeat TIMESTAMP,
   FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE,
   FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
 );
@@ -103,38 +121,25 @@ CREATE INDEX idx_channel_groups_group_id ON channel_groups(group_id);
 CREATE TABLE channel_subscriptions (
   id VARCHAR(255) PRIMARY KEY,
   portal_id VARCHAR(255) NOT NULL,
+  channel_id VARCHAR(255) NOT NULL,
   state state_enum NOT NULL,
   archived BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
   FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
 );
 
 -- Create index for channel_subscriptions
 CREATE INDEX idx_channel_subscriptions_portal_id ON channel_subscriptions(portal_id);
 
--- Create Workers table
-CREATE TABLE workers (
-  id VARCHAR(255) PRIMARY KEY,
-  channel_id VARCHAR(255) NOT NULL,
-  state state_enum NOT NULL,
-  archived BOOLEAN NOT NULL DEFAULT false,
-  interval_seconds INTEGER NOT NULL,
-  heartbeat TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  archived_at TIMESTAMP,
-  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
-);
-
--- Create index for workers
-CREATE INDEX idx_workers_channel_id ON workers(channel_id);
 
 -- Create TopicSubscription table
 CREATE TABLE topic_subscriptions (
   id VARCHAR(255) PRIMARY KEY,
   client_id VARCHAR(255) NOT NULL,
+  channel_id VARCHAR(255) NOT NULL,
   topics TEXT[] NOT NULL,
   state state_enum NOT NULL,
   archived BOOLEAN NOT NULL DEFAULT false,
@@ -142,6 +147,7 @@ CREATE TABLE topic_subscriptions (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
 );
 
 -- Create index for topic_subscriptions
@@ -152,9 +158,7 @@ CREATE TABLE messages (
   id VARCHAR(255) PRIMARY KEY,
   topic VARCHAR(255) NOT NULL,
   client_id VARCHAR(255) NOT NULL,
-  processed_by_worker_id VARCHAR(255),
   processed_at TIMESTAMP,
-  acknowledged_by_worker_id VARCHAR(255),
   acknowledged_at TIMESTAMP,
   state state_enum NOT NULL,
   archived BOOLEAN NOT NULL DEFAULT false,
@@ -163,14 +167,12 @@ CREATE TABLE messages (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
-  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-  FOREIGN KEY (processed_by_worker_id) REFERENCES workers(id) ON DELETE SET NULL,
-  FOREIGN KEY (acknowledged_by_worker_id) REFERENCES workers(id) ON DELETE SET NULL
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
 -- Create indexes for messages
 CREATE INDEX idx_messages_client_id ON messages(client_id);
 CREATE INDEX idx_messages_topic ON messages(topic);
 CREATE INDEX idx_messages_state ON messages(state);
-CREATE INDEX idx_messages_processed_by_worker_id ON messages(processed_by_worker_id);
-CREATE INDEX idx_messages_acknowledged_by_worker_id ON messages(acknowledged_by_worker_id);
+
+-- TODO create admin user/secret_token, main portal, main group, main channel
