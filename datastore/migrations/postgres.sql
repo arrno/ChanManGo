@@ -24,21 +24,25 @@ CREATE TABLE portals (
 CREATE TABLE groups (
   id VARCHAR(255) PRIMARY KEY,
   owner_id VARCHAR(255) NOT NULL,
+  parent_group_id VARCHAR(255) NULL,
   portal_id VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
   state state_enum NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
-  FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE
+  FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_group_id) REFERENCES groups(id) ON DELETE SET NULL
 );
 
 -- Create index on portal_id for groups
 CREATE INDEX idx_groups_portal_id ON groups(portal_id);
+CREATE INDEX idx_groups_parent_id ON groups(parent_group_id);
 
 -- Create Clients table
 CREATE TABLE clients (
   id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
   admin BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -50,7 +54,6 @@ CREATE TABLE client_secret_tokens (
   id VARCHAR(255) PRIMARY KEY,
   client_id VARCHAR(255) NOT NULL,
   hash VARCHAR(255) NOT NULL,
-  salt VARCHAR(255) NOT NULL,
   state state_enum NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),

@@ -1,5 +1,11 @@
 package service
 
+import "errors"
+
+var (
+	ErrCreateOnExistingRecord = errors.New("Create attempted on record that already exists")
+)
+
 type SystemProvider interface {
 	ClientProvider
 	GroupProvider

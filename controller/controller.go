@@ -241,7 +241,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 // Client
-func (c *Controller) SignUp(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 	// TODO create new client and return secret token
 }
 func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
