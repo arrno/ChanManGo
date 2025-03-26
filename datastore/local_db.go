@@ -158,6 +158,7 @@ func (db *LocalDB) StoreClientSecret(pw *domain.ClientSecret) error {
 		pw.Id = util.Nanoid()
 	}
 	db.data.Store(docId("client_secret_token", pw.Id), pw)
+	db.data.Store(docId("client_secret_token_by_client_id", pw.ClientId), pw)
 	return nil
 }
 
@@ -169,12 +170,25 @@ func (db *LocalDB) GetClientSecret(id string) (*domain.ClientSecret, error) {
 	return nil, ErrNotFound
 }
 
+func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSecret, error) {
+	val, ok := db.data.Load(docId("client_secret_token_by_client_id", clientId))
+	if ok {
+		return val.(*domain.ClientSecret), nil
+	}
+	return nil, ErrNotFound
+}
+
 func (db *LocalDB) UpdateClientSecret(pw *domain.ClientSecret) error {
 	return db.StoreClientSecret(pw)
 }
 
 func (db *LocalDB) ArchiveClientSecret(id string) error {
+	pw, err := db.GetClientSecret(id)
+	if err != nil {
+		return err
+	}
 	db.data.Delete(docId("client_secret_token", id))
+	db.data.Delete(docId("client_secret_token_by_client_id", pw.ClientId))
 	return nil
 }
 

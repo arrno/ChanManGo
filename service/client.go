@@ -85,9 +85,7 @@ func (c *Client) RotateClientSecret(clientId string) error {
 }
 
 func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
-	// TODO get secret by clientId
-	secretId := ""
-	secret, err := c.db.GetClientSecret(secretId)
+	secret, err := c.db.GetClientSecretByClientId(clientId)
 	if err != nil {
 		return false, err
 	}

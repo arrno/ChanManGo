@@ -53,7 +53,7 @@ type SystemDatastoreProvider interface {
 	//
 	StoreClientSecret(*domain.ClientSecret) error
 	GetClientSecret(id string) (*domain.ClientSecret, error)
-	// GetClientSecretByClientId(clientId string) (*domain.ClientSecret, error)
+	GetClientSecretByClientId(clientId string) (*domain.ClientSecret, error)
 	UpdateClientSecret(*domain.ClientSecret) error
 	ArchiveClientSecret(id string) error
 	//
