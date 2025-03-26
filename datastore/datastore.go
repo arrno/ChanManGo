@@ -44,10 +44,13 @@ type MessageDatastoreProvider interface {
 	ArchiveMessage(id string) error
 }
 
+// TODO all these queries should honor the caller's portal
+
 // Client / Portal / Groups
 type SystemDatastoreProvider interface {
 	StoreClient(*domain.Client) error
 	GetClient(id string) (*domain.Client, error)
+	// GetClients() ([]*domain.Client, error)
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//

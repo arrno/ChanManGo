@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arrno/chanman/broker"
+	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 	"github.com/arrno/chanman/service"
 	"github.com/rs/zerolog/log"
@@ -22,6 +24,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type Controller struct {
+	db      datastore.DatastoreProvider
 	chanMan service.ManagerProvider
 	system  service.SystemProvider
 }
@@ -32,8 +35,11 @@ type MessageWrapper struct {
 }
 
 func NewController() *Controller {
+	db := datastore.NewInMemoryDB()
+	broker := broker.NewInMemoryBroker()
 	return &Controller{
-		chanMan: service.NewManager(),
+		db:      db,
+		chanMan: service.NewManager(db, broker),
 		system:  service.NewSystem(),
 	}
 }
@@ -238,16 +244,6 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	<-done
-}
-
-// Client
-func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
-	// TODO create new client and return secret token
-}
-func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
-	// rotate client token
-}
-func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) GetChannel(w http.ResponseWriter, r *http.Request)     {}

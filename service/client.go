@@ -10,12 +10,13 @@ import (
 )
 
 type ClientProvider interface {
-	CreateClient(client domain.Client) error
+	CreateClient(client domain.Client) (domain.Token, error)
 	GetClient(id string) (domain.Client, error)
+	GetClients(id string) ([]domain.Client, error)
 	UpdateClient(client domain.Client) error
 	ArchiveClient(id string) error
 	//
-	RotateClientSecret(clientId string) error
+	RotateClientSecret(clientId string) (domain.Token, error)
 	ValidateClientSecret(clientId, token string) (bool, error)
 }
 
@@ -25,19 +26,25 @@ type Client struct {
 	db datastore.DatastoreProvider
 }
 
-func (c *Client) CreateClient(client domain.Client) error {
+func NewClient(db datastore.DatastoreProvider) *Client {
+	return &Client{
+		db: db,
+	}
+}
+
+func (c *Client) CreateClient(client domain.Client) (domain.Token, error) {
 	exists, err := c.clientExists(client.Id)
 	if err != nil {
-		return err
+		return domain.Token{}, err
 	} else if exists {
-		return ErrCreateOnExistingRecord
+		return domain.Token{}, ErrCreateOnExistingRecord
 	}
 	token, err := domain.NewToken(util.Nanoid())
 	if err != nil {
-		return err
+		return token, err
 	}
 	secret := domain.NewClientSecret(client.Id, token.Hash)
-	return c.db.WithTx(func(tx datastore.DatastoreProvider) error {
+	return token, c.db.WithTx(func(tx datastore.DatastoreProvider) error {
 		if err := tx.StoreClient(&client); err != nil {
 			return err
 		}
@@ -56,6 +63,14 @@ func (c *Client) GetClient(id string) (domain.Client, error) {
 	return *client, nil
 }
 
+// func (c *Client) GetClients() (domain.Client, error) {
+// 	client, err := c.db.GetClient(id)
+// 	if err != nil {
+// 		return domain.Client{}, err
+// 	}
+// 	return *client, nil
+// }
+
 func (c *Client) UpdateClient(client domain.Client) error {
 	return c.db.UpdateClient(&client)
 }
@@ -71,17 +86,20 @@ func (c *Client) ArchiveClient(id string) error {
 	return c.db.UpdateClient(&client)
 }
 
-func (c *Client) RotateClientSecret(clientId string) error {
+func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	client, err := c.GetClient(clientId)
 	if err != nil {
-		return err
+		return domain.Token{}, err
 	}
 	token, err := domain.NewToken(util.Nanoid())
 	if err != nil {
-		return err
+		return domain.Token{}, err
 	}
 	secret := domain.NewClientSecret(client.Id, token.Hash)
-	return c.db.StoreClientSecret(&secret)
+	if err := c.db.StoreClientSecret(&secret); err != nil {
+		return domain.Token{}, err
+	}
+	return token, nil
 }
 
 func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {

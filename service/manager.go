@@ -39,10 +39,10 @@ type managerObject struct {
 	destroyDependents map[string][]chan any      // map[channel.Id][]chan any
 }
 
-func NewManager() *Manager {
+func NewManager(db datastore.DatastoreProvider, broker broker.BrokerProvider) *Manager {
 	m := Manager{
-		broker:             broker.NewInMemoryBroker(),
-		db:                 datastore.NewInMemoryDB(),
+		broker:             broker,
+		db:                 db,
 		cleanupIntervalSec: 60,
 		// cleanupIntervalSec: 600,
 		debugMode: true,

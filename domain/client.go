@@ -17,8 +17,12 @@ type Client struct {
 }
 
 func NewClient(name string, admin bool) Client {
+	id := util.Nanoid()
+	if len(name) == 0 {
+		name = id
+	}
 	return Client{
-		Id:        util.Nanoid(),
+		Id:        id,
 		Name:      name,
 		Active:    true,
 		Admin:     admin,
