@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/arrno/chanman/domain"
-	"github.com/arrno/chanman/service"
+	ioService "github.com/arrno/chanman/service/io"
 )
 
 // Client
@@ -16,7 +16,7 @@ func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
 		return
 	}
-	client, err := service.NewClient(c.db).GetClient(req.ClientId)
+	client, err := ioService.NewClient(c.db).GetClient(req.ClientId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to get client. Err " + err.Error()})
@@ -38,8 +38,8 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
 		return
 	}
-	client := domain.NewClient(req.ClientName, req.Admin)
-	token, err := service.NewClient(c.db).CreateClient(client)
+	client := domain.NewClient(req.ClientName, domain.MAIN_PORTAL, req.Admin)
+	token, err := ioService.NewClient(c.db).CreateClient(client)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to create client. Err " + err.Error()})
@@ -61,7 +61,7 @@ func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
 		return
 	}
-	token, err := service.NewClient(c.db).RotateClientSecret(req.ClientId)
+	token, err := ioService.NewClient(c.db).RotateClientSecret(req.ClientId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to rotate client token. Err " + err.Error()})
@@ -82,7 +82,7 @@ func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
 		return
 	}
-	if err := service.NewClient(c.db).ArchiveClient(req.ClientId); err != nil {
+	if err := ioService.NewClient(c.db).ArchiveClient(req.ClientId); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to archive client. Err " + err.Error()})
 		return

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/arrno/chanman/domain"
 )
 
 // Auth
@@ -28,7 +30,8 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 		// TODO these come from auth token
 		r.Header.Add("channel", channel)
 		r.Header.Add("topics", topics)
-		r.Header.Add("portalId", "main")
+		r.Header.Add("portalId", domain.MAIN_PORTAL)
+		r.Header.Add("groupId", domain.MAIN_GROUP)
 		r.Header.Add("clientId", "dev")
 		handler(w, r)
 	}

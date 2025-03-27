@@ -13,6 +13,7 @@ CREATE TYPE state_enum AS ENUM (
 -- Create Portals table
 CREATE TABLE portals (
   id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
   owner_id VARCHAR(255) NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),

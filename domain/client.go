@@ -16,13 +16,9 @@ type Client struct {
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
-func NewClient(name string, admin bool) Client {
-	id := util.Nanoid()
-	if len(name) == 0 {
-		name = id
-	}
-	return Client{
-		Id:        id,
+func NewClient(name, portalId string, admin bool) *Client {
+	return &Client{
+		Id:        PortalId(name, portalId),
 		Name:      name,
 		Active:    true,
 		Admin:     admin,

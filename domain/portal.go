@@ -1,12 +1,31 @@
 package domain
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/arrno/chanman/util"
+)
+
+func PortalId(id, portalId string) string {
+	return fmt.Sprintf("%s::%s", id, portalId)
+}
 
 type Portal struct {
 	Id         string     `json:"id"`
+	Name       string     `json:"name"`
 	OwnerId    string     `json:"ownerId"`
 	Active     bool       `json:"active"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	UpdatedAt  time.Time  `json:"updateAt"`
 	ArchivedAt *time.Time `json:"archivedAt"`
+}
+
+func NewPortal(ownerId, name string) *Portal {
+	return &Portal{
+		Id:      util.Nanoid(),
+		Name:    name,
+		OwnerId: ownerId,
+		Active:  true,
+	}
 }

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/arrno/chanman/broker"
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
+	"github.com/arrno/chanman/service/io"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,7 +16,6 @@ type ManagerProvider interface {
 	Info() managerSummary
 	Destroy()
 	ExpectChannel(channel *domain.Channel) (ChannelProvider, error)
-	CreateChannel(channel *domain.Channel) (*Channel, chan any, error)
 	DestroyChannel(worker *domain.Channel) (err error)
 	AddSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) (bool, error)
 	RemoveSubscription(subscriber *domain.TopicSubscription, channel *domain.Channel) error
@@ -25,7 +24,8 @@ type ManagerProvider interface {
 
 type Manager struct {
 	cleanupIntervalSec uint
-	db                 datastore.DatastoreProvider
+	channelIo          io.ChannelProvider
+	messageIo          io.MessageProvider
 	broker             broker.BrokerProvider
 	object             managerObject
 	destroy            chan any
@@ -41,8 +41,9 @@ type managerObject struct {
 
 func NewManager(db datastore.DatastoreProvider, broker broker.BrokerProvider) *Manager {
 	m := Manager{
-		broker:             broker,
-		db:                 db,
+		broker: broker,
+		// db:                 db,
+		messageIo:          io.NewMessage(db),
 		cleanupIntervalSec: 60,
 		// cleanupIntervalSec: 600,
 		debugMode: true,
@@ -56,20 +57,6 @@ func NewManager(db datastore.DatastoreProvider, broker broker.BrokerProvider) *M
 	return &m
 }
 
-func (c *Manager) cannelExistsTx(tx datastore.DatastoreProvider, channel *domain.Channel) (bool, error) {
-	_, err := tx.GetChannel(channel.Id)
-
-	if err == nil {
-		return true, nil
-	}
-
-	if errors.Is(err, datastore.ErrNotFound) {
-		return false, nil
-	}
-
-	return false, err
-}
-
 func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error) {
 	c.object.mu.Lock()
 	defer c.object.mu.Unlock()
@@ -78,28 +65,13 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 		return worker, nil
 	}
 
-	var channelExists bool
-	var err error
-	err = c.db.WithTx(func(tx datastore.DatastoreProvider) error {
-		channelExists, err = c.cannelExistsTx(tx, channel)
-		if err != nil {
-			return err
-		}
-		if channelExists {
-			return nil
-		}
-		log.Info().Msg("Creating channel n DB: " + channel.Id)
-		if err := c.db.StoreChannel(channel); err != nil {
-			return err
-		}
-		return nil
-	})
+	created, err := c.channelIo.CreateChannel(channel)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if !channelExists {
+	if created {
 		log.Info().Msg("Creating channel in broker: " + channel.Id)
 		if err := c.broker.CreateChannel(channel); err != nil {
 			return nil, err
@@ -107,7 +79,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 	}
 
 	log.Info().Msg("Creating channel in memory: " + channel.Id)
-	worker, done, err := c.CreateChannel(channel)
+	worker, done, err := c.bootChannel(channel)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +125,7 @@ func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, messa
 		if err != nil {
 			message.UpdateState(domain.STATE_ERROR)
 		}
-		if storeErr := c.db.StoreMessage(message); storeErr != nil {
+		if storeErr := c.messageIo.CreateMessage(message); storeErr != nil {
 			err = fmt.Errorf("%w. %w", err, storeErr)
 		}
 	}()
@@ -166,11 +138,11 @@ func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, messa
 	return worker.Publish(message)
 }
 
-func (c *Manager) handleHeartbeat(worker *domain.Channel) {
-	worker.UpdateHeartbeat()
-	err := c.db.UpdateChannel(worker)
+func (c *Manager) handleHeartbeat(channel *domain.Channel) {
+	channel.UpdateHeartbeat()
+	err := c.channelIo.UpdateChannel(channel)
 	if err != nil {
-		log.Error().Msg(fmt.Sprintf("Channel heartbeat failed to update: %s. Err: %s ", worker.Repr(), err.Error()))
+		log.Error().Msg(fmt.Sprintf("Channel heartbeat failed to update: %s. Err: %s ", channel.Repr(), err.Error()))
 	}
 }
 
@@ -219,14 +191,14 @@ func (c *Manager) Destroy() {
 
 }
 
-func (c *Manager) CreateChannel(channel *domain.Channel) (*Channel, chan any, error) {
+func (c *Manager) bootChannel(channel *domain.Channel) (*Channel, chan any, error) {
 	update := func(message *domain.Message) (err error) {
 		if err != nil {
 			message.UpdateState(domain.STATE_ERROR)
 		} else {
 			message.UpdateState(domain.STATE_COMPLETE)
 		}
-		return c.db.UpdateMessage(message)
+		return c.messageIo.UpdateMessage(message)
 	}
 
 	worker := NewChannel(channel, c.broker, update)
@@ -236,12 +208,7 @@ func (c *Manager) CreateChannel(channel *domain.Channel) (*Channel, chan any, er
 
 	done := make(chan any)
 	worker.Heartbeat(done, c.handleHeartbeat)
-	// store channel + worker in db
 
-	if err := c.db.StoreChannel(worker.Object()); err != nil {
-		close(done)
-		return nil, nil, err
-	}
 	return worker, done, nil
 }
 
@@ -268,7 +235,7 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 		} else {
 			channel.UpdateState(domain.STATE_INACTIVE)
 		}
-		if writeErr := c.db.UpdateChannel(channel); writeErr != nil {
+		if writeErr := c.channelIo.UpdateChannel(channel); writeErr != nil {
 			log.Error().Msg(fmt.Sprintf("Failed to write update to worker. Err: %s", writeErr.Error()))
 		}
 	}()

@@ -1,4 +1,4 @@
-package service
+package io
 
 import (
 	"errors"
@@ -10,10 +10,10 @@ import (
 )
 
 type ClientProvider interface {
-	CreateClient(client domain.Client) (domain.Token, error)
-	GetClient(id string) (domain.Client, error)
-	GetClients(id string) ([]domain.Client, error)
-	UpdateClient(client domain.Client) error
+	CreateClient(client *domain.Client) (domain.Token, error)
+	GetClient(id string) (*domain.Client, error)
+	GetClients(id string) ([]*domain.Client, error)
+	UpdateClient(client *domain.Client) error
 	ArchiveClient(id string) error
 	//
 	RotateClientSecret(clientId string) (domain.Token, error)
@@ -32,7 +32,7 @@ func NewClient(db datastore.DatastoreProvider) *Client {
 	}
 }
 
-func (c *Client) CreateClient(client domain.Client) (domain.Token, error) {
+func (c *Client) CreateClient(client *domain.Client) (domain.Token, error) {
 	exists, err := c.clientExists(client.Id)
 	if err != nil {
 		return domain.Token{}, err
@@ -45,34 +45,37 @@ func (c *Client) CreateClient(client domain.Client) (domain.Token, error) {
 	}
 	secret := domain.NewClientSecret(client.Id, token.Hash)
 	return token, c.db.WithTx(func(tx datastore.DatastoreProvider) error {
-		if err := tx.StoreClient(&client); err != nil {
+		if err := tx.StoreClient(client); err != nil {
 			return err
 		}
 		if err := tx.StoreClientSecret(&secret); err != nil {
+			return err
+		}
+		if err = tx.StoreClientGroup(domain.NewClientGroup(client.Id, domain.MAIN_GROUP)); err != nil {
 			return err
 		}
 		return nil
 	})
 }
 
-func (c *Client) GetClient(id string) (domain.Client, error) {
+func (c *Client) GetClient(id string) (*domain.Client, error) {
 	client, err := c.db.GetClient(id)
 	if err != nil {
-		return domain.Client{}, err
+		return nil, err
 	}
-	return *client, nil
+	return client, nil
 }
 
-// func (c *Client) GetClients() (domain.Client, error) {
-// 	client, err := c.db.GetClient(id)
-// 	if err != nil {
-// 		return domain.Client{}, err
-// 	}
-// 	return *client, nil
-// }
+func (c *Client) GetClients(pg domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+	clients, err := c.db.GetClients(pg)
+	if err != nil {
+		return nil, err
+	}
+	return clients, nil
+}
 
-func (c *Client) UpdateClient(client domain.Client) error {
-	return c.db.UpdateClient(&client)
+func (c *Client) UpdateClient(client *domain.Client) error {
+	return c.db.UpdateClient(client)
 }
 
 func (c *Client) ArchiveClient(id string) error {
@@ -83,7 +86,7 @@ func (c *Client) ArchiveClient(id string) error {
 	now := time.Now()
 	client.ArchivedAt = &now
 	client.Active = false
-	return c.db.UpdateClient(&client)
+	return c.db.UpdateClient(client)
 }
 
 func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {

@@ -2,6 +2,8 @@ package datastore
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/arrno/chanman/domain"
@@ -141,6 +143,22 @@ func (db *LocalDB) GetClient(id string) (*domain.Client, error) {
 		return val.(*domain.Client), nil
 	}
 	return nil, ErrNotFound
+}
+
+func (db *LocalDB) GetClients(pagination domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+	clients := []*domain.Client{}
+
+	db.data.Range(func(key any, value any) bool {
+		if strings.HasPrefix(key.(string), "client:") {
+			clients = append(clients, value.(*domain.Client))
+		}
+		return true
+	})
+	sort.Slice(clients, func(i, j int) bool {
+		return clients[i].Id < clients[j].Id
+	})
+
+	return pagination.DoPaginate(clients), nil
 }
 
 func (db *LocalDB) UpdateClient(client *domain.Client) error {

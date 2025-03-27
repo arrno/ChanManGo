@@ -50,7 +50,7 @@ type MessageDatastoreProvider interface {
 type SystemDatastoreProvider interface {
 	StoreClient(*domain.Client) error
 	GetClient(id string) (*domain.Client, error)
-	// GetClients() ([]*domain.Client, error)
+	GetClients(pagination domain.Pagination[*domain.Client]) ([]*domain.Client, error)
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//

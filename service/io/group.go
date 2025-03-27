@@ -1,4 +1,4 @@
-package service
+package io
 
 import "github.com/arrno/chanman/domain"
 

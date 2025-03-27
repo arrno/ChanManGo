@@ -12,6 +12,7 @@ import (
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 	"github.com/arrno/chanman/service"
+	ioService "github.com/arrno/chanman/service/io"
 	"github.com/rs/zerolog/log"
 
 	"github.com/gorilla/websocket"
@@ -26,7 +27,7 @@ var upgrader = websocket.Upgrader{
 type Controller struct {
 	db      datastore.DatastoreProvider
 	chanMan service.ManagerProvider
-	system  service.SystemProvider
+	system  ioService.SystemProvider
 }
 
 type MessageWrapper struct {
@@ -36,11 +37,12 @@ type MessageWrapper struct {
 
 func NewController() *Controller {
 	db := datastore.NewInMemoryDB()
+	datastore.SeedDb(db)
 	broker := broker.NewInMemoryBroker()
 	return &Controller{
 		db:      db,
 		chanMan: service.NewManager(db, broker),
-		system:  service.NewSystem(),
+		system:  ioService.NewSystem(),
 	}
 }
 

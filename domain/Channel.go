@@ -36,7 +36,7 @@ type Channel struct {
 
 func NewChannel(portalId, name string, hbIntervalSec uint) *Channel {
 	return &Channel{
-		Id:              fmt.Sprintf("%s__%s", portalId, name),
+		Id:              PortalId(name, portalId),
 		PortalId:        portalId,
 		Name:            name,
 		State:           STATE_RUNNING,
