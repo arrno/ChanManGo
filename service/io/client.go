@@ -9,6 +9,9 @@ import (
 	"github.com/arrno/chanman/util"
 )
 
+// TODO via ENV
+const localSecret string = "a-very-secure-key-32bytes!"
+
 type ClientProvider interface {
 	CreateClient(client *domain.Client) (domain.Token, error)
 	GetClient(id string) (*domain.Client, error)
@@ -39,11 +42,11 @@ func (c *Client) CreateClient(client *domain.Client) (domain.Token, error) {
 	} else if exists {
 		return domain.Token{}, ErrCreateOnExistingRecord
 	}
-	token, err := domain.NewToken(util.Nanoid())
+	token, err := domain.NewToken(util.Nanoid(), string(localSecret))
 	if err != nil {
 		return token, err
 	}
-	secret := domain.NewClientSecret(client.Id, token.Hash)
+	secret := domain.NewClientSecret(client.Id, token.Encrypted)
 	return token, c.db.WithTx(func(tx datastore.DatastoreProvider) error {
 		if err := tx.StoreClient(client); err != nil {
 			return err
@@ -94,11 +97,11 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	if err != nil {
 		return domain.Token{}, err
 	}
-	token, err := domain.NewToken(util.Nanoid())
+	token, err := domain.NewToken(util.Nanoid(), localSecret)
 	if err != nil {
 		return domain.Token{}, err
 	}
-	secret := domain.NewClientSecret(client.Id, token.Hash)
+	secret := domain.NewClientSecret(client.Id, token.Encrypted)
 	if err := c.db.StoreClientSecret(&secret); err != nil {
 		return domain.Token{}, err
 	}
@@ -111,9 +114,8 @@ func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
 		return false, err
 	}
 	return domain.Token{
-		Raw:  password,
-		Hash: secret.Hash,
-	}.Validate(), nil
+		Encrypted: secret.EncryptedSecret,
+	}.Validate(password), nil
 }
 
 func (c *Client) clientExists(clientId string) (bool, error) {

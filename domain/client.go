@@ -27,18 +27,18 @@ func NewClient(name, groupId, portalId string, admin bool) *Client {
 }
 
 type ClientSecret struct {
-	Id         string     `json:"id"`
-	ClientId   string     `json:"clientId"`
-	Hash       string     `json:"hash"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updateAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
+	Id              string     `json:"id"`
+	ClientId        string     `json:"clientId"`
+	EncryptedSecret string     `json:"encryptedSecret"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updateAt"`
+	ArchivedAt      *time.Time `json:"archivedAt"`
 }
 
-func NewClientSecret(clientId, hash string) ClientSecret {
+func NewClientSecret(clientId, encryptedSecret string) ClientSecret {
 	return ClientSecret{
-		Id:       util.Nanoid(),
-		ClientId: clientId,
-		Hash:     hash,
+		Id:              util.Nanoid(),
+		ClientId:        clientId,
+		EncryptedSecret: encryptedSecret,
 	}
 }

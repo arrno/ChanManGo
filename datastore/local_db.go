@@ -177,7 +177,7 @@ func (db *LocalDB) StoreClientSecret(pw *domain.ClientSecret) error {
 	}
 	db.data.Store(docId("client_secret_token", pw.Id), pw)
 	db.data.Store(docId("client_secret_token_by_client_id", pw.ClientId), pw)
-	db.data.Store(docId("client_secret_token_by_token", pw.Hash), pw)
+	db.data.Store(docId("client_secret_token_by_token", pw.EncryptedSecret), pw)
 	return nil
 }
 
@@ -220,7 +220,7 @@ func (db *LocalDB) ArchiveClientSecret(id string) error {
 	}
 	db.data.Delete(docId("client_secret_token", id))
 	db.data.Delete(docId("client_secret_token_by_client_id", pw.ClientId))
-	db.data.Delete(docId("client_secret_token_by_token", pw.Hash))
+	db.data.Delete(docId("client_secret_token_by_token", pw.EncryptedSecret))
 	return nil
 }
 
