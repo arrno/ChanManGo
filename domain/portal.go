@@ -8,7 +8,11 @@ import (
 )
 
 func PortalId(id, portalId string) string {
-	return fmt.Sprintf("%s::%s", id, portalId)
+	return fmt.Sprintf("%s::%s", portalId, id)
+}
+
+func GroupId(id, groupId, portalId string) string {
+	return fmt.Sprintf("%s::%s::%s", portalId, groupId, id)
 }
 
 type Portal struct {

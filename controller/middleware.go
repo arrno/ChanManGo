@@ -15,24 +15,27 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 		if len(token) == 0 {
 			token = r.URL.Query().Get("Authorization")
 		}
+
 		tokens := strings.Split(token, " ")
 		if len(tokens) == 2 {
 			token = tokens[1]
 		}
-		if token != "auth-token" {
+		clientGroup, err := c.db.GetClientGroupByToken(token)
+		if err != nil || clientGroup == nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
 			return
 		}
+		// group := r.URL.Query().Get("group")
 		channel := r.URL.Query().Get("channel")
 		topics := r.URL.Query().Get("topics")
 		// w.Header().Set("Content-Type", "application/json")
-		// TODO these come from auth token
+
 		r.Header.Add("channel", channel)
 		r.Header.Add("topics", topics)
 		r.Header.Add("portalId", domain.MAIN_PORTAL)
-		r.Header.Add("groupId", domain.MAIN_GROUP)
-		r.Header.Add("clientId", "dev")
+		r.Header.Add("groupId", clientGroup.GroupId)
+		r.Header.Add("clientId", clientGroup.ClientId)
 		handler(w, r)
 	}
 }

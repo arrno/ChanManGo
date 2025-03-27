@@ -45,21 +45,3 @@ func NewClientGroup(clientId, groupId string) *ClientGroup {
 		GroupId:  groupId,
 	}
 }
-
-type ChannelGroup struct {
-	Id         string     `json:"id"`
-	ChannelId  string     `json:"channelId"`
-	GroupId    string     `json:"groupId"`
-	State      STATE      `json:"state"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updateAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
-}
-
-func NewChannelGroup(channelId, groupId string) *ChannelGroup {
-	return &ChannelGroup{
-		Id:        util.Nanoid(),
-		ChannelId: channelId,
-		GroupId:   groupId,
-	}
-}

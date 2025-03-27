@@ -46,11 +46,17 @@ func NewController() *Controller {
 	}
 }
 
+func parseHeaders(h http.Header) (clientId, groupId, portalId, channelName string) {
+	clientId = h.Get("clientId")
+	clientId = h.Get("groupId")
+	portalId = h.Get("portalId")
+	channelName = h.Get("channel")
+	return
+}
+
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
-	clientId := r.Header.Get("clientId")
-	portalId := r.Header.Get("portalId")
-	channelName := r.Header.Get("channel")
+	clientId, groupId, portalId, channelName := parseHeaders(r.Header)
 
 	if channelName == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -58,7 +64,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel := domain.NewChannel(portalId, channelName, 60)
+	channel := domain.NewChannel(portalId, groupId, channelName, 60)
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -75,7 +81,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to parse message"})
 		return
 	}
-	err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+	err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
 	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
 		log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
 		w.WriteHeader(http.StatusForbidden)
@@ -91,16 +97,14 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 
-	clientId := r.Header.Get("clientId")
-	portalId := r.Header.Get("portalId")
-	channelName := r.Header.Get("channel")
+	clientId, groupId, portalId, channelName := parseHeaders(r.Header)
 
 	if channelName == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
 		return
 	}
-	channel := domain.NewChannel(portalId, channelName, 60)
+	channel := domain.NewChannel(portalId, groupId, channelName, 60)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -141,7 +145,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 			log.Error().Msg(fmt.Sprintf("Json unmarshal err: %v", err))
 			break
 		}
-		err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, wrapper.Topic, []byte(wrapper.Payload)))
+		err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
 		if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
 			log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
 			w.WriteHeader(http.StatusForbidden)
@@ -159,9 +163,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 
-	clientId := r.Header.Get("clientId")
-	portalId := r.Header.Get("portalId")
-	channelName := r.Header.Get("channel")
+	clientId, groupId, portalId, channelName := parseHeaders(r.Header)
 
 	if channelName == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -175,7 +177,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	} else {
 		topics = strings.Split(topicSet, ",")
 	}
-	channel := domain.NewChannel(portalId, channelName, 60)
+	channel := domain.NewChannel(portalId, groupId, channelName, 60)
 	sub := domain.NewTopicSubscription(clientId, channel.Id, topics)
 
 	conn, err := upgrader.Upgrade(w, r, nil)

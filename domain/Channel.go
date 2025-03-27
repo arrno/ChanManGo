@@ -34,9 +34,10 @@ type Channel struct {
 	ArchivedAt      *time.Time   `json:"archivedAt"`
 }
 
-func NewChannel(portalId, name string, hbIntervalSec uint) *Channel {
+func NewChannel(portalId, groupId, name string, hbIntervalSec uint) *Channel {
 	return &Channel{
-		Id:              PortalId(name, portalId),
+		Id:              GroupId(name, groupId, portalId),
+		GroupId:         groupId,
 		PortalId:        portalId,
 		Name:            name,
 		State:           STATE_RUNNING,

@@ -37,8 +37,7 @@ func (m *Channel) CreateChannel(channel *domain.Channel) (created bool, err erro
 		if err := tx.StoreChannel(channel); err != nil {
 			return err
 		}
-		chanGroup := domain.NewChannelGroup(channel.Id, domain.MAIN_GROUP)
-		return tx.StoreChannelGroup(chanGroup)
+		return nil
 	})
 	return
 }

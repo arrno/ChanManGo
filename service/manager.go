@@ -41,12 +41,11 @@ type managerObject struct {
 
 func NewManager(db datastore.DatastoreProvider, broker broker.BrokerProvider) *Manager {
 	m := Manager{
-		broker: broker,
-		// db:                 db,
+		broker:             broker,
+		channelIo:          io.NewChannel(db),
 		messageIo:          io.NewMessage(db),
 		cleanupIntervalSec: 60,
-		// cleanupIntervalSec: 600,
-		debugMode: true,
+		debugMode:          true,
 		object: managerObject{
 			state:             domain.STATE_RUNNING,
 			channels:          map[string]ChannelProvider{},

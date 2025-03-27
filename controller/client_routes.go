@@ -38,7 +38,11 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
 		return
 	}
-	client := domain.NewClient(req.ClientName, domain.MAIN_PORTAL, req.Admin)
+	groupId := req.GroupId
+	if groupId == "" {
+		groupId = domain.MAIN_GROUP
+	}
+	client := domain.NewClient(req.ClientName, groupId, domain.MAIN_PORTAL, req.Admin)
 	token, err := ioService.NewClient(c.db).CreateClient(client)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

@@ -12,6 +12,7 @@ type Message struct {
 	Id             string     `json:"id"`
 	Topic          string     `json:"topic"`
 	ClientId       string     `json:"clientId"`
+	ChannelId      string     `json:"channelId"`
 	ProcessedAt    *time.Time `json:"processedAt"`
 	AcknowledgedAt *time.Time `json:"acknowledged"`
 	State          STATE      `json:"state"`
@@ -23,13 +24,14 @@ type Message struct {
 	ArchivedAt     *time.Time `json:"archivedAt"`
 }
 
-func NewMessage(clientId, topic string, payload []byte) *Message {
+func NewMessage(clientId, channelId, topic string, payload []byte) *Message {
 	return &Message{
-		Id:       util.Nanoid(),
-		ClientId: clientId,
-		Topic:    topic,
-		State:    STATE_PENDING,
-		Payload:  payload,
+		Id:        util.Nanoid(),
+		ClientId:  clientId,
+		ChannelId: channelId,
+		Topic:     topic,
+		State:     STATE_PENDING,
+		Payload:   payload,
 	}
 }
 

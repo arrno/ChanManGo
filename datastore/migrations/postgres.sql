@@ -103,23 +103,6 @@ CREATE TABLE client_groups (
 CREATE INDEX idx_client_groups_client_id ON client_groups(client_id);
 CREATE INDEX idx_client_groups_group_id ON client_groups(group_id);
 
--- Create ChannelGroup junction table for many-to-many relationship
-CREATE TABLE channel_groups (
-  id VARCHAR(255) PRIMARY KEY,
-  channel_id VARCHAR(255) NOT NULL,
-  group_id VARCHAR(255) NOT NULL,
-  state state_enum NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  archived_at TIMESTAMP,
-  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
-  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
-  UNIQUE (channel_id, group_id)
-);
-
--- Create indexes for channel_groups
-CREATE INDEX idx_channel_groups_channel_id ON channel_groups(channel_id);
-CREATE INDEX idx_channel_groups_group_id ON channel_groups(group_id);
 
 -- Create ChannelSubscription table
 CREATE TABLE channel_subscriptions (
@@ -162,6 +145,7 @@ CREATE TABLE messages (
   id VARCHAR(255) PRIMARY KEY,
   topic VARCHAR(255) NOT NULL,
   client_id VARCHAR(255) NOT NULL,
+  channel_id VARCHAR(255) NOT NULL,
   processed_at TIMESTAMP,
   acknowledged_at TIMESTAMP,
   state state_enum NOT NULL,
@@ -171,11 +155,13 @@ CREATE TABLE messages (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
 -- Create indexes for messages
 CREATE INDEX idx_messages_client_id ON messages(client_id);
+CREATE INDEX idx_messages_channel_id ON messages(channel_id);
 CREATE INDEX idx_messages_topic ON messages(topic);
 CREATE INDEX idx_messages_state ON messages(state);
 

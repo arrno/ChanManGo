@@ -3,13 +3,14 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
-idle timeout on handlers
-implement postgres
-self-healing / tidy
 client / portal / groups - store
 permissions - store and check
-message and worker ack/state
+segmentation - portals / groups
 register / auth / permission / signup
+---
+implement postgres
+self-healing / tidy
+message and worker ack/state
 rate-limits
 ---
 test segmentation - portals / groups / topics
@@ -20,3 +21,8 @@ test retention / free - subs / messages
 [transforms]
 ---
 [scale]
+
+
+
+???
+idle timeout on handlers

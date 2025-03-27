@@ -54,6 +54,8 @@ type SystemDatastoreProvider interface {
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//
+	GetClientGroupByToken(token string) (*domain.ClientGroup, error)
+	//
 	StoreClientSecret(*domain.ClientSecret) error
 	GetClientSecret(id string) (*domain.ClientSecret, error)
 	GetClientSecretByClientId(clientId string) (*domain.ClientSecret, error)
@@ -66,14 +68,10 @@ type SystemDatastoreProvider interface {
 	ArchiveGroup(id string) error
 	//
 	StoreClientGroup(*domain.ClientGroup) error
+	GetClientGroupByClientId(clientId string) (*domain.ClientGroup, error)
 	GetClientGroup(id string) (*domain.ClientGroup, error)
 	UpdateClientGroup(*domain.ClientGroup) error
 	ArchiveClientGroup(id string) error
-	//
-	StoreChannelGroup(*domain.ChannelGroup) error
-	GetChannelGroup(id string) (*domain.ChannelGroup, error)
-	UpdateChannelGroup(*domain.ChannelGroup) error
-	ArchiveChannelGroup(id string) error
 	//
 	StorePortal(*domain.Portal) error
 	GetPortal(id string) (*domain.Portal, error)

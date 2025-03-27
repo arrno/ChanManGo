@@ -16,9 +16,9 @@ type Client struct {
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
-func NewClient(name, portalId string, admin bool) *Client {
+func NewClient(name, groupId, portalId string, admin bool) *Client {
 	return &Client{
-		Id:        PortalId(name, portalId),
+		Id:        GroupId(name, groupId, portalId),
 		Name:      name,
 		Active:    true,
 		Admin:     admin,

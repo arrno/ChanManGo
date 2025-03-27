@@ -2,8 +2,9 @@ package datastore
 
 import "github.com/arrno/chanman/domain"
 
+// MainPortal -> MainGroup -> MainChannel, AdminClient
 func SeedDb(db DatastoreProvider) {
-	client := domain.NewClient("admin", domain.MAIN_PORTAL, true)
+	client := domain.NewClient("admin", domain.MAIN_GROUP, domain.MAIN_PORTAL, true)
 	err := db.StoreClient(client)
 	if err != nil {
 		panic(err)
@@ -22,6 +23,11 @@ func SeedDb(db DatastoreProvider) {
 	}
 	clientGroup := domain.NewClientGroup(client.Id, group.Id)
 	err = db.StoreClientGroup(clientGroup)
+	if err != nil {
+		panic(err)
+	}
+	channel := domain.NewChannel(portal.Id, group.Id, domain.MAIN_CHANNEL, 300)
+	err = db.StoreChannel(channel)
 	if err != nil {
 		panic(err)
 	}

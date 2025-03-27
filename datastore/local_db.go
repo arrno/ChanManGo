@@ -177,6 +177,7 @@ func (db *LocalDB) StoreClientSecret(pw *domain.ClientSecret) error {
 	}
 	db.data.Store(docId("client_secret_token", pw.Id), pw)
 	db.data.Store(docId("client_secret_token_by_client_id", pw.ClientId), pw)
+	db.data.Store(docId("client_secret_token_by_token", pw.Hash), pw)
 	return nil
 }
 
@@ -196,6 +197,18 @@ func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSec
 	return nil, ErrNotFound
 }
 
+func (db *LocalDB) GetClientGroupByToken(token string) (*domain.ClientGroup, error) {
+	val, ok := db.data.Load(docId("client_secret_token_by_token", token))
+	if !ok {
+		return nil, ErrNotFound
+	}
+	clientGroup, err := db.GetClientGroupByClientId(val.(*domain.ClientSecret).ClientId)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return clientGroup, nil
+}
+
 func (db *LocalDB) UpdateClientSecret(pw *domain.ClientSecret) error {
 	return db.StoreClientSecret(pw)
 }
@@ -207,6 +220,7 @@ func (db *LocalDB) ArchiveClientSecret(id string) error {
 	}
 	db.data.Delete(docId("client_secret_token", id))
 	db.data.Delete(docId("client_secret_token_by_client_id", pw.ClientId))
+	db.data.Delete(docId("client_secret_token_by_token", pw.Hash))
 	return nil
 }
 
@@ -242,6 +256,7 @@ func (db *LocalDB) StoreClientGroup(cg *domain.ClientGroup) error {
 		cg.Id = util.Nanoid()
 	}
 	db.data.Store(docId("client_group", cg.Id), cg)
+	db.data.Store(docId("client_group_by_client_id", cg.ClientId), cg)
 	return nil
 }
 
@@ -253,38 +268,25 @@ func (db *LocalDB) GetClientGroup(id string) (*domain.ClientGroup, error) {
 	return nil, ErrNotFound
 }
 
+func (db *LocalDB) GetClientGroupByClientId(clientId string) (*domain.ClientGroup, error) {
+	val, ok := db.data.Load(docId("client_group_by_client_id", clientId))
+	if ok {
+		return val.(*domain.ClientGroup), nil
+	}
+	return nil, ErrNotFound
+}
+
 func (db *LocalDB) UpdateClientGroup(cg *domain.ClientGroup) error {
 	return db.StoreClientGroup(cg)
 }
 
 func (db *LocalDB) ArchiveClientGroup(id string) error {
+	cg, err := db.GetClientGroup(id)
+	if err != nil {
+		return err
+	}
 	db.data.Delete(docId("client_group", id))
-	return nil
-}
-
-// CHANNEL GROUP
-func (db *LocalDB) StoreChannelGroup(cg *domain.ChannelGroup) error {
-	if cg.Id == "" {
-		cg.Id = util.Nanoid()
-	}
-	db.data.Store(docId("channel_group", cg.Id), cg)
-	return nil
-}
-
-func (db *LocalDB) GetChannelGroup(id string) (*domain.ChannelGroup, error) {
-	val, ok := db.data.Load(docId("channel_group", id))
-	if ok {
-		return val.(*domain.ChannelGroup), nil
-	}
-	return nil, ErrNotFound
-}
-
-func (db *LocalDB) UpdateChannelGroup(cg *domain.ChannelGroup) error {
-	return db.StoreChannelGroup(cg)
-}
-
-func (db *LocalDB) ArchiveChannelGroup(id string) error {
-	db.data.Delete(docId("channel_group", id))
+	db.data.Delete(docId("client_group_by_client_id", cg.ClientId))
 	return nil
 }
 
