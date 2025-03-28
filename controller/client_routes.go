@@ -27,9 +27,23 @@ func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//	func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
-//		service.NewClient(c.db).CreateClient()
-//	}
+func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
+	var req domain.Pagination[*domain.Client]
+	if err := UnmarshalTo(&req, r); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse clients request"})
+		return
+	}
+	client, err := ioService.NewClient(c.db).GetClients(req)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to get clients. Err " + err.Error()})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Results": client})
+	return
+}
 
 func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest

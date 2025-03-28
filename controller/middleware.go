@@ -2,14 +2,16 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 )
 
 // Auth
-func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if len(token) == 0 {
@@ -39,7 +41,62 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 		if isAdmin {
 			r.Header.Add("admin", "true")
 		}
-		handler(w, r)
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (c *Controller) Admin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		admin := r.Header.Get("admin")
+		if admin != "true" {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
+
+// Unnecessary as is with prefixing but that may not always be the case
+func (c *Controller) ChannelContext(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		groupId := r.Header.Get("groupId")
+		portalId := r.Header.Get("portalId")
+		channelName := r.Header.Get("channel")
+
+		deny := func() {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
+		}
+
+		if len(channelName) == 0 {
+			deny()
+			return
+		}
+		channel, err := c.db.GetChannel(domain.GroupId(channelName, groupId, portalId))
+		if err != nil && errors.Is(err, datastore.ErrNotFound) {
+			deny()
+			return
+		} else if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"Response": "Internal error"})
+			return
+		}
+		if channel.GroupId != groupId || channel.PortalId != portalId {
+			deny()
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
+
+func MethodGuard(allowedMethod string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != allowedMethod {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		next(w, r)
 	}
 }
 

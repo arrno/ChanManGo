@@ -4,8 +4,6 @@ Roadmap:
 ---
 [base-case]
 client / portal / groups - store
-permissions - store and check (admin / group access)
-segmentation - portals / groups
 register / auth / permission / signup
 ---
 implement postgres
@@ -13,7 +11,7 @@ message ack/state
 rate-limits
 ---
 self-healing / tidy
-test segmentation - portals / groups / topics
+test segmentation - portals / groups / topics / admin
 test retention / free - subs / messages
 ---
 [differentiators]
