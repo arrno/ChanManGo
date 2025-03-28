@@ -54,7 +54,7 @@ type SystemDatastoreProvider interface {
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//
-	GetClientGroupByToken(token string) (*domain.ClientGroup, error)
+	GetClientGroupByToken(token string) (*domain.ClientGroup, bool, error)
 	//
 	StoreClientSecret(*domain.ClientSecret) error
 	GetClientSecret(id string) (*domain.ClientSecret, error)

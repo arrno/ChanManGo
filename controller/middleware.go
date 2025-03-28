@@ -20,7 +20,7 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 		if len(tokens) == 2 {
 			token = tokens[1]
 		}
-		clientGroup, err := c.db.GetClientGroupByToken(token)
+		clientGroup, isAdmin, err := c.db.GetClientGroupByToken(token)
 		if err != nil || clientGroup == nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
@@ -36,6 +36,9 @@ func (c *Controller) Auth(handler func(w http.ResponseWriter, r *http.Request)) 
 		r.Header.Add("portalId", domain.MAIN_PORTAL)
 		r.Header.Add("groupId", clientGroup.GroupId)
 		r.Header.Add("clientId", clientGroup.ClientId)
+		if isAdmin {
+			r.Header.Add("admin", "true")
+		}
 		handler(w, r)
 	}
 }

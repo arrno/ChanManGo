@@ -197,16 +197,20 @@ func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSec
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) GetClientGroupByToken(token string) (*domain.ClientGroup, error) {
+func (db *LocalDB) GetClientGroupByToken(token string) (*domain.ClientGroup, bool, error) {
 	val, ok := db.data.Load(docId("client_secret_token_by_token", token))
 	if !ok {
-		return nil, ErrNotFound
+		return nil, false, ErrNotFound
 	}
 	clientGroup, err := db.GetClientGroupByClientId(val.(*domain.ClientSecret).ClientId)
 	if err != nil {
-		return nil, ErrNotFound
+		return nil, false, ErrNotFound
 	}
-	return clientGroup, nil
+	client, err := db.GetClient(clientGroup.Id)
+	if err != nil {
+		return nil, false, ErrNotFound
+	}
+	return clientGroup, client.Admin, nil
 }
 
 func (db *LocalDB) UpdateClientSecret(pw *domain.ClientSecret) error {

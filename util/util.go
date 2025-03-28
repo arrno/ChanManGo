@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"math/big"
 	"math/rand/v2"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -77,4 +78,9 @@ func CreateHashedID(identifier string) string {
 	}
 
 	return string(hashedID)
+}
+
+func IsValidName(name string) bool {
+	re := regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
+	return re.MatchString(name)
 }
