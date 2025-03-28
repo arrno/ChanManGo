@@ -9,9 +9,6 @@ import (
 	"github.com/arrno/chanman/util"
 )
 
-// TODO via ENV
-const localSecret string = "a-very-secure-key-32bytes!"
-
 type ClientProvider interface {
 	CreateClient(client *domain.Client) (domain.Token, error)
 	GetClient(id string) (*domain.Client, error)
@@ -42,6 +39,7 @@ func (c *Client) CreateClient(client *domain.Client) (domain.Token, error) {
 	} else if exists {
 		return domain.Token{}, ErrCreateOnExistingRecord
 	}
+	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
 	token, err := domain.NewToken(util.Nanoid(), string(localSecret))
 	if err != nil {
 		return token, err
@@ -97,6 +95,7 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	if err != nil {
 		return domain.Token{}, err
 	}
+	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
 	token, err := domain.NewToken(util.Nanoid(), localSecret)
 	if err != nil {
 		return domain.Token{}, err

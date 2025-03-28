@@ -1,11 +1,25 @@
 package datastore
 
-import "github.com/arrno/chanman/domain"
+import (
+	"github.com/arrno/chanman/domain"
+	"github.com/arrno/chanman/util"
+)
 
 // MainPortal -> MainGroup -> MainChannel, AdminClient
 func SeedDb(db DatastoreProvider) {
 	client := domain.NewClient("admin", domain.MAIN_GROUP, domain.MAIN_PORTAL, true)
 	err := db.StoreClient(client)
+	if err != nil {
+		panic(err)
+	}
+	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
+	token, err := domain.NewToken("admin", localSecret)
+	if err != nil {
+		panic(err)
+	}
+	token.Encrypt()
+	secret := domain.NewClientSecret(client.Id, token.Encrypted)
+	err = db.StoreClientSecret(&secret)
 	if err != nil {
 		panic(err)
 	}
