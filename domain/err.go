@@ -4,4 +4,5 @@ import "errors"
 
 var (
 	ErrNotImplemented = errors.New("Not implemented")
+	ErrInvalidName    = errors.New("Invalid name. Name must only contain: A-Z, a-z, 0-9, -_")
 )

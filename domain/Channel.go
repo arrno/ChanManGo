@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/arrno/chanman/util"
 )
 
 type Operation int
@@ -34,7 +36,10 @@ type Channel struct {
 	ArchivedAt      *time.Time   `json:"archivedAt"`
 }
 
-func NewChannel(portalId, groupId, name string, hbIntervalSec uint) *Channel {
+func NewChannel(portalId, groupId, name string, hbIntervalSec uint) (*Channel, error) {
+	if !util.IsValidName(name) {
+		return nil, ErrInvalidName
+	}
 	return &Channel{
 		Id:              GroupId(name, groupId, portalId),
 		GroupId:         groupId,
@@ -42,7 +47,7 @@ func NewChannel(portalId, groupId, name string, hbIntervalSec uint) *Channel {
 		Name:            name,
 		State:           STATE_RUNNING,
 		IntervalSeconds: hbIntervalSec,
-	}
+	}, nil
 }
 
 func (w *Channel) UpdateHeartbeat() {

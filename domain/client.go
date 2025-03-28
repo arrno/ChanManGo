@@ -16,14 +16,17 @@ type Client struct {
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
-func NewClient(name, groupId, portalId string, admin bool) *Client {
+func NewClient(name, groupId, portalId string, admin bool) (*Client, error) {
+	if !util.IsValidName(name) {
+		return nil, ErrInvalidName
+	}
 	return &Client{
 		Id:        GroupId(name, groupId, portalId),
 		Name:      name,
 		Active:    true,
 		Admin:     admin,
 		CreatedAt: time.Now(),
-	}
+	}, nil
 }
 
 type ClientSecret struct {

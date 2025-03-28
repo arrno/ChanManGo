@@ -38,17 +38,26 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
 		return
 	}
+
 	groupId := req.GroupId
 	if groupId == "" {
 		groupId = domain.MAIN_GROUP
 	}
-	client := domain.NewClient(req.ClientName, groupId, domain.MAIN_PORTAL, req.Admin)
+
+	client, err := domain.NewClient(req.ClientName, groupId, domain.MAIN_PORTAL, req.Admin)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle client: " + err.Error()})
+		return
+	}
+
 	token, err := ioService.NewClient(c.db).CreateClient(client)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to create client. Err " + err.Error()})
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Result": ClientTokenResponse{
 		ClientId:   client.Id,

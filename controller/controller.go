@@ -64,7 +64,12 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel := domain.NewChannel(portalId, groupId, channelName, 60)
+	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle channel: " + err.Error()})
+		return
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -104,7 +109,12 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
 		return
 	}
-	channel := domain.NewChannel(portalId, groupId, channelName, 60)
+	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle channel: " + err.Error()})
+		return
+	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -177,7 +187,14 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	} else {
 		topics = strings.Split(topicSet, ",")
 	}
-	channel := domain.NewChannel(portalId, groupId, channelName, 60)
+
+	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle channel: " + err.Error()})
+		return
+	}
+
 	sub := domain.NewTopicSubscription(clientId, channel.Id, topics)
 
 	conn, err := upgrader.Upgrade(w, r, nil)

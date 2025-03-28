@@ -25,11 +25,14 @@ type Portal struct {
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
-func NewPortal(ownerId, name string) *Portal {
+func NewPortal(ownerId, name string) (*Portal, error) {
+	if !util.IsValidName(name) {
+		return nil, ErrInvalidName
+	}
 	return &Portal{
 		Id:      util.Nanoid(),
 		Name:    name,
 		OwnerId: ownerId,
 		Active:  true,
-	}
+	}, nil
 }

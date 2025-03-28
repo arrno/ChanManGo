@@ -18,14 +18,17 @@ type Group struct {
 	ArchivedAt    *time.Time `json:"archivedAt"`
 }
 
-func NewGroup(ownerId, portalId, name string) *Group {
+func NewGroup(ownerId, portalId, name string) (*Group, error) {
+	if !util.IsValidName(name) {
+		return nil, ErrInvalidName
+	}
 	return &Group{
 		Id:       PortalId(name, portalId),
 		OwnerId:  ownerId,
 		PortalId: portalId,
 		Name:     name,
 		State:    STATE_ACTIVE,
-	}
+	}, nil
 }
 
 type ClientGroup struct {
