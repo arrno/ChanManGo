@@ -32,6 +32,8 @@ func NewMessage(clientId, channelId, topic string, payload []byte) *Message {
 		Topic:     topic,
 		State:     STATE_PENDING,
 		Payload:   payload,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 }
 

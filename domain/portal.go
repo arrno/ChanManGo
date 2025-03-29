@@ -30,9 +30,11 @@ func NewPortal(ownerId, name string) (*Portal, error) {
 		return nil, ErrInvalidName
 	}
 	return &Portal{
-		Id:      util.Nanoid(),
-		Name:    name,
-		OwnerId: ownerId,
-		Active:  true,
+		Id:        util.Nanoid(),
+		Name:      name,
+		OwnerId:   ownerId,
+		Active:    true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}, nil
 }

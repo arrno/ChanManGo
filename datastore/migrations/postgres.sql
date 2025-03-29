@@ -73,8 +73,9 @@ CREATE TABLE client_secret_tokens (
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
--- Create index on portal_id for groups
+-- Create indexes for client_secret_tokens
 CREATE INDEX idx_secret_token_client_id ON client_secret_tokens(client_id);
+CREATE INDEX idx_secret_token_encrypted_secret ON client_secret_tokens(encrypted_secret);
 
 -- Create Channels table
 CREATE TABLE channels (
@@ -125,7 +126,7 @@ CREATE TABLE channel_subscriptions (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
-  FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE
+  FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE,
   FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
 );
 
@@ -144,7 +145,7 @@ CREATE TABLE topic_subscriptions (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
-  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
   FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
 );
 
@@ -166,7 +167,7 @@ CREATE TABLE messages (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
-  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 

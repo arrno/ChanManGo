@@ -23,11 +23,13 @@ func NewGroup(ownerId, portalId, name string) (*Group, error) {
 		return nil, ErrInvalidName
 	}
 	return &Group{
-		Id:       PortalId(name, portalId),
-		OwnerId:  ownerId,
-		PortalId: portalId,
-		Name:     name,
-		State:    STATE_ACTIVE,
+		Id:        PortalId(name, portalId),
+		OwnerId:   ownerId,
+		PortalId:  portalId,
+		Name:      name,
+		State:     STATE_ACTIVE,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}, nil
 }
 
@@ -43,8 +45,10 @@ type ClientGroup struct {
 
 func NewClientGroup(clientId, groupId string) *ClientGroup {
 	return &ClientGroup{
-		Id:       util.Nanoid(),
-		ClientId: clientId,
-		GroupId:  groupId,
+		Id:        util.Nanoid(),
+		ClientId:  clientId,
+		GroupId:   groupId,
+		State:     STATE_ACTIVE,
+		CreatedAt: time.Now(),
 	}
 }

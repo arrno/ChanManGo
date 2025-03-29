@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/arrno/chanman/domain"
 	"github.com/arrno/chanman/util"
@@ -16,11 +17,13 @@ func docId(docType string, docId string) string {
 
 type LocalDB struct {
 	data sync.Map
+	mu   sync.RWMutex // Additional mutex for operations requiring atomicity
 }
 
 func NewInMemoryDB() *LocalDB {
 	return &LocalDB{
 		data: sync.Map{},
+		mu:   sync.RWMutex{},
 	}
 }
 
@@ -146,18 +149,34 @@ func (db *LocalDB) GetClient(id string) (*domain.Client, error) {
 }
 
 func (db *LocalDB) GetClients(pagination domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+	// Lock for the entire operation to ensure a consistent view
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	clients := []*domain.Client{}
 
+	// Collect all clients in a thread-safe manner
 	db.data.Range(func(key any, value any) bool {
-		if strings.HasPrefix(key.(string), "client:") {
-			clients = append(clients, value.(*domain.Client))
+		k := key.(string)
+		if strings.HasPrefix(k, "client:") {
+			// Only include non-archived clients
+			client := value.(*domain.Client)
+			if client.ArchivedAt == nil {
+				clients = append(clients, client)
+			}
 		}
 		return true
 	})
+
+	// Sort deterministically for consistent pagination
 	sort.Slice(clients, func(i, j int) bool {
 		return clients[i].Id < clients[j].Id
 	})
 
+	// Set the total found count for pagination info
+	pagination.Found = len(clients)
+
+	// Apply pagination and return results
 	return pagination.DoPaginate(clients), nil
 }
 
@@ -172,9 +191,17 @@ func (db *LocalDB) ArchiveClient(id string) error {
 
 // PASSWORD
 func (db *LocalDB) StoreClientSecret(pw *domain.ClientSecret) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	if pw.Id == "" {
 		pw.Id = util.Nanoid()
 	}
+
+	// Update the UpdatedAt timestamp
+	pw.UpdatedAt = time.Now()
+
+	// Store in all indexes as an atomic operation
 	db.data.Store(docId("client_secret_token", pw.Id), pw)
 	db.data.Store(docId("client_secret_token_by_client_id", pw.ClientId), pw)
 	db.data.Store(docId("client_secret_token_by_token", pw.EncryptedSecret), pw)
@@ -182,6 +209,9 @@ func (db *LocalDB) StoreClientSecret(pw *domain.ClientSecret) error {
 }
 
 func (db *LocalDB) GetClientSecret(id string) (*domain.ClientSecret, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	val, ok := db.data.Load(docId("client_secret_token", id))
 	if ok {
 		return val.(*domain.ClientSecret), nil
@@ -190,6 +220,9 @@ func (db *LocalDB) GetClientSecret(id string) (*domain.ClientSecret, error) {
 }
 
 func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSecret, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	val, ok := db.data.Load(docId("client_secret_token_by_client_id", clientId))
 	if ok {
 		return val.(*domain.ClientSecret), nil
@@ -198,26 +231,38 @@ func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSec
 }
 
 func (db *LocalDB) GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	val, ok := db.data.Load(docId("client_secret_token_by_token", token))
 	if !ok {
 		return nil, nil, false, ErrNotFound
 	}
-	clientGroups, err := db.GetClientGroupsByClientId(val.(*domain.ClientSecret).ClientId)
-	if err != nil {
+
+	clientSecret := val.(*domain.ClientSecret)
+	clientId := clientSecret.ClientId
+
+	// Get client groups within the lock for atomicity
+	clientGroupVal, ok := db.data.Load(docId("client_group_by_client_id", clientId))
+	if !ok {
 		return nil, nil, false, ErrNotFound
 	}
-	if len(clientGroups) == 0 {
+	clientGroup := clientGroupVal.(*domain.ClientGroup)
+
+	// Get client data
+	clientVal, ok := db.data.Load(docId("client", clientGroup.ClientId))
+	if !ok {
 		return nil, nil, false, ErrNotFound
 	}
-	clientGroup := clientGroups[0]
-	client, err := db.GetClient(clientGroup.ClientId)
-	if err != nil {
+	client := clientVal.(*domain.Client)
+
+	// Get permission data
+	permissionVal, ok := db.data.Load(docId("client_permission_by_client_id", clientId))
+	if !ok {
 		return nil, nil, false, ErrNotFound
 	}
-	permission, err := db.GetClientPermissionByClientId(clientGroup.ClientId)
-	if err != nil {
-		return nil, nil, false, ErrNotFound
-	}
+	permission := permissionVal.(*domain.ClientPermission)
+
 	return clientGroup, permission, client.Admin, nil
 }
 
@@ -226,10 +271,22 @@ func (db *LocalDB) UpdateClientSecret(pw *domain.ClientSecret) error {
 }
 
 func (db *LocalDB) ArchiveClientSecret(id string) error {
-	pw, err := db.GetClientSecret(id)
-	if err != nil {
-		return err
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	// Get within the lock to prevent race conditions
+	val, ok := db.data.Load(docId("client_secret_token", id))
+	if !ok {
+		return ErrNotFound
 	}
+
+	pw := val.(*domain.ClientSecret)
+
+	// Set archived state
+	now := time.Now()
+	pw.ArchivedAt = &now
+
+	// Delete from all indexes as an atomic operation
 	db.data.Delete(docId("client_secret_token", id))
 	db.data.Delete(docId("client_secret_token_by_client_id", pw.ClientId))
 	db.data.Delete(docId("client_secret_token_by_token", pw.EncryptedSecret))
@@ -238,6 +295,14 @@ func (db *LocalDB) ArchiveClientSecret(id string) error {
 
 // PERMISSION
 func (db *LocalDB) StoreClientPermission(p *domain.ClientPermission) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if p.Id == "" {
+		p.Id = util.Nanoid()
+	}
+
+	// Store in all indexes as an atomic operation
 	db.data.Store(docId("client_permission", p.Id), p)
 	db.data.Store(docId("client_permission_by_client_id", p.ClientId), p)
 	return nil
@@ -264,7 +329,7 @@ func (db *LocalDB) UpdateClientPermission(p *domain.ClientPermission) error {
 }
 
 func (db *LocalDB) ArchiveClientPermission(id string) error {
-	p, err := db.GetClientSecret(id)
+	p, err := db.GetClientPermission(id)
 	if err != nil {
 		return err
 	}
@@ -301,15 +366,26 @@ func (db *LocalDB) ArchiveGroup(id string) error {
 
 // CLIENT GROUP
 func (db *LocalDB) StoreClientGroup(cg *domain.ClientGroup) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	if cg.Id == "" {
 		cg.Id = util.Nanoid()
 	}
+
+	// Update timestamps
+	cg.UpdatedAt = time.Now()
+
+	// Store in all indexes as an atomic operation
 	db.data.Store(docId("client_group", cg.Id), cg)
 	db.data.Store(docId("client_group_by_client_id", cg.ClientId), cg)
 	return nil
 }
 
 func (db *LocalDB) GetClientGroup(id string) (*domain.ClientGroup, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	val, ok := db.data.Load(docId("client_group", id))
 	if ok {
 		return val.(*domain.ClientGroup), nil
@@ -318,6 +394,9 @@ func (db *LocalDB) GetClientGroup(id string) (*domain.ClientGroup, error) {
 }
 
 func (db *LocalDB) GetClientGroupsByClientId(clientId string) ([]*domain.ClientGroup, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	val, ok := db.data.Load(docId("client_group_by_client_id", clientId))
 	if ok {
 		grp := val.(*domain.ClientGroup)
@@ -368,5 +447,18 @@ func (db *LocalDB) ArchivePortal(id string) error {
 
 // Transaction wrapper, executing function within a transaction
 func (db *LocalDB) WithTx(f func(tx DatastoreProvider) error) error {
-	return f(db) // In-memory DB does not support real transactions, so we just execute the function.
+	// For the in-memory DB, we can simulate transaction-like behavior
+	// by using the mutex to ensure isolation
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	// In a real database, we would begin a transaction here
+
+	// Execute the function with the "transaction"
+	err := f(db)
+
+	// In a real database, we would commit or rollback here
+	// For the in-memory DB, all operations are already committed
+
+	return err
 }

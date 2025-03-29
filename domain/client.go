@@ -26,6 +26,7 @@ func NewClient(name, groupId, portalId string, admin bool) (*Client, error) {
 		Active:    true,
 		Admin:     admin,
 		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}, nil
 }
 
@@ -43,5 +44,7 @@ func NewClientSecret(clientId, encryptedSecret string) ClientSecret {
 		Id:              util.Nanoid(),
 		ClientId:        clientId,
 		EncryptedSecret: encryptedSecret,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 }

@@ -39,5 +39,7 @@ func NewTopicSubscription(clientId, channelId string, topics []string) *TopicSub
 		ChannelId: channelId,
 		Topics:    topics,
 		State:     STATE_ACTIVE,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 }

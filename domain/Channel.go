@@ -47,6 +47,8 @@ func NewChannel(portalId, groupId, name string, hbIntervalSec uint) (*Channel, e
 		Name:            name,
 		State:           STATE_RUNNING,
 		IntervalSeconds: hbIntervalSec,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}, nil
 }
 

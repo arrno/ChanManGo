@@ -23,6 +23,6 @@ func (p *Pagination[T]) DoPaginate(values []T) []T {
 	if start >= len(values) {
 		return make([]T, 0)
 	}
-	stop := min(len(values)-1, start+p.Count)
+	stop := min(len(values), start+p.Count)
 	return values[start:stop]
 }
