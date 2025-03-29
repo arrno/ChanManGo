@@ -197,20 +197,28 @@ func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSec
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) GetClientGroupByToken(token string) (*domain.ClientGroup, bool, error) {
+func (db *LocalDB) GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
 	val, ok := db.data.Load(docId("client_secret_token_by_token", token))
 	if !ok {
-		return nil, false, ErrNotFound
+		return nil, nil, false, ErrNotFound
 	}
-	clientGroup, err := db.GetClientGroupByClientId(val.(*domain.ClientSecret).ClientId)
+	clientGroups, err := db.GetClientGroupsByClientId(val.(*domain.ClientSecret).ClientId)
 	if err != nil {
-		return nil, false, ErrNotFound
+		return nil, nil, false, ErrNotFound
 	}
-	client, err := db.GetClient(clientGroup.Id)
+	if len(clientGroups) == 0 {
+		return nil, nil, false, ErrNotFound
+	}
+	clientGroup := clientGroups[0]
+	client, err := db.GetClient(clientGroup.ClientId)
 	if err != nil {
-		return nil, false, ErrNotFound
+		return nil, nil, false, ErrNotFound
 	}
-	return clientGroup, client.Admin, nil
+	permission, err := db.GetClientPermissionByClientId(clientGroup.ClientId)
+	if err != nil {
+		return nil, nil, false, ErrNotFound
+	}
+	return clientGroup, permission, client.Admin, nil
 }
 
 func (db *LocalDB) UpdateClientSecret(pw *domain.ClientSecret) error {
@@ -225,6 +233,43 @@ func (db *LocalDB) ArchiveClientSecret(id string) error {
 	db.data.Delete(docId("client_secret_token", id))
 	db.data.Delete(docId("client_secret_token_by_client_id", pw.ClientId))
 	db.data.Delete(docId("client_secret_token_by_token", pw.EncryptedSecret))
+	return nil
+}
+
+// PERMISSION
+func (db *LocalDB) StoreClientPermission(p *domain.ClientPermission) error {
+	db.data.Store(docId("client_permission", p.Id), p)
+	db.data.Store(docId("client_permission_by_client_id", p.ClientId), p)
+	return nil
+}
+
+func (db *LocalDB) GetClientPermission(id string) (*domain.ClientPermission, error) {
+	val, ok := db.data.Load(docId("client_permission", id))
+	if ok {
+		return val.(*domain.ClientPermission), nil
+	}
+	return nil, ErrNotFound
+}
+
+func (db *LocalDB) GetClientPermissionByClientId(clientId string) (*domain.ClientPermission, error) {
+	val, ok := db.data.Load(docId("client_permission_by_client_id", clientId))
+	if ok {
+		return val.(*domain.ClientPermission), nil
+	}
+	return nil, ErrNotFound
+}
+
+func (db *LocalDB) UpdateClientPermission(p *domain.ClientPermission) error {
+	return db.StoreClientPermission(p)
+}
+
+func (db *LocalDB) ArchiveClientPermission(id string) error {
+	p, err := db.GetClientSecret(id)
+	if err != nil {
+		return err
+	}
+	db.data.Delete(docId("client_permission", id))
+	db.data.Delete(docId("client_permission_by_client_id", p.ClientId))
 	return nil
 }
 
@@ -272,10 +317,11 @@ func (db *LocalDB) GetClientGroup(id string) (*domain.ClientGroup, error) {
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) GetClientGroupByClientId(clientId string) (*domain.ClientGroup, error) {
+func (db *LocalDB) GetClientGroupsByClientId(clientId string) ([]*domain.ClientGroup, error) {
 	val, ok := db.data.Load(docId("client_group_by_client_id", clientId))
 	if ok {
-		return val.(*domain.ClientGroup), nil
+		grp := val.(*domain.ClientGroup)
+		return []*domain.ClientGroup{grp}, nil
 	}
 	return nil, ErrNotFound
 }

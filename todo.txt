@@ -3,16 +3,14 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
-client / portal / groups - store
-register / auth / permission / signup
+rate-limits
+test signup
+test segmentation - portals / groups / topics / admin
+test retention / free subs / messages
 ---
 implement postgres
 message ack/state
-rate-limits
----
 self-healing / tidy
-test segmentation - portals / groups / topics / admin
-test retention / free - subs / messages
 ---
 [differentiators]
 ---

@@ -1,17 +1,27 @@
 package io
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/arrno/chanman/datastore"
+)
 
 var (
 	ErrCreateOnExistingRecord = errors.New("Create attempted on record that already exists")
 )
 
-type SystemProvider interface {
+type SystemProvider struct {
+	ChannelProvider
 	ClientProvider
 	GroupProvider
+	MessageProvider
 	PortalProvider
 }
 
-func NewSystem() SystemProvider {
-	return nil
+func NewSystem(db datastore.DatastoreProvider) SystemProvider {
+	return SystemProvider{
+		ClientProvider:  NewClient(db),
+		MessageProvider: NewMessage(db),
+		ChannelProvider: NewChannel(db),
+	}
 }

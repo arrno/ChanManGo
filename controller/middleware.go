@@ -22,7 +22,7 @@ func (c *Controller) Auth(next http.HandlerFunc) http.HandlerFunc {
 		if len(tokens) == 2 {
 			token = tokens[1]
 		}
-		clientGroup, isAdmin, err := c.db.GetClientGroupByToken(token)
+		clientGroup, permission, isAdmin, err := c.db.GetClientAuthByToken(token)
 		if err != nil || clientGroup == nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
@@ -41,6 +41,7 @@ func (c *Controller) Auth(next http.HandlerFunc) http.HandlerFunc {
 		if isAdmin {
 			r.Header.Add("admin", "true")
 		}
+		permission.AddToHeaders(r)
 		next.ServeHTTP(w, r)
 	}
 }

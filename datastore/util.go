@@ -12,7 +12,7 @@ func SeedDb(db DatastoreProvider) {
 			panic(err)
 		}
 	}
-	client, err := domain.NewClient("admin", domain.MAIN_GROUP, domain.MAIN_PORTAL, true)
+	client, err := domain.NewClient(domain.ADMIN_USER, domain.MAIN_GROUP, domain.MAIN_PORTAL, true)
 	expect(db.StoreClient(client))
 	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
 	token, err := domain.NewToken("admin", localSecret)

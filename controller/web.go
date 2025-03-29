@@ -9,6 +9,10 @@ func RunWeb() {
 
 	c := NewController()
 
+	// public
+	r := NewRouter()
+	r.Post("/signup-demo", c.SignUpDemo)
+
 	// Channel router
 	rc := NewRouter().
 		Chain(c.Auth).
@@ -16,6 +20,7 @@ func RunWeb() {
 	rc.Post("/pub-ws", c.HandlePublishWS)
 	rc.Post("/pub", c.HandlePublish)
 	rc.Post("/sub", c.HandleSubscribe)
+	rc.Post("/rotate-token", c.RotateToken)
 
 	// Admin router
 	ra := NewRouter().
@@ -25,7 +30,6 @@ func RunWeb() {
 	ra.Get("/clients", c.GetClients)
 	ra.Post("/client", c.CreateClient)
 	ra.Delete("/client", c.ArchiveClient)
-	ra.Post("/rotate-token", c.RotateToken)
 
 	if err := http.ListenAndServe(":"+PORT, nil); err != nil {
 		panic(err.Error())

@@ -54,7 +54,7 @@ type SystemDatastoreProvider interface {
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//
-	GetClientGroupByToken(token string) (*domain.ClientGroup, bool, error)
+	GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error)
 	//
 	StoreClientSecret(*domain.ClientSecret) error
 	GetClientSecret(id string) (*domain.ClientSecret, error)
@@ -62,13 +62,19 @@ type SystemDatastoreProvider interface {
 	UpdateClientSecret(*domain.ClientSecret) error
 	ArchiveClientSecret(id string) error
 	//
+	StoreClientPermission(*domain.ClientPermission) error
+	GetClientPermission(id string) (*domain.ClientPermission, error)
+	GetClientPermissionByClientId(clientId string) (*domain.ClientPermission, error)
+	UpdateClientPermission(*domain.ClientPermission) error
+	ArchiveClientPermission(id string) error
+	//
 	StoreGroup(*domain.Group) error
 	GetGroup(id string) (*domain.Group, error)
 	UpdateGroup(*domain.Group) error
 	ArchiveGroup(id string) error
 	//
 	StoreClientGroup(*domain.ClientGroup) error
-	GetClientGroupByClientId(clientId string) (*domain.ClientGroup, error)
+	GetClientGroupsByClientId(clientId string) ([]*domain.ClientGroup, error)
 	GetClientGroup(id string) (*domain.ClientGroup, error)
 	UpdateClientGroup(*domain.ClientGroup) error
 	ArchiveClientGroup(id string) error

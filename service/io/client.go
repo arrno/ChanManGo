@@ -10,17 +10,15 @@ import (
 )
 
 type ClientProvider interface {
-	CreateClient(client *domain.Client) (domain.Token, error)
+	CreateClient(client *domain.Client, permission *domain.ClientPermission) (domain.Token, error)
 	GetClient(id string) (*domain.Client, error)
-	GetClients(id string) ([]*domain.Client, error)
+	GetClients(pg domain.Pagination[*domain.Client]) ([]*domain.Client, error)
 	UpdateClient(client *domain.Client) error
 	ArchiveClient(id string) error
 	//
 	RotateClientSecret(clientId string) (domain.Token, error)
 	ValidateClientSecret(clientId, token string) (bool, error)
 }
-
-// generate new token / salt / hash
 
 type Client struct {
 	db datastore.DatastoreProvider
@@ -32,7 +30,7 @@ func NewClient(db datastore.DatastoreProvider) *Client {
 	}
 }
 
-func (c *Client) CreateClient(client *domain.Client) (domain.Token, error) {
+func (c *Client) CreateClient(client *domain.Client, permission *domain.ClientPermission) (domain.Token, error) {
 	exists, err := c.clientExists(client.Id)
 	if err != nil {
 		return domain.Token{}, err
@@ -53,6 +51,9 @@ func (c *Client) CreateClient(client *domain.Client) (domain.Token, error) {
 			return err
 		}
 		if err = tx.StoreClientGroup(domain.NewClientGroup(client.Id, domain.MAIN_GROUP)); err != nil {
+			return err
+		}
+		if err = tx.StoreClientPermission(permission); err != nil {
 			return err
 		}
 		return nil

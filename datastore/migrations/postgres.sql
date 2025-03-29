@@ -51,6 +51,17 @@ CREATE TABLE clients (
   archived_at TIMESTAMP
 );
 
+CREATE TABLE client_permissions (
+  id VARCHAR(255) PRIMARY KEY,
+  client_id VARCHAR(255) NOT NULL,
+  read BOOLEAN NOT NULL DEFAULT false,
+  write BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  archived_at TIMESTAMP,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
 CREATE TABLE client_secret_tokens (
   id VARCHAR(255) PRIMARY KEY,
   client_id VARCHAR(255) NOT NULL,

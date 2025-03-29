@@ -3,6 +3,7 @@ package domain
 import "errors"
 
 var (
-	ErrNotImplemented = errors.New("Not implemented")
-	ErrInvalidName    = errors.New("Invalid name. Name must only contain: A-Z, a-z, 0-9, -_")
+	ErrNotImplemented          = errors.New("Not implemented")
+	ErrInvalidName             = errors.New("Invalid name. Name must only contain: A-Z, a-z, 0-9, -_")
+	ErrInsufficientPermissions = errors.New("Insufficient permissions")
 )

@@ -9,7 +9,8 @@ type ClientRequest struct {
 	ClientName string `json:"clientName"`
 }
 type ClientTokenResponse struct {
-	ClientId   string `json:"clientId"`
-	ClientName string `json:"clientName omitempty"`
-	Token      string `json:"token"`
+	ClientURN   string `json:"clientUrn"`
+	ClientId    string `json:"clientId"`
+	ClientGroup string `json:"clientGroup"`
+	Token       string `json:"token"`
 }
