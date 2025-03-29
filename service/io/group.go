@@ -38,7 +38,7 @@ func (g *Group) CreateGroup(group *domain.Group) error {
 	if err != nil {
 		return err
 	} else if exists {
-		return ErrCreateOnExistingRecord
+		return domain.ErrCreateOnExistingRecord
 	}
 	return g.db.StoreGroup(group)
 }
@@ -62,7 +62,7 @@ func (g *Group) CreateClientGroup(clientId, groupId string) error {
 	if err != nil {
 		return err
 	} else if inGroup {
-		return ErrCreateOnExistingRecord
+		return domain.ErrCreateOnExistingRecord
 	}
 	return g.db.StoreClientGroup(domain.NewClientGroup(clientId, groupId))
 }
@@ -73,7 +73,7 @@ func (g *Group) ArchiveClientGroup(clientId, groupId string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Find the specific client-group association
 	for _, clientGroup := range clientGroups {
 		if clientGroup.GroupId == groupId {
@@ -84,7 +84,7 @@ func (g *Group) ArchiveClientGroup(clientId, groupId string) error {
 			return g.db.UpdateClientGroup(clientGroup)
 		}
 	}
-	
+
 	return datastore.ErrNotFound
 }
 
@@ -94,7 +94,7 @@ func (g *Group) InGroup(channelId, clientId string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
+
 	// Get client groups
 	clientGroups, err := g.db.GetClientGroupsByClientId(clientId)
 	if err != nil {
@@ -103,7 +103,7 @@ func (g *Group) InGroup(channelId, clientId string) (bool, error) {
 		}
 		return false, err
 	}
-	
+
 	// Check if any of the client's groups match the channel's group
 	channelGroupId := channel.GroupId
 	for _, clientGroup := range clientGroups {
@@ -111,7 +111,7 @@ func (g *Group) InGroup(channelId, clientId string) (bool, error) {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -133,7 +133,7 @@ func (g *Group) clientInGroup(clientId string) (bool, error) {
 		}
 		return false, err
 	}
-	
+
 	// If we got groups, the client is in at least one group
 	return len(groups) > 0, nil
 }

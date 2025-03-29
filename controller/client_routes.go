@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/arrno/chanman/domain"
@@ -11,37 +10,70 @@ import (
 func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
 		return
 	}
+
+	// Validate required fields
+	if req.ClientId == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
+		return
+	}
+
 	client, err := c.system.GetClient(req.ClientId)
 	if err != nil {
-		http.Error(w, "Unable to get client. Err: "+err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client", err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Result": client})
+
+	RespondWithJSON(w, http.StatusOK, client)
 }
 
 func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
 	var req domain.Pagination[*domain.Client]
 	if err := UnmarshalTo(&req, r); err != nil {
-		http.Error(w, "Unable to parse clients request", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid pagination request format", err)
 		return
 	}
-	client, err := c.system.GetClients(req)
+
+	// Validate pagination parameters
+	if err := req.Validate(); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Invalid pagination parameters", err)
+		return
+	}
+
+	clients, err := c.system.GetClients(req)
 	if err != nil {
-		http.Error(w, "Unable to get clients. Err: "+err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve clients", err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Results": client})
+
+	// Create a response that includes pagination info
+	response := struct {
+		Items []*domain.Client `json:"items"`
+		Page  int              `json:"page"`
+		Count int              `json:"count"`
+		Found int              `json:"found"`
+	}{
+		Items: clients,
+		Page:  req.Page,
+		Count: req.Count,
+		Found: req.Found,
+	}
+
+	RespondWithJSON(w, http.StatusOK, response)
 }
 
 func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
+		return
+	}
+
+	// Validate required fields
+	if req.ClientName == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client name is required", nil)
 		return
 	}
 
@@ -50,55 +82,78 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		groupId = domain.MAIN_GROUP
 	}
 
+	// Create client
 	client, err := domain.NewClient(req.ClientName, groupId, domain.MAIN_PORTAL, req.Admin)
 	if err != nil {
-		http.Error(w, "Failed to handle client: "+err.Error(), http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Failed to create client", err)
 		return
 	}
 
+	// Create client with permissions
 	token, err := c.system.CreateClient(client, domain.NewReadWrite(client.Id))
 	if err != nil {
-		http.Error(w, "Unable to create client. Err: "+err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to store client", err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Result": ClientTokenResponse{
+	// Create response
+	response := ClientTokenResponse{
 		ClientURN:   client.Id,
 		ClientGroup: groupId,
 		ClientId:    client.Name,
 		Token:       token.Raw,
-	}})
+	}
+
+	RespondWithJSON(w, http.StatusCreated, response)
 }
 
 func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
 		return
 	}
+
+	// Validate required fields
+	if req.ClientId == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
+		return
+	}
+
+	// Rotate token
 	token, err := c.system.RotateClientSecret(req.ClientId)
 	if err != nil {
-		http.Error(w, "Unable to rotate client token. Err: "+err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to rotate client token", err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Result": ClientTokenResponse{
+
+	// Create response
+	response := ClientTokenResponse{
 		ClientId: req.ClientId,
 		Token:    token.Raw,
-	}})
+	}
+
+	RespondWithJSON(w, http.StatusOK, response)
 }
 
 func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
 		return
 	}
+
+	// Validate required fields
+	if req.ClientId == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
+		return
+	}
+
+	// Archive client
 	if err := c.system.ArchiveClient(req.ClientId); err != nil {
-		http.Error(w, "Unable to archive client. Err: "+err.Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to archive client", err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok"})
+
+	RespondWithJSON(w, http.StatusOK, map[string]bool{"archived": true})
 }
