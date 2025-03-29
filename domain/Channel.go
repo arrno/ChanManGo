@@ -32,7 +32,7 @@ type Channel struct {
 	IntervalSeconds uint         `json:"intervalSeconds"`
 	Heartbeat       *time.Time   `json:"heartbeat"`
 	CreatedAt       time.Time    `json:"createdAt"`
-	UpdatedAt       time.Time    `json:"updateAt"`
+	UpdatedAt       time.Time    `json:"updatedAt"`
 	ArchivedAt      *time.Time   `json:"archivedAt"`
 }
 

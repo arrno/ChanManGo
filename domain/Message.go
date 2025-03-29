@@ -20,11 +20,26 @@ type Message struct {
 	Payload        []byte     `json:"payload"`
 	Attempts       uint       `json:"attempts"`
 	CreatedAt      time.Time  `json:"createdAt"`
-	UpdatedAt      time.Time  `json:"updateAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
 	ArchivedAt     *time.Time `json:"archivedAt"`
 }
 
-func NewMessage(clientId, channelId, topic string, payload []byte) *Message {
+const (
+	MaxPayloadSizeBytes = 1024 * 1024 // 1MB maximum payload size
+)
+
+func NewMessage(clientId, channelId, topic string, payload []byte) (*Message, error) {
+	// Validate payload size
+	if len(payload) > MaxPayloadSizeBytes {
+		return nil, ErrPayloadSizeExceeded
+	}
+
+	// Validate topic
+	if topic == "" {
+		return nil, ErrEmptyTopic
+	}
+
+	now := time.Now()
 	return &Message{
 		Id:        util.Nanoid(),
 		ClientId:  clientId,
@@ -32,9 +47,9 @@ func NewMessage(clientId, channelId, topic string, payload []byte) *Message {
 		Topic:     topic,
 		State:     STATE_PENDING,
 		Payload:   payload,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+		CreatedAt: now,
+		UpdatedAt: now,
+	}, nil
 }
 
 func (m *Message) Clone() Message {
@@ -42,6 +57,7 @@ func (m *Message) Clone() Message {
 		Id:             m.Id,
 		Topic:          m.Topic,
 		ClientId:       m.ClientId,
+		ChannelId:      m.ChannelId,
 		ProcessedAt:    m.ProcessedAt,
 		AcknowledgedAt: m.AcknowledgedAt,
 		State:          m.State,

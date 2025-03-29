@@ -45,7 +45,12 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse message", http.StatusBadRequest)
 		return
 	}
-	err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
+	message, err := domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload))
+	if err != nil {
+		http.Error(w, "Failed to process message", http.StatusBadRequest)
+		return
+	}
+	err = c.chanMan.PublishMessage(clientId, channel, message)
 
 	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -116,7 +121,13 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
+		message, err := domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload))
+		if err != nil {
+			http.Error(w, "Failed to process message", http.StatusBadRequest)
+			return
+		}
+
+		err = c.chanMan.PublishMessage(clientId, channel, message)
 		if err != nil {
 			if errors.Is(err, domain.ErrChanOpNotPermitted) {
 				log.Error().Msg(fmt.Sprintf("Auth failure. Failed to publish message: %s", err.Error()))
@@ -159,7 +170,11 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub := domain.NewTopicSubscription(clientId, channel.Id, topics)
+	sub, err := domain.NewTopicSubscription(clientId, channel.Id, topics)
+	if err != nil {
+		http.Error(w, "Failed to handle subscription: "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

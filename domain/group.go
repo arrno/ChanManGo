@@ -14,7 +14,7 @@ type Group struct {
 	Name          string     `json:"name"`
 	State         STATE      `json:"state"`
 	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updateAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
 	ArchivedAt    *time.Time `json:"archivedAt"`
 }
 
@@ -39,16 +39,42 @@ type ClientGroup struct {
 	GroupId    string     `json:"groupId"`
 	State      STATE      `json:"state"`
 	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updateAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
 func NewClientGroup(clientId, groupId string) *ClientGroup {
+	now := time.Now()
 	return &ClientGroup{
 		Id:        util.Nanoid(),
 		ClientId:  clientId,
 		GroupId:   groupId,
 		State:     STATE_ACTIVE,
-		CreatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
+}
+
+func (g *Group) UpdateState(state STATE) {
+	g.State = state
+	g.UpdatedAt = time.Now()
+}
+
+func (g *Group) Archive() {
+	now := time.Now()
+	g.State = STATE_ARCHIVED
+	g.ArchivedAt = &now
+	g.UpdatedAt = now
+}
+
+func (cg *ClientGroup) UpdateState(state STATE) {
+	cg.State = state
+	cg.UpdatedAt = time.Now()
+}
+
+func (cg *ClientGroup) Archive() {
+	now := time.Now()
+	cg.State = STATE_ARCHIVED
+	cg.ArchivedAt = &now
+	cg.UpdatedAt = now
 }

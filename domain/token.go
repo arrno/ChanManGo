@@ -4,33 +4,58 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
 	"io"
+	"time"
 )
 
 // Token represents an API token with its raw value, hashed value, and optional salt
 type Token struct {
-	key       []byte `json:"-"`
-	Raw       string `json:"raw"`
-	Encrypted string `json:"encrypted"`
+	key         []byte     `json:"-"`
+	Raw         string     `json:"raw"`
+	Encrypted   string     `json:"encrypted"`
+	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 func NewToken(raw, localSecret string) (Token, error) {
 	t := Token{
-		Raw: raw,
-		key: []byte(localSecret),
+		Raw:       raw,
+		key:       []byte(localSecret),
+		CreatedAt: time.Now(),
+	}
+	t.Encrypt()
+	return t, nil
+}
+
+func NewTokenWithExpiry(raw, localSecret string, expiryDuration time.Duration) (Token, error) {
+	expires := time.Now().Add(expiryDuration)
+	t := Token{
+		Raw:       raw,
+		key:       []byte(localSecret),
+		ExpiresAt: &expires,
+		CreatedAt: time.Now(),
 	}
 	t.Encrypt()
 	return t, nil
 }
 
 func (t Token) Validate(against string) bool {
+	// Check if token is expired
+	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
+		return false
+	}
+	
+	// Decrypt and validate
 	err := t.Decrypt()
 	if err != nil {
 		return false
 	}
-	return t.Raw == against
+	
+	// Use a constant-time comparison to prevent timing attacks
+	return subtle.ConstantTimeCompare([]byte(t.Raw), []byte(against)) == 1
 }
 
 func (t *Token) Encrypt() error {

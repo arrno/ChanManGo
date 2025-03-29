@@ -21,7 +21,7 @@ type Portal struct {
 	OwnerId    string     `json:"ownerId"`
 	Active     bool       `json:"active"`
 	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updateAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
@@ -29,12 +29,25 @@ func NewPortal(ownerId, name string) (*Portal, error) {
 	if !util.IsValidName(name) {
 		return nil, ErrInvalidName
 	}
+	now := time.Now()
 	return &Portal{
 		Id:        util.Nanoid(),
 		Name:      name,
 		OwnerId:   ownerId,
 		Active:    true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 	}, nil
+}
+
+func (p *Portal) UpdateState(active bool) {
+	p.Active = active
+	p.UpdatedAt = time.Now()
+}
+
+func (p *Portal) Archive() {
+	now := time.Now()
+	p.Active = false
+	p.ArchivedAt = &now
+	p.UpdatedAt = now
 }
