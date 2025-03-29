@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"errors"
 	"time"
 
 	"github.com/arrno/chanman/util"
@@ -49,16 +48,16 @@ type TopicSubscription struct {
 func NewTopicSubscription(clientId, channelId string, topics []string) (*TopicSubscription, error) {
 	// Validate that we have at least one topic
 	if len(topics) == 0 {
-		return nil, errors.New("At least one topic must be specified")
+		return nil, ErrEmptyTopicList
 	}
-	
+
 	// Validate each topic
 	for _, topic := range topics {
 		if topic == "" {
-			return nil, errors.New("Empty topic names are not allowed")
+			return nil, ErrEmptyTopic
 		}
 	}
-	
+
 	now := time.Now()
 	return &TopicSubscription{
 		Id:        util.Nanoid(),

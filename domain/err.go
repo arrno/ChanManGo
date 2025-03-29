@@ -8,4 +8,5 @@ var (
 	ErrInsufficientPermissions = errors.New("Insufficient permissions")
 	ErrPayloadSizeExceeded     = errors.New("Payload size exceeds maximum allowed limit")
 	ErrEmptyTopic              = errors.New("Topic cannot be empty")
+	ErrEmptyTopicList          = errors.New("At least one topic must be specified")
 )

@@ -33,18 +33,18 @@ type Channel struct {
 	publishers       uint
 }
 
-func NewChannel(state *domain.Channel, broker broker.BrokerProvider, update func(message *domain.Message) error) *Channel {
+func NewChannel(chanObject *domain.Channel, broker broker.BrokerProvider, update func(message *domain.Message) error) *Channel {
 	c := Channel{
-		object: state,
+		object: chanObject,
 		broker: broker,
 		rootSubscription: &domain.ChannelSubscription{
-			Id:        state.Id,
-			ChannelId: state.Id,
+			Id:        chanObject.Id,
+			ChannelId: chanObject.Id,
 			State:     domain.STATE_PENDING,
 			Archived:  false,
 			Callback:  nil,
 		},
-		subscriptionBook: NewAddressBook(state.Id),
+		subscriptionBook: NewAddressBook(chanObject.Id),
 	}
 
 	// Broadcast
