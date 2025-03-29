@@ -5,6 +5,7 @@ import (
 
 	"github.com/arrno/chanman/broker"
 	"github.com/arrno/chanman/datastore"
+	"github.com/arrno/chanman/limiter"
 	"github.com/arrno/chanman/service"
 	ioService "github.com/arrno/chanman/service/io"
 
@@ -18,9 +19,10 @@ var upgrader = websocket.Upgrader{
 }
 
 type Controller struct {
-	db      datastore.DatastoreProvider
-	chanMan service.ManagerProvider
-	system  ioService.SystemProvider
+	db          datastore.DatastoreProvider
+	chanMan     service.ManagerProvider
+	system      ioService.SystemProvider
+	rateLimiter limiter.LimitProvider
 }
 
 type MessageWrapper struct {
@@ -32,10 +34,12 @@ func NewController() *Controller {
 	db := datastore.NewInMemoryDB()
 	datastore.SeedDb(db)
 	broker := broker.NewInMemoryBroker()
+	limiter := limiter.NewLocalLimiter()
 	return &Controller{
-		db:      db,
-		chanMan: service.NewManager(db, broker),
-		system:  ioService.NewSystem(db),
+		db:          db,
+		chanMan:     service.NewManager(db, broker),
+		system:      ioService.NewSystem(db),
+		rateLimiter: limiter,
 	}
 }
 

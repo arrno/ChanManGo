@@ -10,13 +10,15 @@ func RunWeb() {
 	c := NewController()
 
 	// public
-	r := NewRouter()
+	r := NewRouter().
+		Chain(c.rateLimit)
 	r.Post("/signup-demo", c.SignUpDemo)
 
 	// Channel router
 	rc := NewRouter().
-		Chain(c.Auth).
-		Chain(c.ChannelContext)
+		Chain(c.rateLimit).
+		Chain(c.auth).
+		Chain(c.channelContext)
 	rc.Post("/pub-ws", c.HandlePublishWS)
 	rc.Post("/pub", c.HandlePublish)
 	rc.Post("/sub", c.HandleSubscribe)
@@ -24,8 +26,9 @@ func RunWeb() {
 
 	// Admin router
 	ra := NewRouter().
-		Chain(c.Auth).
-		Chain(c.Admin)
+		Chain(c.rateLimit).
+		Chain(c.auth).
+		Chain(admin)
 	ra.Get("/client", c.GetClient)
 	ra.Get("/clients", c.GetClients)
 	ra.Post("/client", c.CreateClient)

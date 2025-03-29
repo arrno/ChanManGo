@@ -11,7 +11,7 @@ import (
 )
 
 // Auth
-func (c *Controller) Auth(next http.HandlerFunc) http.HandlerFunc {
+func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if len(token) == 0 {
@@ -24,8 +24,7 @@ func (c *Controller) Auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		clientGroup, permission, isAdmin, err := c.db.GetClientAuthByToken(token)
 		if err != nil || clientGroup == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		// group := r.URL.Query().Get("group")
@@ -46,37 +45,20 @@ func (c *Controller) Auth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (c *Controller) Admin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		admin := r.Header.Get("admin")
-		if admin != "true" {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
-			return
-		}
-		next.ServeHTTP(w, r)
-	}
-}
-
 // Unnecessary as is with prefixing but that may not always be the case
-func (c *Controller) ChannelContext(next http.HandlerFunc) http.HandlerFunc {
+func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupId := r.Header.Get("groupId")
 		portalId := r.Header.Get("portalId")
 		channelName := r.Header.Get("channel")
 
-		deny := func() {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"Response": "Unauthorized"})
-		}
-
 		if len(channelName) == 0 {
-			deny()
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		channel, err := c.db.GetChannel(domain.GroupId(channelName, groupId, portalId))
 		if err != nil && errors.Is(err, datastore.ErrNotFound) {
-			deny()
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		} else if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -84,14 +66,38 @@ func (c *Controller) ChannelContext(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if channel.GroupId != groupId || channel.PortalId != portalId {
-			deny()
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		next.ServeHTTP(w, r)
 	}
 }
 
-func MethodGuard(allowedMethod string, next http.HandlerFunc) http.HandlerFunc {
+func (c *Controller) rateLimit(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := r.RemoteAddr
+
+		if !c.rateLimiter.Allow(ip) {
+			http.Error(w, "Too many requests", http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func admin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		admin := r.Header.Get("admin")
+		if admin != "true" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
+
+func methodGuard(allowedMethod string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != allowedMethod {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -100,5 +106,3 @@ func MethodGuard(allowedMethod string, next http.HandlerFunc) http.HandlerFunc {
 		next(w, r)
 	}
 }
-
-// Rate limit

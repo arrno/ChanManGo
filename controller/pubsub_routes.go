@@ -18,27 +18,23 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	clientId, groupId, portalId, channelName, _, write := parseHeaders(r.Header)
 
 	if write != "true" {
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Insufficient permissions"})
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 	if channelName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
+		http.Error(w, "No channel provided", http.StatusBadRequest)
 		return
 	}
 
 	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle channel: " + err.Error()})
+		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to parse message"})
+		http.Error(w, "Failed to parse message", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -46,51 +42,42 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	var wrapper MessageWrapper
 	err = json.Unmarshal(body, &wrapper)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to parse message"})
+		http.Error(w, "Failed to parse message", http.StatusBadRequest)
 		return
 	}
 	err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
 
 	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
-		log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"Response": err.Error()})
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	} else if err != nil {
-		log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Error encountered publishing message: " + err.Error()})
+		http.Error(w, "Failed to publish message: %s"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
-
 	clientId, groupId, portalId, channelName, _, write := parseHeaders(r.Header)
 
 	if write != "true" {
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Insufficient permissions"})
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
 	if channelName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
+		http.Error(w, "No channel provided", http.StatusBadRequest)
 		return
 	}
+
 	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle channel: " + err.Error()})
+		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to accept WebSocket connection: " + err.Error()})
+		http.Error(w, "Failed to accept WebSocket connection: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer conn.Close()
@@ -107,7 +94,6 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		messageType, msg, err := conn.ReadMessage()
-
 		if err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
 				log.Info().Msg("Received CloseMessage from client, closing WebSocket")
@@ -121,23 +107,24 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 			log.Info().Msg("Received CloseMessage from client, closing WebSocket")
 			break
 		}
-		var wrapper MessageWrapper
 
+		var wrapper MessageWrapper
 		err = json.Unmarshal(msg, &wrapper)
 		if err != nil {
 			log.Error().Msg(fmt.Sprintf("Json unmarshal err: %v", err))
 			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to unmarshal"))
 			return
 		}
-		err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
 
-		if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
-			log.Error().Msg(fmt.Sprintf("Auth failure. Failed to publish message: %s", err.Error()))
-			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Error: Unauthorized"))
-			break
-		} else if err != nil {
-			log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
-			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to publish message"))
+		err = c.chanMan.PublishMessage(clientId, channel, domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload)))
+		if err != nil {
+			if errors.Is(err, domain.ErrChanOpNotPermitted) {
+				log.Error().Msg(fmt.Sprintf("Auth failure. Failed to publish message: %s", err.Error()))
+				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Error: Unauthorized"))
+			} else {
+				log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
+				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to publish message"))
+			}
 			break
 		}
 
@@ -146,20 +133,18 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
-
 	clientId, groupId, portalId, channelName, read, _ := parseHeaders(r.Header)
 
 	if read != "true" {
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Insufficient permissions"})
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
 	if channelName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "No channel provided"})
+		http.Error(w, "No channel provided", http.StatusBadRequest)
 		return
 	}
+
 	topicSet := r.Header.Get("topics")
 	var topics []string
 	if len(topicSet) == 0 {
@@ -170,8 +155,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 
 	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle channel: " + err.Error()})
+		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -179,8 +163,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to accept WebSocket connection: " + err.Error()})
+		http.Error(w, "Failed to accept WebSocket connection: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer conn.Close()
@@ -228,14 +211,14 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = c.chanMan.AddSubscription(sub, channel)
-
-	if err != nil && errors.Is(err, domain.ErrChanOpNotPermitted) {
-		log.Error().Msg(fmt.Sprintf("Auth failure. Failed to add subscription: %s", err.Error()))
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Error: Unauthorized"))
-		return
-	} else if err != nil {
-		log.Error().Msg(fmt.Sprintf("Failed to add subscription: %s", err.Error()))
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to add subscription"))
+	if err != nil {
+		if errors.Is(err, domain.ErrChanOpNotPermitted) {
+			log.Error().Msg(fmt.Sprintf("Auth failure. Failed to add subscription: %s", err.Error()))
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Error: Unauthorized"))
+		} else {
+			log.Error().Msg(fmt.Sprintf("Failed to add subscription: %s", err.Error()))
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to add subscription"))
+		}
 		return
 	}
 

@@ -11,44 +11,37 @@ import (
 func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
+		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
 		return
 	}
 	client, err := c.system.GetClient(req.ClientId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to get client. Err " + err.Error()})
+		http.Error(w, "Unable to get client. Err: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Result": client})
-	return
 }
 
 func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
 	var req domain.Pagination[*domain.Client]
 	if err := UnmarshalTo(&req, r); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse clients request"})
+		http.Error(w, "Unable to parse clients request", http.StatusBadRequest)
 		return
 	}
 	client, err := c.system.GetClients(req)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to get clients. Err " + err.Error()})
+		http.Error(w, "Unable to get clients. Err: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok", "Results": client})
-	return
 }
 
 func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
+		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
 		return
 	}
 
@@ -59,15 +52,13 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 
 	client, err := domain.NewClient(req.ClientName, groupId, domain.MAIN_PORTAL, req.Admin)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Failed to handle client: " + err.Error()})
+		http.Error(w, "Failed to handle client: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	token, err := c.system.CreateClient(client, domain.NewReadWrite(client.Id))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to create client. Err " + err.Error()})
+		http.Error(w, "Unable to create client. Err: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -78,20 +69,17 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		ClientId:    client.Name,
 		Token:       token.Raw,
 	}})
-	return
 }
 
 func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
+		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
 		return
 	}
 	token, err := c.system.RotateClientSecret(req.ClientId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to rotate client token. Err " + err.Error()})
+		http.Error(w, "Unable to rotate client token. Err: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -99,22 +87,18 @@ func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 		ClientId: req.ClientId,
 		Token:    token.Raw,
 	}})
-	return
 }
 
 func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
 	var req ClientRequest
 	if err := UnmarshalTo(&req, r); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to parse client request"})
+		http.Error(w, "Unable to parse client request", http.StatusBadRequest)
 		return
 	}
 	if err := c.system.ArchiveClient(req.ClientId); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Response": "Unable to archive client. Err " + err.Error()})
+		http.Error(w, "Unable to archive client. Err: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{"Response": "Ok"})
-	return
 }

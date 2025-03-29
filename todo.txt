@@ -3,14 +3,15 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
-rate-limits
 test signup
-test segmentation - portals / groups / topics / admin
+test segmentation - portals / groups / topics / admin / permission / token / rotate
 test retention / free subs / messages
 ---
-implement postgres
 message ack/state
 self-healing / tidy
+implement postgres
+implement redis broker / rate-limiter
+client SDKs
 ---
 [differentiators]
 ---
