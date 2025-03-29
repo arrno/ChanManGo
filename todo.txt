@@ -3,6 +3,7 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
+SORT OUT IDs... it's too confusing
 test signup
 test segmentation - portals / groups / topics / admin / permission / token / rotate
 test retention / free subs / messages

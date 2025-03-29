@@ -45,11 +45,12 @@ type StandardResponse struct {
 
 // ClientTokenResponse is returned when creating/authenticating clients
 type ClientTokenResponse struct {
-	ClientURN   string     `json:"clientUrn"`
-	ClientId    string     `json:"clientId"`
-	ClientGroup string     `json:"clientGroup"`
-	Token       string     `json:"token"`
-	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
+	ClientURN     string     `json:"clientUrn"`
+	ClientId      string     `json:"clientId"`
+	ClientChannel string     `json:"channelId"`
+	ClientGroup   string     `json:"clientGroup"`
+	Token         string     `json:"token"`
+	ExpiresAt     *time.Time `json:"expiresAt,omitempty"`
 }
 
 // ChannelResponse includes channel information

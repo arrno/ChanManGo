@@ -14,7 +14,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 	// Generate unique IDs for demo resources
 	groupId := util.Nanoid()
 	clientId := util.Nanoid()
-	channelId := util.Nanoid()
+	channelName := util.Nanoid()
 
 	// Create domain objects
 	group, err := domain.NewGroup(domain.ADMIN_USER, domain.MAIN_PORTAL, groupId)
@@ -29,7 +29,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel, err := domain.NewChannel(domain.MAIN_PORTAL, groupId, channelId, 3600)
+	channel, err := domain.NewChannel(domain.MAIN_PORTAL, group.Id, channelName, 3600)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create channel", err)
 		return
@@ -48,10 +48,11 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 
 	// Create successful response
 	response := ClientTokenResponse{
-		ClientURN:   client.Id,
-		ClientGroup: groupId,
-		ClientId:    client.Name,
-		Token:       token.Raw,
+		ClientURN:     client.Id,
+		ClientGroup:   groupId,
+		ClientChannel: channelName,
+		ClientId:      client.Name,
+		Token:         token.Raw,
 	}
 
 	// Return success response
