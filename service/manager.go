@@ -273,7 +273,7 @@ func (c *Manager) PruneChannels() (err error) {
 	return
 }
 
-// TODO
+// This is sufficiently handled in the middleware but may be expanded in the future
 func (c *Manager) Permitted(channelId, clientId string, operation domain.Operation) bool {
 	// channel and client must be in the same group
 	return true

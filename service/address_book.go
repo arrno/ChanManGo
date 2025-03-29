@@ -34,9 +34,22 @@ func NewAddressBook(id string) *AddressBook {
 }
 
 func (b *AddressBook) Clear() {
-	b.subscribers = nil
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	
+	// Reset size counter
+	b.sizeMu.Lock()
+	b.size = 0
+	b.sizeMu.Unlock()
+	
+	// Reset subscribers map
+	b.subscribers = map[string]map[string]*domain.TopicSubscription{
+		"all": map[string]*domain.TopicSubscription{},
+	}
 }
 func (b *AddressBook) Size() uint {
+	b.sizeMu.RLock()
+	defer b.sizeMu.RUnlock()
 	return b.size
 }
 func (b *AddressBook) inc(n uint) {
@@ -90,6 +103,9 @@ func (b *AddressBook) UnCacheChannelSubscription(topics []string, id string) {
 }
 
 func (b *AddressBook) FetchTopicSubscriptions(topics []string) []*domain.TopicSubscription {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	
 	var subs []*domain.TopicSubscription
 
 	for _, topic := range topics {
@@ -106,12 +122,19 @@ func (b *AddressBook) FetchTopicSubscriptions(topics []string) []*domain.TopicSu
 }
 
 func (b *AddressBook) Info() bookSummary {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	
 	topicSubCount := make(map[string]uint, len(b.subscribers))
 	for topic, subs := range b.subscribers {
 		topicSubCount[topic] = uint(len(subs))
 	}
+	
+	// Get size with proper locking
+	size := b.Size()
+	
 	return bookSummary{
-		Size:          b.size,
+		Size:          size,
 		TopicSubCount: topicSubCount,
 	}
 }

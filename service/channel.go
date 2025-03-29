@@ -118,19 +118,27 @@ func (c *Channel) IncrPublishers() func() {
 }
 
 func (c *Channel) Listen() (err error) {
-	defer func() {
-		if err != nil {
-			c.object.State = domain.STATE_ERROR
-		} else {
-			c.object.State = domain.STATE_RUNNING
-		}
-	}()
+	// Set initial state to pending
+	c.mu.Lock()
+	c.object.State = domain.STATE_PENDING
+	c.mu.Unlock()
 
+	// Subscribe for messages
 	err = c.broker.SubscribeForMessages(
 		context.Background(),
 		c.object,
 		c.rootSubscription,
 	)
+
+	// Update state based on result
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if err != nil {
+		c.object.State = domain.STATE_ERROR
+	} else {
+		c.object.State = domain.STATE_RUNNING
+	}
 
 	return
 }
@@ -139,24 +147,33 @@ func (c *Channel) Destroy() (err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// If already inactive, nothing to do
 	if c.object.State == domain.STATE_INACTIVE {
 		return nil
 	}
 
-	defer func() {
-		if err != nil {
-			c.object.State = domain.STATE_ERROR
-		} else {
-			c.object.State = domain.STATE_INACTIVE
-		}
-	}()
+	// First mark as being pending
+	c.object.State = domain.STATE_PENDING
 
+	// Clear all subscriptions
 	c.subscriptionBook.Clear()
+
+	// Unsubscribe from broker
 	err = c.broker.UnsubscribeForMessages(
 		context.Background(),
 		c.object,
 		c.rootSubscription,
 	)
+
+	// Update final state based on result
+	if err != nil {
+		c.object.State = domain.STATE_ERROR
+	} else {
+		c.object.State = domain.STATE_INACTIVE
+		// Reset publisher count
+		c.publishers = 0
+	}
+
 	return
 }
 

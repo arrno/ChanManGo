@@ -2,6 +2,7 @@ package io
 
 import (
 	"errors"
+	"time"
 
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
@@ -67,11 +68,51 @@ func (g *Group) CreateClientGroup(clientId, groupId string) error {
 }
 
 func (g *Group) ArchiveClientGroup(clientId, groupId string) error {
-	return domain.ErrNotImplemented
+	// Get the client groups
+	clientGroups, err := g.db.GetClientGroupsByClientId(clientId)
+	if err != nil {
+		return err
+	}
+	
+	// Find the specific client-group association
+	for _, clientGroup := range clientGroups {
+		if clientGroup.GroupId == groupId {
+			// Archive the client-group association
+			now := time.Now()
+			clientGroup.ArchivedAt = &now
+			clientGroup.State = domain.STATE_ARCHIVED
+			return g.db.UpdateClientGroup(clientGroup)
+		}
+	}
+	
+	return datastore.ErrNotFound
 }
 
 func (g *Group) InGroup(channelId, clientId string) (bool, error) {
-	return false, domain.ErrNotImplemented
+	// Get the channel to find its groupId
+	channel, err := g.db.GetChannel(channelId)
+	if err != nil {
+		return false, err
+	}
+	
+	// Get client groups
+	clientGroups, err := g.db.GetClientGroupsByClientId(clientId)
+	if err != nil {
+		if errors.Is(err, datastore.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	
+	// Check if any of the client's groups match the channel's group
+	channelGroupId := channel.GroupId
+	for _, clientGroup := range clientGroups {
+		if clientGroup.GroupId == channelGroupId {
+			return true, nil
+		}
+	}
+	
+	return false, nil
 }
 
 func (g *Group) groupExists(id string) (bool, error) {
@@ -86,10 +127,13 @@ func (g *Group) groupExists(id string) (bool, error) {
 
 func (g *Group) clientInGroup(clientId string) (bool, error) {
 	groups, err := g.db.GetClientGroupsByClientId(clientId)
-	if err == nil {
-		return true, nil
-	} else if errors.Is(err, datastore.ErrNotFound) {
-		return false, nil
+	if err != nil {
+		if errors.Is(err, datastore.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
 	}
-	return len(groups) == 0, err
+	
+	// If we got groups, the client is in at least one group
+	return len(groups) > 0, nil
 }

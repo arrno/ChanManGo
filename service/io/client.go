@@ -92,19 +92,34 @@ func (c *Client) ArchiveClient(id string) error {
 }
 
 func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
+	// First validate the client exists
 	client, err := c.GetClient(clientId)
 	if err != nil {
 		return domain.Token{}, err
 	}
+	
+	// Create new token
 	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
 	token, err := domain.NewToken(util.Nanoid(), localSecret)
 	if err != nil {
 		return domain.Token{}, err
 	}
+	
+	// Create new secret object
 	secret := domain.NewClientSecret(client.Id, token.Encrypted)
-	if err := c.db.StoreClientSecret(&secret); err != nil {
+	
+	// Use transaction to store the secret
+	err = c.db.WithTx(func(tx datastore.DatastoreProvider) error {
+		// Optionally: get and archive old secrets here if needed
+		
+		// Store the new secret
+		return tx.StoreClientSecret(&secret)
+	})
+	
+	if err != nil {
 		return domain.Token{}, err
 	}
+	
 	return token, nil
 }
 
