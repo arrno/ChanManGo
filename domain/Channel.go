@@ -41,7 +41,7 @@ func NewChannel(portalId, groupId, name string, hbIntervalSec uint) (*Channel, e
 		return nil, ErrInvalidName
 	}
 	return &Channel{
-		Id:              GroupId(name, groupId, portalId),
+		Id:              CompositeId(name, groupId),
 		GroupId:         groupId,
 		PortalId:        portalId,
 		Name:            name,

@@ -16,12 +16,12 @@ type Client struct {
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
-func NewClient(name, groupId, portalId string, admin bool) (*Client, error) {
+func NewClient(name, groupId string, admin bool) (*Client, error) {
 	if !util.IsValidName(name) {
 		return nil, ErrInvalidName
 	}
 	return &Client{
-		Id:        GroupId(name, groupId, portalId),
+		Id:        CompositeId(name, groupId),
 		Name:      name,
 		Active:    true,
 		Admin:     admin,

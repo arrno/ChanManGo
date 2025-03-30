@@ -7,12 +7,8 @@ import (
 	"github.com/arrno/chanman/util"
 )
 
-func PortalId(id, portalId string) string {
-	return fmt.Sprintf("%s::%s", portalId, id)
-}
-
-func GroupId(id, groupId, portalId string) string {
-	return fmt.Sprintf("%s::%s::%s", portalId, groupId, id)
+func CompositeId(selfId, parentId string) string {
+	return fmt.Sprintf("%s::%s", parentId, selfId)
 }
 
 type Portal struct {

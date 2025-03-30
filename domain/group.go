@@ -23,7 +23,7 @@ func NewGroup(ownerId, portalId, name string) (*Group, error) {
 		return nil, ErrInvalidName
 	}
 	return &Group{
-		Id:        PortalId(name, portalId),
+		Id:        CompositeId(name, portalId),
 		OwnerId:   ownerId,
 		PortalId:  portalId,
 		Name:      name,

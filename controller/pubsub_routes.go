@@ -15,7 +15,7 @@ import (
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
-	clientId, groupId, portalId, channelName, _, write := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, _, _, write := parseHeaders(r.Header)
 
 	if write != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -62,7 +62,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
-	clientId, groupId, portalId, channelName, _, write := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, _, _, write := parseHeaders(r.Header)
 
 	if write != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -144,7 +144,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
-	clientId, groupId, portalId, channelName, read, _ := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, _, read, _ := parseHeaders(r.Header)
 
 	if read != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)

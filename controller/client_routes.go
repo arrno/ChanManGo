@@ -82,8 +82,10 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		groupId = domain.MAIN_GROUP
 	}
 
+	// TODO, validate group belongs to caller
+
 	// Create client
-	client, err := domain.NewClient(req.ClientName, groupId, domain.MAIN_PORTAL, req.Admin)
+	client, err := domain.NewClient(req.ClientName, groupId, req.Admin)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Failed to create client", err)
 		return
@@ -98,9 +100,9 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 
 	// Create response
 	response := ClientTokenResponse{
-		ClientURN:   client.Id,
 		ClientGroup: groupId,
-		ClientId:    client.Name,
+		ClientId:    client.Id,
+		ClientName:  client.Name,
 		Token:       token.Raw,
 	}
 

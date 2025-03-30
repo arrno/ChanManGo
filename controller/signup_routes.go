@@ -12,18 +12,18 @@ import (
 func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 
 	// Generate unique IDs for demo resources
-	groupId := util.Nanoid()
-	clientId := util.Nanoid()
-	channelName := util.Nanoid()
+	groupName := util.Nanoid()
+	channelName := "MyChan"
+	clientName := "client-" + util.Nanoid()
 
 	// Create domain objects
-	group, err := domain.NewGroup(domain.ADMIN_USER, domain.MAIN_PORTAL, groupId)
+	group, err := domain.NewGroup(domain.ADMIN_USER, domain.MAIN_PORTAL, groupName)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create group", err)
 		return
 	}
 
-	client, err := domain.NewClient(clientId, groupId, domain.MAIN_PORTAL, false)
+	client, err := domain.NewClient(clientName, group.Id, false)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create client", err)
 		return
@@ -35,7 +35,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	permission := domain.NewReadOnly(clientId)
+	permission := domain.NewReadOnly(client.Id)
 
 	// Use the database's transaction support
 	token, err := c.system.InitSandbox(client, channel, group, permission)
@@ -48,11 +48,9 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 
 	// Create successful response
 	response := ClientTokenResponse{
-		ClientURN:     client.Id,
-		ClientGroup:   groupId,
 		ClientChannel: channelName,
-		ClientId:      client.Name,
 		Token:         token.Raw,
+		ExpiresAt:     token.ExpiresAt,
 	}
 
 	// Return success response

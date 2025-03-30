@@ -28,15 +28,10 @@ func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Extract parameters from query or request
-		channel := r.URL.Query().Get("channel")
-		topics := r.URL.Query().Get("topics")
-
 		// Set headers for downstream handlers
-		r.Header.Add("channel", channel)
-		r.Header.Add("topics", topics)
 		r.Header.Add("portalId", domain.MAIN_PORTAL)
 		r.Header.Add("groupId", clientGroup.GroupId)
+		// Need group name
 		r.Header.Add("clientId", clientGroup.ClientId)
 
 		// Add admin flag if applicable
@@ -88,10 +83,16 @@ func extractToken(r *http.Request) string {
 // channelContext middleware validates channel access and existence
 func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		channelName := r.URL.Query().Get("channel")
+		topics := r.URL.Query().Get("topics")
+		// Set headers for downstream handlers
+		r.Header.Add("channelName", channelName)
+		r.Header.Add("topics", topics)
+
 		// Extract context values set by auth middleware
 		groupId := r.Header.Get("groupId")
 		portalId := r.Header.Get("portalId")
-		channelName := r.Header.Get("channel")
 		clientId := r.Header.Get("clientId")
 
 		// Validate channel name
@@ -101,7 +102,7 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Generate full channel ID
-		channelId := domain.GroupId(channelName, groupId, portalId)
+		channelId := domain.CompositeId(channelName, groupId)
 
 		// Fetch channel from database
 		channel, err := c.db.GetChannel(channelId)
