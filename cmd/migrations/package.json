@@ -1,0 +1,19 @@
+{
+  "name": "migrations",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/pg": "^8.11.11",
+    "pg": "^8.14.1"
+  },
+
+  "scripts": {
+    "build": "docker build -t my-postgres .",
+    "run": "docker run -d -p 5432:5432 --name my-postgres-container -e POSTGRES_PASSWORD=password my-postgres"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
