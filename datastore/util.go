@@ -6,7 +6,7 @@ import (
 )
 
 // MainPortal -> MainGroup -> MainChannel, AdminClient
-func SeedDb(db DatastoreProvider) {
+func SeedDb(db RepoProvider) {
 	expect := func(err error) {
 		if err != nil {
 			panic(err)

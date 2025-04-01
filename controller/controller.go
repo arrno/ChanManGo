@@ -34,7 +34,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type Controller struct {
-	db          datastore.DatastoreProvider
+	db          datastore.RepoProvider
 	chanMan     service.ManagerProvider
 	system      ioService.SystemProvider
 	rateLimiter limiter.LimitProvider

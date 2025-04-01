@@ -446,7 +446,7 @@ func (db *LocalDB) ArchivePortal(id string) error {
 }
 
 // Transaction wrapper, executing function within a transaction
-func (db *LocalDB) WithTx(f func(tx DatastoreProvider) error) error {
+func (db *LocalDB) WithTx(f func(tx RepoProvider) error) error {
 	// For the in-memory DB, we can simulate transaction-like behavior
 	// by using the mutex to ensure isolation
 	db.mu.Lock()

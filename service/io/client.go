@@ -21,10 +21,10 @@ type ClientProvider interface {
 }
 
 type Client struct {
-	db datastore.DatastoreProvider
+	db datastore.RepoProvider
 }
 
-func NewClient(db datastore.DatastoreProvider) *Client {
+func NewClient(db datastore.RepoProvider) *Client {
 	return &Client{
 		db: db,
 	}
@@ -43,7 +43,7 @@ func (c *Client) CreateClient(client *domain.Client, permission *domain.ClientPe
 		return token, err
 	}
 	secret := domain.NewClientSecret(client.Id, token.Encrypted)
-	return token, c.db.WithTx(func(tx datastore.DatastoreProvider) error {
+	return token, c.db.WithTx(func(tx datastore.RepoProvider) error {
 		if err := tx.StoreClient(client); err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	secret := domain.NewClientSecret(client.Id, token.Encrypted)
 
 	// Use transaction to store the secret
-	err = c.db.WithTx(func(tx datastore.DatastoreProvider) error {
+	err = c.db.WithTx(func(tx datastore.RepoProvider) error {
 		// Optionally: get and archive old secrets here if needed
 
 		// Store the new secret

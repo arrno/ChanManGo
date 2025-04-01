@@ -24,7 +24,7 @@ export class StreamingSDK {
     subSocket: null | WebSocket;
     listeners: {
         [key: string]: Array<
-            (topic: string, message: { [key: string]: any }) => void
+            (topic: string, message: Record<string, any>) => void
         >;
     };
 
@@ -97,10 +97,8 @@ export class StreamingSDK {
 
     async publish(topic: string, payload: { [key: string]: any }) {
         await this.ensurePublisherConnected();
-        let payloadStr = JSON.stringify(payload);
-        this.pubSocket?.send(
-            JSON.stringify(<messageSer>{ topic, payload: payloadStr })
-        );
+        let message: messageSer = { topic, payload: JSON.stringify(payload) };
+        this.pubSocket?.send(JSON.stringify(message));
         return { success: true };
     }
 

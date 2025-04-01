@@ -13,10 +13,10 @@ type MessageProvider interface {
 }
 
 type Message struct {
-	db datastore.DatastoreProvider
+	db datastore.RepoProvider
 }
 
-func NewMessage(db datastore.DatastoreProvider) *Message {
+func NewMessage(db datastore.RepoProvider) *Message {
 	return &Message{db}
 }
 

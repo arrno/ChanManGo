@@ -24,10 +24,10 @@ type GroupProvider interface {
 // TODO implement interface
 
 type Group struct {
-	db datastore.DatastoreProvider
+	db datastore.RepoProvider
 }
 
-func NewGroup(db datastore.DatastoreProvider) *Group {
+func NewGroup(db datastore.RepoProvider) *Group {
 	return &Group{
 		db: db,
 	}

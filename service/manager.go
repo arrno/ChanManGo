@@ -39,7 +39,7 @@ type managerObject struct {
 	destroyDependents map[string][]chan any      // map[channel.Id][]chan any
 }
 
-func NewManager(db datastore.DatastoreProvider, broker broker.BrokerProvider) *Manager {
+func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manager {
 	m := Manager{
 		broker:             broker,
 		channelIo:          io.NewChannel(db),
