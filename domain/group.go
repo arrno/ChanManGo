@@ -8,7 +8,7 @@ import (
 
 type Group struct {
 	Id            string     `json:"id"`
-	ParentGroupId string     `json:"parentGroupId"`
+	ParentGroupId *string    `json:"parentGroupId"`
 	OwnerId       string     `json:"ownerId"`
 	PortalId      string     `json:"portalId"`
 	Name          string     `json:"name"`

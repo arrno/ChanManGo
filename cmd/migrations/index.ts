@@ -15,25 +15,25 @@ export const dbConfig = {
 async function main() {
     const client = new Client(dbConfig);
 
-    try {
-        await client.connect();
-        await ping(client);
-    } catch (error) {
-        console.error("An error occurred:", error);
-    } finally {
-        console.log("Closing client");
-        await client.end();
-    }
-
     // try {
     //     await client.connect();
-    //     await clearDatabase(client);
-    //     await bootDatabase(client);
+    //     await ping(client);
     // } catch (error) {
     //     console.error("An error occurred:", error);
     // } finally {
+    //     console.log("Closing client");
     //     await client.end();
     // }
+
+    try {
+        await client.connect();
+        await clearDatabase(client);
+        await bootDatabase(client);
+    } catch (error) {
+        console.error("An error occurred:", error);
+    } finally {
+        await client.end();
+    }
 }
 
 main().catch(console.error);

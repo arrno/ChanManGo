@@ -18,6 +18,23 @@ export async function clearDatabase(client: Client): Promise<void> {
     try {
         console.log("Clearing database...");
 
+        // drop enum
+        const enumResults = await client.query(`
+        SELECT typname
+        FROM pg_type
+        WHERE typtype = 'e'
+        AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');`);
+
+        const enumNames = enumResults.rows.map((row) => row.typname);
+        if (enumNames.length > 0) {
+            await client.query(
+                `DROP TYPE IF EXISTS ${enumNames.join(", ")} CASCADE;`
+            );
+            console.log("All enums dropped.");
+        } else {
+            console.log("No enums to drop.");
+        }
+
         // Get all table names
         const tablesResult = await client.query(
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"

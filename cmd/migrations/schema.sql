@@ -80,6 +80,7 @@ CREATE INDEX idx_secret_token_encrypted_secret ON client_secret_tokens(encrypted
 -- Create Channels table
 CREATE TABLE channels (
   id VARCHAR(255) PRIMARY KEY,
+  interval_seconds INTEGER CHECK (interval_seconds >= 0),
   portal_id VARCHAR(255) NOT NULL,
   group_id VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,

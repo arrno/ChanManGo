@@ -29,10 +29,12 @@ func RunWeb() {
 		Chain(c.rateLimit).
 		Chain(c.auth).
 		Chain(admin)
-	ra.Get("/client", c.GetClient)
+	ra.Add(
+		"/client",
+		c.ClientHandler,
+		[]string{http.MethodGet, http.MethodPost, http.MethodDelete},
+	)
 	ra.Get("/clients", c.GetClients)
-	ra.Post("/client", c.CreateClient)
-	ra.Delete("/client", c.ArchiveClient)
 
 	if err := http.ListenAndServe(":"+PORT, nil); err != nil {
 		panic(err.Error())

@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/rs/zerolog/log"
 )
@@ -48,7 +47,8 @@ func (r *PostgresRepo) Close() {
 
 // NewRepoProvider creates a repository based on environment configuration
 func NewRepoProvider() (RepoProvider, error) {
-	pgDSN := os.Getenv("POSTGRES_DSN")
+	pgDSN := "postgresql://myuser:password@localhost:5433/postgres"
+	// pgDSN := os.Getenv("POSTGRES_DSN")
 	if pgDSN != "" {
 		// Use PostgreSQL if DSN is provided
 		repo, err := NewPostgresRepo(pgDSN)

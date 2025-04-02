@@ -11,7 +11,8 @@
 
   "scripts": {
     "build": "docker build -t my-postgres .",
-    "run": "docker run -d -p 5432:5432 --name my-postgres-container -e POSTGRES_PASSWORD=password my-postgres"
+    "database": "docker run -d -p 5432:5432 --name my-postgres-container -e POSTGRES_PASSWORD=password my-postgres",
+    "reset": "bun index.ts "
   },
   "peerDependencies": {
     "typescript": "^5"

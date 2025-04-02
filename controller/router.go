@@ -19,23 +19,23 @@ func (r *Router) Chain(handler ...func(http.HandlerFunc) http.HandlerFunc) *Rout
 	return r
 }
 func (r *Router) Post(path string, handler http.HandlerFunc) *Router {
-	r.Add(path, handler, http.MethodPost)
+	r.Add(path, handler, []string{http.MethodPost})
 	return r
 }
 func (r *Router) Get(path string, handler http.HandlerFunc) *Router {
-	r.Add(path, handler, http.MethodGet)
+	r.Add(path, handler, []string{http.MethodGet})
 	return r
 }
 func (r *Router) Delete(path string, handler http.HandlerFunc) *Router {
-	r.Add(path, handler, http.MethodDelete)
+	r.Add(path, handler, []string{http.MethodDelete})
 	return r
 }
-func (r *Router) Add(path string, handler http.HandlerFunc, method string) *Router {
+func (r *Router) Add(path string, handler http.HandlerFunc, methods []string) *Router {
 	for i := len(r.Middleware) - 1; i >= 0; i-- {
 		handler = r.Middleware[i](handler)
 	}
-	if len(method) > 0 {
-		handler = r.MethodGuard(handler, []string{method})
+	if len(methods) > 0 {
+		handler = r.MethodGuard(handler, methods)
 	}
 	http.HandleFunc(path, handler)
 	return r

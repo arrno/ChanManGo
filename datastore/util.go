@@ -7,9 +7,9 @@ import (
 
 // MainPortal -> MainGroup -> MainChannel, AdminClient
 func SeedDb(db RepoProvider) {
-	if _, ok := db.(*LocalDB); !ok { // only seed local
-		return
-	}
+	// if _, ok := db.(*LocalDB); !ok { // only seed local
+	// 	return
+	// }
 	expect := func(err error) {
 		if err != nil {
 			panic(err)
@@ -18,6 +18,11 @@ func SeedDb(db RepoProvider) {
 	client, err := domain.NewClient(domain.ADMIN_USER, domain.MAIN_GROUP, true)
 	expect(db.StoreClient(client))
 	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
+	if localSecret == "" {
+		bytes, err := domain.GenerateRandomSecretKey()
+		expect(err)
+		localSecret = string(bytes)
+	}
 	token, err := domain.NewToken("admin", localSecret)
 	expect(err)
 	token.Encrypt()
