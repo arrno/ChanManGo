@@ -19,6 +19,7 @@ var (
 type RepoProvider interface {
 	MessageRepoProvider
 	SystemRepoProvider
+	Close()
 	WithTx(f func(tx RepoProvider) error) error
 }
 

@@ -1,7 +1,656 @@
 package datastore
 
-// TODO
-// PostgresRepo implements RepoProvider with PostgreSQL
-type PostgresRepo struct {
+import (
+	"errors"
+	"fmt"
+
+	"github.com/arrno/chanman/domain"
+	"github.com/jackc/pgx/v5"
+)
+
+// SystemRepo implements the SystemRepoProvider interface using PostgreSQL
+type SystemRepo struct {
 	db SQLDatabase
 }
+
+// NewSystemRepo creates a new PostgreSQL system repository
+func NewSystemRepo(db SQLDatabase) *SystemRepo {
+	return &SystemRepo{
+		db: db,
+	}
+}
+
+// StoreClient stores a client in the database
+func (r *SystemRepo) StoreClient(client *domain.Client) error {
+	query := `
+		INSERT INTO clients (
+			id, name, active, admin, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET
+			name = $2,
+			active = $3,
+			admin = $4,
+			updated_at = $6,
+			archived_at = $7
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		client.Id, client.Name, client.Active, client.Admin,
+		client.CreatedAt, client.UpdatedAt, client.ArchivedAt)
+
+	return err
+}
+
+// GetClient retrieves a client by ID
+func (r *SystemRepo) GetClient(id string) (*domain.Client, error) {
+	query := `
+		SELECT id, name, active, admin, created_at, updated_at, archived_at
+		FROM clients
+		WHERE id = $1
+	`
+
+	var client domain.Client
+	err := r.db.Get(ctx, &client, query, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &client, nil
+}
+
+// GetClients retrieves clients with pagination
+func (r *SystemRepo) GetClients(pagination domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+	// Validate pagination parameters
+	if err := pagination.Validate(); err != nil {
+		return nil, err
+	}
+
+	var clients []*domain.Client
+	offset := (pagination.Page - 1) * pagination.Count
+
+	query := `
+		SELECT id, name, active, admin, created_at, updated_at, archived_at
+		FROM clients
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	err := r.db.Select(ctx, &clients, query, pagination.Count, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total count for pagination
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM clients`
+	err = r.db.Get(ctx, &totalCount, countQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	pagination.Total = totalCount
+
+	return clients, nil
+}
+
+// UpdateClient updates a client in the database
+func (r *SystemRepo) UpdateClient(client *domain.Client) error {
+	query := `
+		UPDATE clients
+		SET name = $2, active = $3, admin = $4, updated_at = $5, archived_at = $6
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query,
+		client.Id, client.Name, client.Active, client.Admin,
+		client.UpdatedAt, client.ArchivedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// ArchiveClient archives a client by ID
+func (r *SystemRepo) ArchiveClient(id string) error {
+	// First get the client to ensure it exists
+	client, err := r.GetClient(id)
+	if err != nil {
+		return err
+	}
+
+	// Archive the client
+	client.Archive()
+	return r.UpdateClient(client)
+}
+
+// StoreClientSecret stores a client secret in the database
+func (r *SystemRepo) StoreClientSecret(secret *domain.ClientSecret) error {
+	query := `
+		INSERT INTO client_secret_tokens (
+			id, client_id, encrypted_secret, state, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET
+			encrypted_secret = $3,
+			state = $4,
+			updated_at = $6,
+			archived_at = $7
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		secret.Id, secret.ClientId, secret.EncryptedSecret, secret.State,
+		secret.CreatedAt, secret.UpdatedAt, secret.ArchivedAt)
+
+	return err
+}
+
+// GetClientSecret retrieves a client secret by ID
+func (r *SystemRepo) GetClientSecret(id string) (*domain.ClientSecret, error) {
+	query := `
+		SELECT id, client_id, encrypted_secret, state, created_at, updated_at, archived_at
+		FROM client_secret_tokens
+		WHERE id = $1
+	`
+
+	var secret domain.ClientSecret
+	err := r.db.Get(ctx, &secret, query, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &secret, nil
+}
+
+// GetClientSecretByClientId retrieves a client secret by client ID
+func (r *SystemRepo) GetClientSecretByClientId(clientId string) (*domain.ClientSecret, error) {
+	query := `
+		SELECT id, client_id, encrypted_secret, state, created_at, updated_at, archived_at
+		FROM client_secret_tokens
+		WHERE client_id = $1 AND (archived_at IS NULL OR state != 'archived')
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+
+	var secret domain.ClientSecret
+	err := r.db.Get(ctx, &secret, query, clientId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &secret, nil
+}
+
+// UpdateClientSecret updates a client secret in the database
+func (r *SystemRepo) UpdateClientSecret(secret *domain.ClientSecret) error {
+	query := `
+		UPDATE client_secret_tokens
+		SET encrypted_secret = $2, state = $3, updated_at = $4, archived_at = $5
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query,
+		secret.Id, secret.EncryptedSecret, secret.State,
+		secret.UpdatedAt, secret.ArchivedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// ArchiveClientSecret archives a client secret by ID
+func (r *SystemRepo) ArchiveClientSecret(id string) error {
+	// First get the client secret to ensure it exists
+	secret, err := r.GetClientSecret(id)
+	if err != nil {
+		return err
+	}
+
+	// Archive the client secret
+	secret.Archive()
+	return r.UpdateClientSecret(secret)
+}
+
+// StoreClientPermission stores a client permission in the database
+func (r *SystemRepo) StoreClientPermission(perm *domain.ClientPermission) error {
+	query := `
+		INSERT INTO client_permissions (
+			id, client_id, read, write, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET
+			read = $3,
+			write = $4,
+			updated_at = $6,
+			archived_at = $7
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		perm.Id, perm.ClientId, perm.Read, perm.Write,
+		perm.CreatedAt, perm.UpdatedAt, perm.ArchivedAt)
+
+	return err
+}
+
+// GetClientPermission retrieves a client permission by ID
+func (r *SystemRepo) GetClientPermission(id string) (*domain.ClientPermission, error) {
+	query := `
+		SELECT id, client_id, read, write, created_at, updated_at, archived_at
+		FROM client_permissions
+		WHERE id = $1
+	`
+
+	var perm domain.ClientPermission
+	err := r.db.Get(ctx, &perm, query, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &perm, nil
+}
+
+// GetClientPermissionByClientId retrieves a client permission by client ID
+func (r *SystemRepo) GetClientPermissionByClientId(clientId string) (*domain.ClientPermission, error) {
+	query := `
+		SELECT id, client_id, read, write, created_at, updated_at, archived_at
+		FROM client_permissions
+		WHERE client_id = $1 AND archived_at IS NULL
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+
+	var perm domain.ClientPermission
+	err := r.db.Get(ctx, &perm, query, clientId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &perm, nil
+}
+
+// UpdateClientPermission updates a client permission in the database
+func (r *SystemRepo) UpdateClientPermission(perm *domain.ClientPermission) error {
+	query := `
+		UPDATE client_permissions
+		SET read = $2, write = $3, updated_at = $4, archived_at = $5
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query,
+		perm.Id, perm.Read, perm.Write, perm.UpdatedAt, perm.ArchivedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// ArchiveClientPermission archives a client permission by ID
+func (r *SystemRepo) ArchiveClientPermission(id string) error {
+	// First get the client permission to ensure it exists
+	perm, err := r.GetClientPermission(id)
+	if err != nil {
+		return err
+	}
+
+	// Archive the client permission
+	perm.Archive()
+	return r.UpdateClientPermission(perm)
+}
+
+// StoreGroup stores a group in the database
+func (r *SystemRepo) StoreGroup(group *domain.Group) error {
+	query := `
+		INSERT INTO groups (
+			id, parent_group_id, owner_id, portal_id, name, state, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO UPDATE SET
+			parent_group_id = $2,
+			owner_id = $3,
+			portal_id = $4,
+			name = $5,
+			state = $6,
+			updated_at = $8,
+			archived_at = $9
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		group.Id, group.ParentGroupId, group.OwnerId, group.PortalId, group.Name, group.State,
+		group.CreatedAt, group.UpdatedAt, group.ArchivedAt)
+
+	return err
+}
+
+// GetGroup retrieves a group by ID
+func (r *SystemRepo) GetGroup(id string) (*domain.Group, error) {
+	query := `
+		SELECT id, parent_group_id, owner_id, portal_id, name, state, created_at, updated_at, archived_at
+		FROM groups
+		WHERE id = $1
+	`
+
+	var group domain.Group
+	err := r.db.Get(ctx, &group, query, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &group, nil
+}
+
+// UpdateGroup updates a group in the database
+func (r *SystemRepo) UpdateGroup(group *domain.Group) error {
+	query := `
+		UPDATE groups
+		SET parent_group_id = $2, owner_id = $3, portal_id = $4, name = $5, state = $6, updated_at = $7, archived_at = $8
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query,
+		group.Id, group.ParentGroupId, group.OwnerId, group.PortalId, group.Name, group.State,
+		group.UpdatedAt, group.ArchivedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// ArchiveGroup archives a group by ID
+func (r *SystemRepo) ArchiveGroup(id string) error {
+	// First get the group to ensure it exists
+	group, err := r.GetGroup(id)
+	if err != nil {
+		return err
+	}
+
+	// Archive the group
+	group.Archive()
+	return r.UpdateGroup(group)
+}
+
+// StoreClientGroup stores a client-group relationship in the database
+func (r *SystemRepo) StoreClientGroup(clientGroup *domain.ClientGroup) error {
+	query := `
+		INSERT INTO client_groups (
+			id, client_id, group_id, state, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET
+			client_id = $2,
+			group_id = $3,
+			state = $4,
+			updated_at = $6,
+			archived_at = $7
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		clientGroup.Id, clientGroup.ClientId, clientGroup.GroupId, clientGroup.State,
+		clientGroup.CreatedAt, clientGroup.UpdatedAt, clientGroup.ArchivedAt)
+
+	return err
+}
+
+// GetClientGroupsByClientId retrieves client-group relationships by client ID
+func (r *SystemRepo) GetClientGroupsByClientId(clientId string) ([]*domain.ClientGroup, error) {
+	query := `
+		SELECT id, client_id, group_id, state, created_at, updated_at, archived_at
+		FROM client_groups
+		WHERE client_id = $1 AND (archived_at IS NULL OR state != 'archived')
+		ORDER BY created_at DESC
+	`
+
+	var clientGroups []*domain.ClientGroup
+	err := r.db.Select(ctx, &clientGroups, query, clientId)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientGroups, nil
+}
+
+// GetClientGroup retrieves a client-group relationship by ID
+func (r *SystemRepo) GetClientGroup(id string) (*domain.ClientGroup, error) {
+	query := `
+		SELECT id, client_id, group_id, state, created_at, updated_at, archived_at
+		FROM client_groups
+		WHERE id = $1
+	`
+
+	var clientGroup domain.ClientGroup
+	err := r.db.Get(ctx, &clientGroup, query, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &clientGroup, nil
+}
+
+// UpdateClientGroup updates a client-group relationship in the database
+func (r *SystemRepo) UpdateClientGroup(clientGroup *domain.ClientGroup) error {
+	query := `
+		UPDATE client_groups
+		SET client_id = $2, group_id = $3, state = $4, updated_at = $5, archived_at = $6
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query,
+		clientGroup.Id, clientGroup.ClientId, clientGroup.GroupId, clientGroup.State,
+		clientGroup.UpdatedAt, clientGroup.ArchivedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// ArchiveClientGroup archives a client-group relationship by ID
+func (r *SystemRepo) ArchiveClientGroup(id string) error {
+	// First get the client group to ensure it exists
+	clientGroup, err := r.GetClientGroup(id)
+	if err != nil {
+		return err
+	}
+
+	// Archive the client group
+	clientGroup.Archive()
+	return r.UpdateClientGroup(clientGroup)
+}
+
+// StorePortal stores a portal in the database
+func (r *SystemRepo) StorePortal(portal *domain.Portal) error {
+	query := `
+		INSERT INTO portals (
+			id, name, owner_id, active, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET
+			name = $2,
+			owner_id = $3,
+			active = $4,
+			updated_at = $6,
+			archived_at = $7
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		portal.Id, portal.Name, portal.OwnerId, portal.Active,
+		portal.CreatedAt, portal.UpdatedAt, portal.ArchivedAt)
+
+	return err
+}
+
+// GetPortal retrieves a portal by ID
+func (r *SystemRepo) GetPortal(id string) (*domain.Portal, error) {
+	query := `
+		SELECT id, name, owner_id, active, created_at, updated_at, archived_at
+		FROM portals
+		WHERE id = $1
+	`
+
+	var portal domain.Portal
+	err := r.db.Get(ctx, &portal, query, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &portal, nil
+}
+
+// UpdatePortal updates a portal in the database
+func (r *SystemRepo) UpdatePortal(portal *domain.Portal) error {
+	query := `
+		UPDATE portals
+		SET name = $2, owner_id = $3, active = $4, updated_at = $5, archived_at = $6
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query,
+		portal.Id, portal.Name, portal.OwnerId, portal.Active,
+		portal.UpdatedAt, portal.ArchivedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// ArchivePortal archives a portal by ID
+func (r *SystemRepo) ArchivePortal(id string) error {
+	// First get the portal to ensure it exists
+	portal, err := r.GetPortal(id)
+	if err != nil {
+		return err
+	}
+
+	// Archive the portal
+	portal.Archive()
+	return r.UpdatePortal(portal)
+}
+
+// GetClientAuthByToken retrieves client authentication information by token
+func (r *SystemRepo) GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
+	// Find the client secret by encrypted token
+	query := `
+		SELECT cs.id, cs.client_id, cs.encrypted_secret, cs.state, cs.created_at, cs.updated_at, cs.archived_at
+		FROM client_secret_tokens cs
+		WHERE cs.encrypted_secret = $1 AND cs.state = 'active' AND cs.archived_at IS NULL
+		LIMIT 1
+	`
+
+	var clientSecret domain.ClientSecret
+	err := r.db.Get(ctx, &clientSecret, query, token)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, false, fmt.Errorf("invalid token")
+		}
+		return nil, nil, false, fmt.Errorf("error finding token: %w", err)
+	}
+
+	// Get client information to check if the client is active
+	var client domain.Client
+	clientQuery := `
+		SELECT id, name, active, admin, created_at, updated_at, archived_at
+		FROM clients
+		WHERE id = $1
+	`
+	err = r.db.Get(ctx, &client, clientQuery, clientSecret.ClientId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, false, fmt.Errorf("client not found")
+		}
+		return nil, nil, false, fmt.Errorf("error finding client: %w", err)
+	}
+
+	if !client.Active || client.ArchivedAt != nil {
+		return nil, nil, false, fmt.Errorf("client is not active")
+	}
+
+	// Get client permission
+	var clientPermission domain.ClientPermission
+	permQuery := `
+		SELECT id, client_id, read, write, created_at, updated_at, archived_at
+		FROM client_permissions
+		WHERE client_id = $1 AND archived_at IS NULL
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	err = r.db.Get(ctx, &clientPermission, permQuery, clientSecret.ClientId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, false, fmt.Errorf("client permission not found")
+		}
+		return nil, nil, false, fmt.Errorf("error finding client permission: %w", err)
+	}
+
+	// Get the primary client group
+	var clientGroup domain.ClientGroup
+	groupQuery := `
+		SELECT cg.id, cg.client_id, cg.group_id, cg.state, cg.created_at, cg.updated_at, cg.archived_at
+		FROM client_groups cg
+		WHERE cg.client_id = $1 AND cg.state = 'active' AND cg.archived_at IS NULL
+		ORDER BY cg.created_at DESC
+		LIMIT 1
+	`
+	err = r.db.Get(ctx, &clientGroup, groupQuery, clientSecret.ClientId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, false, fmt.Errorf("client group not found")
+		}
+		return nil, nil, false, fmt.Errorf("error finding client group: %w", err)
+	}
+
+	return &clientGroup, &clientPermission, client.Admin, nil
+}
+
+// // WithTx executes the given function within a transaction
+// func (r *SystemRepo) WithTx(f func(tx RepoProvider) error) error {
+// 	return r.db.WithTx(ctx, func(txDb SQLDatabase) error {
+// 		txRepo := &SystemRepo{db: txDb}
+// 		return f(txRepo)
+// 	})
+// }

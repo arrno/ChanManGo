@@ -46,7 +46,10 @@ type MessageWrapper struct {
 }
 
 func NewController() *Controller {
-	db := datastore.NewInMemoryDB()
+	db, err := datastore.NewRepoProvider()
+	if err != nil {
+		panic("Failed to build controller. Err: " + err.Error())
+	}
 	datastore.SeedDb(db)
 	broker := broker.NewInMemoryBroker()
 	limiter := limiter.NewLocalLimiter()

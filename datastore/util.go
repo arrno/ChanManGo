@@ -7,6 +7,9 @@ import (
 
 // MainPortal -> MainGroup -> MainChannel, AdminClient
 func SeedDb(db RepoProvider) {
+	if _, ok := db.(*LocalDB); !ok { // only seed local
+		return
+	}
 	expect := func(err error) {
 		if err != nil {
 			panic(err)
