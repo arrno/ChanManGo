@@ -21,6 +21,7 @@ func NewEnv() *EnvVar {
 		globalEnv = &EnvVar{
 			Vars: map[string]string{},
 		}
+		globalEnv.Load()
 	}
 	return globalEnv
 }
@@ -36,6 +37,13 @@ func (env *EnvVar) Load() *EnvVar {
 	}
 	for _, key := range expectedVars {
 		env.Vars[key] = os.Getenv(key)
+	}
+	if env.Expect("LOCAL_SECRET") == "" {
+		bytes, err := GenerateRandomSecretKey()
+		if err != nil {
+			panic(err)
+		}
+		env.Vars["LOCAL_SECRET"] = string(bytes)
 	}
 	return env
 }

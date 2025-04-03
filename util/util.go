@@ -1,7 +1,9 @@
 package util
 
 import (
+	cryptoRand "crypto/rand"
 	"crypto/sha256"
+	"io"
 	"math/big"
 	"math/rand/v2"
 	"regexp"
@@ -83,4 +85,13 @@ func CreateHashedID(identifier string) string {
 func IsValidName(name string) bool {
 	re := regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
 	return re.MatchString(name)
+}
+
+func GenerateRandomSecretKey() ([]byte, error) {
+	key := make([]byte, 32)
+	_, err := io.ReadFull(cryptoRand.Reader, key)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
 }

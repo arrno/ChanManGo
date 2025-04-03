@@ -247,7 +247,7 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 
 // TODO
 func (c *Manager) HealChannels() error {
-	log.Info().Msg("haling channels")
+	log.Info().Msg("healing channels")
 	// fetch all workers owned by this manager that errored or stopped heartbeat
 	// reboot workers
 	return nil
@@ -255,7 +255,7 @@ func (c *Manager) HealChannels() error {
 
 // TODO
 func (c *Manager) HealMessages() error {
-	log.Info().Msg("haling messages")
+	log.Info().Msg("healing messages")
 	// fetch all messages processed by owned workers that failed
 	// reprocess all messages if attempts < max
 	return nil

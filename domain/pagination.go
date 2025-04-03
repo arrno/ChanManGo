@@ -1,6 +1,10 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"net/http"
+	"strconv"
+)
 
 type Pagination[T any] struct {
 	Page  int `json:"page"`
@@ -26,4 +30,18 @@ func (p *Pagination[T]) DoPaginate(values []T) []T {
 	}
 	stop := min(len(values), start+p.Count)
 	return values[start:stop]
+}
+
+func (p *Pagination[T]) FromReq(r *http.Request) error {
+	page, err := strconv.ParseInt(r.URL.Query().Get("page"), 10, 64)
+	if err != nil {
+		return err
+	}
+	count, err := strconv.ParseInt(r.URL.Query().Get("count"), 10, 64)
+	if err != nil {
+		return err
+	}
+	p.Page = int(page)
+	p.Count = int(count)
+	return nil
 }

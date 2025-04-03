@@ -15,19 +15,20 @@ func SeedDb(db RepoProvider) {
 			panic(err)
 		}
 	}
+	clients, _ := db.GetClients(domain.Pagination[*domain.Client]{Page: 1, Count: 10})
+	if len(clients) > 0 {
+		return
+	}
 	client, err := domain.NewClient(domain.ADMIN_USER, domain.MAIN_GROUP, true)
 	expect(db.StoreClient(client))
 	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
-	if localSecret == "" {
-		bytes, err := domain.GenerateRandomSecretKey()
-		expect(err)
-		localSecret = string(bytes)
-	}
-	token, err := domain.NewToken("admin", localSecret)
+	token, err := domain.NewToken("password", localSecret)
 	expect(err)
 	token.Encrypt()
 	secret := domain.NewClientSecret(client.Id, token.Encrypted)
+	// secret := domain.NewClientSecret(client.Id, token.Encrypted)
 	expect(db.StoreClientSecret(&secret))
+	expect(db.StoreClientPermission(domain.NewReadWrite(client.Id)))
 	portal, err := domain.NewPortal(client.Id, domain.MAIN_PORTAL)
 	expect(err)
 	portal.Id = domain.MAIN_PORTAL

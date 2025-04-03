@@ -44,7 +44,8 @@ func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 
 func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
 	var req domain.Pagination[*domain.Client]
-	if err := UnmarshalTo(&req, r); err != nil {
+	err := req.FromReq(r)
+	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid pagination request format", err)
 		return
 	}

@@ -4,8 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"time"
@@ -13,11 +15,11 @@ import (
 
 // Token represents an API token with its raw value, hashed value, and optional salt
 type Token struct {
-	key         []byte     `json:"-"`
-	Raw         string     `json:"raw"`
-	Encrypted   string     `json:"encrypted"`
-	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
-	CreatedAt   time.Time  `json:"createdAt"`
+	key       []byte     `json:"-"`
+	Raw       string     `json:"raw"`
+	Encrypted string     `json:"encrypted"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
 }
 
 func NewToken(raw, localSecret string) (Token, error) {
@@ -47,18 +49,29 @@ func (t Token) Validate(against string) bool {
 	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
 		return false
 	}
-	
+
 	// Decrypt and validate
 	err := t.Decrypt()
 	if err != nil {
 		return false
 	}
-	
+
 	// Use a constant-time comparison to prevent timing attacks
 	return subtle.ConstantTimeCompare([]byte(t.Raw), []byte(against)) == 1
 }
 
-func (t *Token) Encrypt() error {
+func (t *Token) Encrypt() {
+	t.Hash() // For now...
+}
+
+func (t *Token) Hash() {
+	hasher := sha256.New()
+	hasher.Write([]byte(t.Raw))
+	hashBytes := hasher.Sum(nil)
+	t.Encrypted = hex.EncodeToString(hashBytes)
+}
+
+func (t *Token) encrypt() error {
 	block, err := aes.NewCipher(t.key)
 	if err != nil {
 		return err
@@ -107,13 +120,4 @@ func (t *Token) Decrypt() error {
 	}
 	t.Raw = string(plaintext)
 	return nil
-}
-
-func GenerateRandomSecretKey() ([]byte, error) {
-	key := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, key)
-	if err != nil {
-		return nil, err
-	}
-	return key, nil
 }
