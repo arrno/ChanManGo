@@ -37,13 +37,10 @@ func (c *Client) CreateClient(client *domain.Client, permission *domain.ClientPe
 	} else if exists {
 		return domain.Token{}, domain.ErrCreateOnExistingRecord
 	}
-	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
-	token, err := domain.NewToken(util.Nanoid(), string(localSecret))
-	if err != nil {
-		return token, err
-	}
-	secret := domain.NewClientSecret(client.Id, token.Encrypted)
-	return token, c.db.WithTx(func(tx datastore.RepoProvider) error {
+
+	token := domain.NewToken(util.Nanoid(), client.Id).Hash()
+	secret := domain.NewClientSecretFromToken(*token)
+	return *token, c.db.WithTx(func(tx datastore.RepoProvider) error {
 		if err := tx.StoreClient(client); err != nil {
 			return err
 		}
@@ -99,18 +96,14 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	}
 
 	// Create new token
-	localSecret := util.NewEnv().Expect("LOCAL_SECRET")
-	token, err := domain.NewToken(util.Nanoid(), localSecret)
-	if err != nil {
-		return domain.Token{}, err
-	}
+	token := domain.NewToken(util.Nanoid(), client.Id).Hash()
 
 	// Create new secret object
-	secret := domain.NewClientSecret(client.Id, token.Encrypted)
+	secret := domain.NewClientSecretFromToken(*token)
 
 	// Use transaction to store the secret
 	err = c.db.WithTx(func(tx datastore.RepoProvider) error {
-		// Optionally: get and archive old secrets here if needed
+		// TODO: get and archive old secrets here
 
 		// Store the new secret
 		return tx.StoreClientSecret(&secret)
@@ -120,7 +113,7 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 		return domain.Token{}, err
 	}
 
-	return token, nil
+	return *token, nil
 }
 
 func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
@@ -129,7 +122,8 @@ func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
 		return false, err
 	}
 	return domain.Token{
-		Encrypted: secret.EncryptedSecret,
+		Hashed: secret.EncryptedSecret,
+		Salt:   secret.Salt,
 	}.Validate(password), nil
 }
 

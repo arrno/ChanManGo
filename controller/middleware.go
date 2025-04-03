@@ -7,7 +7,6 @@ import (
 
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
-	"github.com/arrno/chanman/util"
 	"github.com/rs/zerolog/log"
 )
 
@@ -15,24 +14,19 @@ import (
 func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract token from Authorization header or query parameter
-		secret := extractToken(r)
-		if secret == "" {
-			RespondWithError(w, http.StatusUnauthorized, "Authentication token is missing", nil)
-			return
-		}
+		tokenString := extractToken(r)
 
-		token, err := domain.NewToken(secret, util.NewEnv().Expect("LOCAL_SECRET"))
-		if err != nil {
-			log.Error().Err(err).Str("token", token.Encrypted).Msg("Invalid authentication token")
-			RespondWithError(w, http.StatusUnauthorized, "Invalid authentication token", nil)
+		token := domain.NewToken("", "")
+		ok := token.Deserialize(tokenString)
+		if !ok {
+			RespondWithError(w, http.StatusUnauthorized, "Authentication token is missing or invalid", nil)
 			return
 		}
-		token.Encrypt()
 
 		// Validate token and get client permissions
-		clientGroup, permission, isAdmin, err := c.db.GetClientAuthByToken(token.Encrypted)
+		clientGroup, permission, isAdmin, err := c.db.GetClientAuthByToken(*token)
 		if err != nil || clientGroup == nil {
-			log.Error().Err(err).Str("token", token.Encrypted).Msg("Invalid authentication token")
+			log.Error().Err(err).Str("token", "<scrub>").Msg("Invalid authentication token")
 			RespondWithError(w, http.StatusUnauthorized, "Invalid authentication token", nil)
 			return
 		}

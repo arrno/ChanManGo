@@ -12,13 +12,13 @@ func CompositeId(selfId, parentId string) string {
 }
 
 type Portal struct {
-	Id         string     `json:"id"`
-	Name       string     `json:"name"`
-	OwnerId    string     `json:"ownerId"`
-	Active     bool       `json:"active"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
+	Id         string     `db:"id" json:"id"`
+	Name       string     `db:"name" json:"name"`
+	OwnerId    string     `db:"owner_id" json:"ownerId"`
+	Active     bool       `db:"active" json:"active"`
+	CreatedAt  time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt  time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
 func NewPortal(ownerId, name string) (*Portal, error) {

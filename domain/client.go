@@ -7,13 +7,13 @@ import (
 )
 
 type Client struct {
-	Id         string     `json:"id"`
-	Name       string     `json:"name"`
-	Active     bool       `json:"active"`
-	Admin      bool       `json:"admin"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
+	Id         string     `db:"id" json:"id"`
+	Name       string     `db:"name" json:"name"`
+	Active     bool       `db:"active" json:"active"`
+	Admin      bool       `db:"admin" json:"admin"`
+	CreatedAt  time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt  time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
 func NewClient(name, groupId string, admin bool) (*Client, error) {
@@ -31,26 +31,41 @@ func NewClient(name, groupId string, admin bool) (*Client, error) {
 }
 
 type ClientSecret struct {
-	Id              string     `json:"id"`
-	ClientId        string     `json:"clientId"`
-	EncryptedSecret string     `json:"encryptedSecret"`
-	State           STATE      `json:"state"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	UpdatedAt       time.Time  `json:"updatedAt"`
-	ArchivedAt      *time.Time `json:"archivedAt"`
+	Id              string     `db:"id" json:"id"`
+	ClientId        string     `db:"client_id" json:"clientId"`
+	EncryptedSecret string     `db:"encrypted_secret" json:"encryptedSecret"`
+	Salt            string     `db:"salt" json:"salt"`
+	State           STATE      `db:"state" json:"state"`
+	CreatedAt       time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt       time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt      *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
-func NewClientSecret(clientId, encryptedSecret string) ClientSecret {
+func NewClientSecretFromToken(token Token) ClientSecret {
 	now := time.Now()
 	return ClientSecret{
 		Id:              util.Nanoid(),
-		ClientId:        clientId,
-		EncryptedSecret: encryptedSecret,
+		ClientId:        token.Identity,
+		EncryptedSecret: token.Hashed,
+		Salt:            token.Salt,
 		State:           STATE_ACTIVE,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
 }
+
+// func NewClientSecret(clientId, encryptedSecret, salt string) ClientSecret {
+// 	now := time.Now()
+// 	return ClientSecret{
+// 		Id:              util.Nanoid(),
+// 		ClientId:        clientId,
+// 		EncryptedSecret: encryptedSecret,
+// 		Salt:            salt,
+// 		State:           STATE_ACTIVE,
+// 		CreatedAt:       now,
+// 		UpdatedAt:       now,
+// 	}
+// }
 
 func (cs *ClientSecret) UpdateState(state STATE) {
 	cs.State = state

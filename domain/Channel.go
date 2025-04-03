@@ -23,17 +23,17 @@ var (
 
 type Channel struct {
 	mu              sync.RWMutex `json:"-"`
-	Id              string       `json:"id"`
-	PortalId        string       `json:"portalId"`
-	GroupId         string       `json:"groupId"`
-	Name            string       `json:"name"`
-	State           STATE        `json:"state"`
-	Archived        bool         `json:"archived"`
-	IntervalSeconds uint         `json:"intervalSeconds"`
-	Heartbeat       *time.Time   `json:"heartbeat"`
-	CreatedAt       time.Time    `json:"createdAt"`
-	UpdatedAt       time.Time    `json:"updatedAt"`
-	ArchivedAt      *time.Time   `json:"archivedAt"`
+	Id              string       `db:"id" json:"id"`
+	PortalId        string       `db:"portal_id" json:"portalId"`
+	GroupId         string       `db:"group_id" json:"groupId"`
+	Name            string       `db:"name" json:"name"`
+	State           STATE        `db:"state" json:"state"`
+	Archived        bool         `db:"archived" json:"archived"`
+	IntervalSeconds uint         `db:"interval_seconds" json:"intervalSeconds"`
+	Heartbeat       *time.Time   `db:"heartbeat" json:"heartbeat"`
+	CreatedAt       time.Time    `db:"created_at" json:"createdAt"`
+	UpdatedAt       time.Time    `db:"updated_at" json:"updatedAt"`
+	ArchivedAt      *time.Time   `db:"archived_at" json:"archivedAt"`
 }
 
 func NewChannel(portalId, groupId, name string, hbIntervalSec uint) (*Channel, error) {

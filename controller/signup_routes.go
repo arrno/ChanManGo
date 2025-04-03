@@ -49,7 +49,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 	// Create successful response
 	response := ClientTokenResponse{
 		ClientChannel: channelName,
-		Token:         token.Raw,
+		Token:         token.Serialize(),
 		ExpiresAt:     token.ExpiresAt,
 	}
 

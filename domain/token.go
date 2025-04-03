@@ -1,47 +1,59 @@
 package domain
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
+	"strings"
 	"time"
+
+	"github.com/arrno/chanman/util"
 )
 
 // Token represents an API token with its raw value, hashed value, and optional salt
 type Token struct {
-	key       []byte     `json:"-"`
+	// key       []byte     `json:"-"`
 	Raw       string     `json:"raw"`
-	Encrypted string     `json:"encrypted"`
+	Salt      string     `json:"salt"`
+	Hashed    string     `json:"hash"`
+	Identity  string     `json:"identity"`
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 	CreatedAt time.Time  `json:"createdAt"`
 }
 
-func NewToken(raw, localSecret string) (Token, error) {
-	t := Token{
+func NewToken(raw, identity string) *Token {
+	t := &Token{
 		Raw:       raw,
-		key:       []byte(localSecret),
+		Identity:  identity,
 		CreatedAt: time.Now(),
 	}
-	t.Encrypt()
-	return t, nil
+	return t
 }
 
-func NewTokenWithExpiry(raw, localSecret string, expiryDuration time.Duration) (Token, error) {
+func NewTokenWithExpiry(raw, identity string, expiryDuration time.Duration) (Token, error) {
 	expires := time.Now().Add(expiryDuration)
 	t := Token{
 		Raw:       raw,
-		key:       []byte(localSecret),
+		Identity:  identity,
 		ExpiresAt: &expires,
 		CreatedAt: time.Now(),
 	}
-	t.Encrypt()
+	t.Hash()
 	return t, nil
+}
+
+func (t *Token) Hash() *Token {
+	salt, err := util.GenerateSalt(16) // 16 bytes is a good salt size
+	if err != nil {
+		panic(err)
+	}
+	hasher := sha256.New()
+	hasher.Write([]byte(t.Raw + salt))
+	hashBytes := hasher.Sum(nil)
+	t.Salt = salt
+	t.Hashed = hex.EncodeToString(hashBytes)
+	return t
 }
 
 func (t Token) Validate(against string) bool {
@@ -50,74 +62,100 @@ func (t Token) Validate(against string) bool {
 		return false
 	}
 
-	// Decrypt and validate
-	err := t.Decrypt()
-	if err != nil {
-		return false
-	}
+	hasher := sha256.New()
+	hasher.Write([]byte(against + t.Salt))
+	hashBytes := hasher.Sum(nil)
+	againstHash := hex.EncodeToString(hashBytes)
 
 	// Use a constant-time comparison to prevent timing attacks
-	return subtle.ConstantTimeCompare([]byte(t.Raw), []byte(against)) == 1
+	return subtle.ConstantTimeCompare([]byte(t.Hashed), []byte(againstHash)) == 1
 }
 
-func (t *Token) Encrypt() {
-	t.Hash() // For now...
+func (t Token) Serialize() string {
+	return fmt.Sprintf("%s::%s", t.Identity, t.Raw)
 }
 
-func (t *Token) Hash() {
-	hasher := sha256.New()
-	hasher.Write([]byte(t.Raw))
-	hashBytes := hasher.Sum(nil)
-	t.Encrypted = hex.EncodeToString(hashBytes)
+func (t Token) Deserialize(str string) bool {
+	parts := strings.Split(str, "::")
+	if len(parts) != 2 {
+		return false
+	}
+	t.Identity = parts[0]
+	t.Raw = parts[1]
+	return true
 }
 
-func (t *Token) encrypt() error {
-	block, err := aes.NewCipher(t.key)
-	if err != nil {
-		return err
-	}
-
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return err
-	}
-
-	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return err
-	}
-
-	ciphertext := aesGCM.Seal(nonce, nonce, []byte(t.Raw), nil)
-	t.Encrypted = base64.StdEncoding.EncodeToString(ciphertext)
-	return nil
+func TokenFromSecret(s ClientSecret) *Token {
+	t := new(Token)
+	t.Salt = s.Salt
+	t.Hashed = s.EncryptedSecret
+	t.Identity = s.ClientId
+	return t
 }
 
-func (t *Token) Decrypt() error {
-	ciphertext, err := base64.StdEncoding.DecodeString(t.Encrypted)
-	if err != nil {
-		return err
-	}
+// func (t Token) Validate(against string) bool {
+// 	// Check if token is expired
+// 	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
+// 		return false
+// 	}
 
-	block, err := aes.NewCipher(t.key)
-	if err != nil {
-		return err
-	}
+// 	// Decrypt and validate
+// 	err := t.Decrypt()
+// 	if err != nil {
+// 		return false
+// 	}
 
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return err
-	}
+// 	// Use a constant-time comparison to prevent timing attacks
+// 	return subtle.ConstantTimeCompare([]byte(t.Raw), []byte(against)) == 1
+// }
 
-	nonceSize := aesGCM.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return fmt.Errorf("ciphertext too short")
-	}
+// func (t *Token) Encrypt() error {
+// 	block, err := aes.NewCipher(t.key)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	nonce, encryptedData := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := aesGCM.Open(nil, nonce, encryptedData, nil)
-	if err != nil {
-		return err
-	}
-	t.Raw = string(plaintext)
-	return nil
-}
+// 	aesGCM, err := cipher.NewGCM(block)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	nonce := make([]byte, aesGCM.NonceSize())
+// 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+// 		return err
+// 	}
+
+// 	ciphertext := aesGCM.Seal(nonce, nonce, []byte(t.Raw), nil)
+// 	t.Encrypted = base64.StdEncoding.EncodeToString(ciphertext)
+// 	return nil
+// }
+
+// func (t *Token) Decrypt() error {
+// 	ciphertext, err := base64.StdEncoding.DecodeString(t.Encrypted)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	block, err := aes.NewCipher(t.key)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	aesGCM, err := cipher.NewGCM(block)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	nonceSize := aesGCM.NonceSize()
+// 	if len(ciphertext) < nonceSize {
+// 		return fmt.Errorf("ciphertext too short")
+// 	}
+
+// 	nonce, encryptedData := ciphertext[:nonceSize], ciphertext[nonceSize:]
+// 	plaintext, err := aesGCM.Open(nil, nonce, encryptedData, nil)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	t.Raw = string(plaintext)
+// 	return nil
+// }

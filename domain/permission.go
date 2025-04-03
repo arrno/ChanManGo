@@ -8,13 +8,13 @@ import (
 )
 
 type ClientPermission struct {
-	Id         string     `json:"id"`
-	ClientId   string     `json:"clientId"`
-	Read       bool       `json:"read"`
-	Write      bool       `json:"write"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
+	Id         string     `db:"id" json:"id"`
+	ClientId   string     `db:"client_id" json:"clientId"`
+	Read       bool       `db:"read" json:"read"`
+	Write      bool       `db:"write" json:"write"`
+	CreatedAt  time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt  time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
 func NewReadWrite(clientId string) *ClientPermission {

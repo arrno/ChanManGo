@@ -59,12 +59,13 @@ func (s *SystemProvider) InitSandbox(
 
 		// 5. Create client token
 		var tokenErr error
-		token, tokenErr = domain.NewTokenWithExpiry(util.Nanoid(), util.NewEnv().Expect("LOCAL_SECRET"), 24*time.Hour)
+		token, tokenErr = domain.NewTokenWithExpiry(util.Nanoid(), client.Id, 24*time.Hour)
 		if tokenErr != nil {
 			return tokenErr
 		}
+		token.Hash()
 
-		secret := domain.NewClientSecret(client.Id, token.Encrypted)
+		secret := domain.NewClientSecretFromToken(token)
 		if err := tx.StoreClientSecret(&secret); err != nil {
 			return err
 		}

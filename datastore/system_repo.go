@@ -135,17 +135,18 @@ func (r *SystemRepo) ArchiveClient(id string) error {
 func (r *SystemRepo) StoreClientSecret(secret *domain.ClientSecret) error {
 	query := `
 		INSERT INTO client_secret_tokens (
-			id, client_id, encrypted_secret, state, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			id, client_id, encrypted_secret, salt, state, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, %8)
 		ON CONFLICT (id) DO UPDATE SET
 			encrypted_secret = $3,
-			state = $4,
-			updated_at = $6,
-			archived_at = $7
+			salt = $4,
+			state = $5,
+			updated_at = $7,
+			archived_at = $8
 	`
 
 	_, err := r.db.Exec(ctx, query,
-		secret.Id, secret.ClientId, secret.EncryptedSecret, secret.State,
+		secret.Id, secret.ClientId, secret.EncryptedSecret, secret.Salt, secret.State,
 		secret.CreatedAt, secret.UpdatedAt, secret.ArchivedAt)
 
 	return err
@@ -197,12 +198,12 @@ func (r *SystemRepo) GetClientSecretByClientId(clientId string) (*domain.ClientS
 func (r *SystemRepo) UpdateClientSecret(secret *domain.ClientSecret) error {
 	query := `
 		UPDATE client_secret_tokens
-		SET encrypted_secret = $2, state = $3, updated_at = $4, archived_at = $5
+		SET encrypted_secret = $2, salt = $3, state = $4, updated_at = $5, archived_at = $6
 		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(ctx, query,
-		secret.Id, secret.EncryptedSecret, secret.State,
+		secret.Id, secret.EncryptedSecret, secret.Salt, secret.State,
 		secret.UpdatedAt, secret.ArchivedAt)
 	if err != nil {
 		return err
@@ -573,22 +574,27 @@ func (r *SystemRepo) ArchivePortal(id string) error {
 }
 
 // GetClientAuthByToken retrieves client authentication information by token
-func (r *SystemRepo) GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
+func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
 	// Find the client secret by encrypted token
 	query := `
-		SELECT cs.id, cs.client_id, cs.encrypted_secret, cs.state, cs.created_at, cs.updated_at, cs.archived_at
+		SELECT cs.id, cs.client_id, cs.encrypted_secret, cs.salt, cs.state, cs.created_at, cs.updated_at, cs.archived_at
 		FROM client_secret_tokens cs
-		WHERE cs.encrypted_secret = $1 AND cs.state = 'active' AND cs.archived_at IS NULL
+		WHERE cs.client_id = $1 AND cs.state = 'active' AND cs.archived_at IS NULL
 		LIMIT 1
 	`
 
 	var clientSecret domain.ClientSecret
-	err := r.db.Get(ctx, &clientSecret, query, token)
+	err := r.db.Get(ctx, &clientSecret, query, providedToken.Identity)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil, false, fmt.Errorf("invalid token")
 		}
 		return nil, nil, false, fmt.Errorf("error finding token: %w", err)
+	}
+
+	haveToken := domain.TokenFromSecret(clientSecret)
+	if !haveToken.Validate(providedToken.Raw) {
+		return nil, nil, false, fmt.Errorf("invalid token")
 	}
 
 	// Get client information to check if the client is active

@@ -230,17 +230,22 @@ func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSec
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
+func (db *LocalDB) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
-	val, ok := db.data.Load(docId("client_secret_token_by_token", token))
+	val, ok := db.data.Load(docId("client_secret_token_by_client_id", providedToken.Identity))
 	if !ok {
 		return nil, nil, false, ErrNotFound
 	}
 
 	clientSecret := val.(*domain.ClientSecret)
 	clientId := clientSecret.ClientId
+
+	haveToken := domain.TokenFromSecret(*clientSecret)
+	if !haveToken.Validate(providedToken.Raw) {
+		return nil, nil, false, fmt.Errorf("invalid token")
+	}
 
 	// Get client groups within the lock for atomicity
 	clientGroupVal, ok := db.data.Load(docId("client_group_by_client_id", clientId))

@@ -9,19 +9,19 @@ import (
 
 type Message struct {
 	mu             sync.Mutex `json:"-"`
-	Id             string     `json:"id"`
-	Topic          string     `json:"topic"`
-	ClientId       string     `json:"clientId"`
-	ChannelId      string     `json:"channelId"`
-	ProcessedAt    *time.Time `json:"processedAt"`
-	AcknowledgedAt *time.Time `json:"acknowledged"`
-	State          STATE      `json:"state"`
-	Archived       bool       `json:"archived"`
-	Payload        []byte     `json:"payload"`
-	Attempts       uint       `json:"attempts"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
-	ArchivedAt     *time.Time `json:"archivedAt"`
+	Id             string     `db:"id" json:"id"`
+	Topic          string     `db:"topic" json:"topic"`
+	ClientId       string     `db:"client_id" json:"clientId"`
+	ChannelId      string     `db:"channel_id" json:"channelId"`
+	ProcessedAt    *time.Time `db:"processed_at" json:"processedAt"`
+	AcknowledgedAt *time.Time `db:"acknowledged_at" json:"acknowledged"`
+	State          STATE      `db:"state" json:"state"`
+	Archived       bool       `db:"archived" json:"archived"`
+	Payload        []byte     `db:"payload" json:"payload"`
+	Attempts       uint       `db:"attempts" json:"attempts"`
+	CreatedAt      time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt      time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt     *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
 const (

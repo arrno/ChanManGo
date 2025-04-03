@@ -56,7 +56,7 @@ type SystemRepoProvider interface {
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//
-	GetClientAuthByToken(token string) (*domain.ClientGroup, *domain.ClientPermission, bool, error)
+	GetClientAuthByToken(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, error)
 	//
 	StoreClientSecret(*domain.ClientSecret) error
 	GetClientSecret(id string) (*domain.ClientSecret, error)

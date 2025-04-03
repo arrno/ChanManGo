@@ -7,15 +7,15 @@ import (
 )
 
 type Group struct {
-	Id            string     `json:"id"`
-	ParentGroupId *string    `json:"parentGroupId"`
-	OwnerId       string     `json:"ownerId"`
-	PortalId      string     `json:"portalId"`
-	Name          string     `json:"name"`
-	State         STATE      `json:"state"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
-	ArchivedAt    *time.Time `json:"archivedAt"`
+	Id            string     `db:"id" json:"id"`
+	ParentGroupId *string    `db:"parent_group_id" json:"parentGroupId"`
+	OwnerId       string     `db:"owner_id" json:"ownerId"`
+	PortalId      string     `db:"portal_id" json:"portalId"`
+	Name          string     `db:"name" json:"name"`
+	State         STATE      `db:"state" json:"state"`
+	CreatedAt     time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt     time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt    *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
 func NewGroup(ownerId, portalId, name string) (*Group, error) {
@@ -34,13 +34,13 @@ func NewGroup(ownerId, portalId, name string) (*Group, error) {
 }
 
 type ClientGroup struct {
-	Id         string     `json:"id"`
-	ClientId   string     `json:"clientId"`
-	GroupId    string     `json:"groupId"`
-	State      STATE      `json:"state"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
+	Id         string     `db:"id" json:"id"`
+	ClientId   string     `db:"client_id" json:"clientId"`
+	GroupId    string     `db:"group_id" json:"groupId"`
+	State      STATE      `db:"state" json:"state"`
+	CreatedAt  time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt  time.Time  `db:"updated_at" json:"updatedAt"`
+	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
 func NewClientGroup(clientId, groupId string) *ClientGroup {

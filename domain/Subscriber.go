@@ -8,14 +8,14 @@ import (
 
 // ChannelSubscription is a connection from a channel worker to a broker channel
 type ChannelSubscription struct {
-	Id         string                       `json:"id"`
-	ChannelId  string                       `json:"channelId"`
-	State      STATE                        `json:"state"`
-	Archived   bool                         `json:"archived"`
+	Id         string                       `db:"id" json:"id"`
+	ChannelId  string                       `db:"channel_id" json:"channelId"`
+	State      STATE                        `db:"state" json:"state"`
+	Archived   bool                         `db:"archived" json:"archived"`
 	Callback   func(message *Message) error `json:"-"`
-	CreatedAt  time.Time                    `json:"createdAt"`
-	UpdatedAt  time.Time                    `json:"updatedAt"`
-	ArchivedAt *time.Time                   `json:"archivedAt"`
+	CreatedAt  time.Time                    `db:"created_at" json:"createdAt"`
+	UpdatedAt  time.Time                    `db:"updated_at" json:"updatedAt"`
+	ArchivedAt *time.Time                   `db:"archived_at" json:"archivedAt"`
 }
 
 func NewChannelSubscription(channelId string, callback func(message *Message) error) *ChannelSubscription {
@@ -33,16 +33,16 @@ func NewChannelSubscription(channelId string, callback func(message *Message) er
 
 // TopicSubscription is a connection from a client to a channel worker over a subset of topics
 type TopicSubscription struct {
-	Id         string                       `json:"id"`
-	ClientId   string                       `json:"clientId"`
-	ChannelId  string                       `json:"channelId"`
-	Topics     []string                     `json:"topics"`
-	State      STATE                        `json:"state"`
-	Archived   bool                         `json:"archived"`
+	Id         string                       `db:"id" json:"id"`
+	ClientId   string                       `db:"client_id" json:"clientId"`
+	ChannelId  string                       `db:"channel_id" json:"channelId"`
+	Topics     []string                     `db:"topics" json:"topics"`
+	State      STATE                        `db:"state" json:"state"`
+	Archived   bool                         `db:"archived" json:"archived"`
 	Callback   func(message *Message) error `json:"-"`
-	CreatedAt  time.Time                    `json:"createdAt"`
-	UpdatedAt  time.Time                    `json:"updatedAt"`
-	ArchivedAt *time.Time                   `json:"archivedAt"`
+	CreatedAt  time.Time                    `db:"created_at" json:"createdAt"`
+	UpdatedAt  time.Time                    `db:"updated_at" json:"updatedAt"`
+	ArchivedAt *time.Time                   `db:"archived_at" json:"archivedAt"`
 }
 
 func NewTopicSubscription(clientId, channelId string, topics []string) (*TopicSubscription, error) {

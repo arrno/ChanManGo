@@ -3,6 +3,7 @@ package util
 import (
 	cryptoRand "crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"io"
 	"math/big"
 	"math/rand/v2"
@@ -94,4 +95,13 @@ func GenerateRandomSecretKey() ([]byte, error) {
 		return nil, err
 	}
 	return key, nil
+}
+
+func GenerateSalt(saltSize int) (string, error) {
+	salt := make([]byte, saltSize)
+	_, err := io.ReadFull(cryptoRand.Reader, salt)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(salt), nil
 }
