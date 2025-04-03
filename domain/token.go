@@ -75,13 +75,13 @@ func (t Token) Serialize() string {
 	return fmt.Sprintf("%s::%s", t.Identity, t.Raw)
 }
 
-func (t Token) Deserialize(str string) bool {
+func (t *Token) Deserialize(str string) bool {
 	parts := strings.Split(str, "::")
-	if len(parts) != 2 {
+	if len(parts) < 2 {
 		return false
 	}
-	t.Identity = parts[0]
-	t.Raw = parts[1]
+	t.Raw = parts[len(parts)-1]
+	t.Identity = strings.Join(parts[0:len(parts)-1], "::")
 	return true
 }
 

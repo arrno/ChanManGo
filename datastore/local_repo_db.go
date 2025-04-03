@@ -148,7 +148,7 @@ func (db *LocalDB) GetClient(id string) (*domain.Client, error) {
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) GetClients(pagination domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+func (db *LocalDB) GetClients(pagination *domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
 	// Lock for the entire operation to ensure a consistent view
 	db.mu.RLock()
 	defer db.mu.RUnlock()

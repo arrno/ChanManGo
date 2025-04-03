@@ -11,6 +11,7 @@ type Pagination[T any] struct {
 	Count int `json:"count"`
 	Found int `json:"found"`
 	Total int `json:"total"`
+	Items []T `json:"items"`
 }
 
 func (p *Pagination[T]) Validate() error {

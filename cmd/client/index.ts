@@ -38,21 +38,30 @@ async function httpPost<T>(
 }
 
 const url = "http://localhost:8080";
+const token = "main::admin::password";
 // Example usage:
 async function example() {
     try {
+        // const result = await httpPost<Record<string, any>>(
+        //     `${url}/client`,
+        //     token,
+        //     {
+        //         clientName: "CoolKid",
+        //     }
+        // );
+        // console.log("POST result:", result);
+
+        // const getResult = await httpGet<Record<string, any>>(
+        //     `${url}/clients?page=1&count=10`,
+        //     token
+        // );
+        // console.log("GET result:", getResult);
+
         const getResult = await httpGet<Record<string, any>>(
-            `${url}/clients?page=1&count=10`,
-            "password"
+            `${url}/client?clientId=main::CoolKid`,
+            token
         );
         console.log("GET result:", getResult);
-
-        // const postData = { title: "foo", body: "bar", userId: 1 };
-        // const postResult = await httpPost(
-        //     "https://jsonplaceholder.typicode.com/posts",
-        //     postData
-        // );
-        // console.log("POST result:", postResult);
     } catch (error) {
         console.error("OOPS! ->:", error);
     }

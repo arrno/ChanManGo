@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 )
 
@@ -21,20 +23,20 @@ func (c *Controller) ClientHandler(w http.ResponseWriter, r *http.Request) {
 
 // Client
 func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
-	var req ClientRequest
-	if err := UnmarshalTo(&req, r); err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
-		return
-	}
+	clientId := r.URL.Query().Get("clientId")
 
 	// Validate required fields
-	if req.ClientId == "" {
+	if clientId == "" {
 		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
 		return
 	}
 
-	client, err := c.system.GetClient(req.ClientId)
+	client, err := c.system.GetClient(clientId)
 	if err != nil {
+		if errors.Is(err, datastore.ErrNotFound) {
+			RespondWithError(w, http.StatusNotFound, "Client not found", err)
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client", err)
 		return
 	}
@@ -43,39 +45,27 @@ func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
-	var req domain.Pagination[*domain.Client]
-	err := req.FromReq(r)
+	var pg domain.Pagination[*domain.Client]
+	err := pg.FromReq(r)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid pagination request format", err)
 		return
 	}
 
 	// Validate pagination parameters
-	if err := req.Validate(); err != nil {
+	if err := pg.Validate(); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid pagination parameters", err)
 		return
 	}
 
-	clients, err := c.system.GetClients(req)
+	clients, err := c.system.GetClients(&pg)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve clients", err)
 		return
 	}
+	pg.Items = clients
 
-	// Create a response that includes pagination info
-	response := struct {
-		Items []*domain.Client `json:"items"`
-		Page  int              `json:"page"`
-		Count int              `json:"count"`
-		Found int              `json:"found"`
-	}{
-		Items: clients,
-		Page:  req.Page,
-		Count: req.Count,
-		Found: req.Found,
-	}
-
-	RespondWithJSON(w, http.StatusOK, response)
+	RespondWithJSON(w, http.StatusOK, pg)
 }
 
 func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {

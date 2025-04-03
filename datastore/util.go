@@ -14,12 +14,12 @@ func SeedDb(db RepoProvider) {
 			panic(err)
 		}
 	}
-	clients, _ := db.GetClients(domain.Pagination[*domain.Client]{Page: 1, Count: 10})
+	clients, _ := db.GetClients(&domain.Pagination[*domain.Client]{Page: 1, Count: 10})
 	if len(clients) > 0 {
 		return
 	}
 
-	client, err := domain.NewClient(domain.ADMIN_USER, domain.MAIN_GROUP, true)
+	client, err := domain.NewClient(domain.GLOBAL_ADMIN_USER, domain.MAIN_GROUP, true)
 	expect(db.StoreClient(client))
 
 	token := domain.NewToken("password", client.Id).Hash()

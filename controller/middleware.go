@@ -120,7 +120,7 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Verify channel belongs to the expected group and portal
-		if channel.GroupId != groupId || channel.PortalId != portalId {
+		if (channel.GroupId != groupId || channel.PortalId != portalId) && clientId != domain.GLOBAL_ADMIN_ID {
 			log.Warn().
 				Str("clientId", clientId).
 				Str("channelId", channelId).

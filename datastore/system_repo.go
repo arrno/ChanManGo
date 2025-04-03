@@ -62,7 +62,7 @@ func (r *SystemRepo) GetClient(id string) (*domain.Client, error) {
 }
 
 // GetClients retrieves clients with pagination
-func (r *SystemRepo) GetClients(pagination domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+func (r *SystemRepo) GetClients(pagination *domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
 	// Validate pagination parameters
 	if err := pagination.Validate(); err != nil {
 		return nil, err
@@ -92,6 +92,7 @@ func (r *SystemRepo) GetClients(pagination domain.Pagination[*domain.Client]) ([
 	}
 
 	pagination.Total = totalCount
+	pagination.Found = len(clients)
 
 	return clients, nil
 }
@@ -136,7 +137,7 @@ func (r *SystemRepo) StoreClientSecret(secret *domain.ClientSecret) error {
 	query := `
 		INSERT INTO client_secret_tokens (
 			id, client_id, encrypted_secret, salt, state, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, %8)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (id) DO UPDATE SET
 			encrypted_secret = $3,
 			salt = $4,

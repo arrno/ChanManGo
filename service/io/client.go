@@ -12,7 +12,7 @@ import (
 type ClientProvider interface {
 	CreateClient(client *domain.Client, permission *domain.ClientPermission) (domain.Token, error)
 	GetClient(id string) (*domain.Client, error)
-	GetClients(pg domain.Pagination[*domain.Client]) ([]*domain.Client, error)
+	GetClients(pg *domain.Pagination[*domain.Client]) ([]*domain.Client, error)
 	UpdateClient(client *domain.Client) error
 	ArchiveClient(id string) error
 	//
@@ -65,7 +65,7 @@ func (c *Client) GetClient(id string) (*domain.Client, error) {
 	return client, nil
 }
 
-func (c *Client) GetClients(pg domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+func (c *Client) GetClients(pg *domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
 	clients, err := c.db.GetClients(pg)
 	if err != nil {
 		return nil, err

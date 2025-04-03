@@ -1,6 +1,8 @@
 package controller
 
-import "time"
+import (
+	"time"
+)
 
 // Request structures
 
