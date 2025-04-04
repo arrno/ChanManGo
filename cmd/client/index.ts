@@ -39,6 +39,7 @@ async function httpPost<T>(
 
 const url = "http://localhost:8080";
 const token = "main::admin::password";
+// 6B2tz2fpuOSqiZSXiqxV
 // Example usage:
 async function example() {
     try {
@@ -57,11 +58,18 @@ async function example() {
         // );
         // console.log("GET result:", getResult);
 
-        const getResult = await httpGet<Record<string, any>>(
-            `${url}/client?clientId=main::CoolKid`,
-            token
+        // const getResult = await httpGet<Record<string, any>>(
+        //     `${url}/client?clientId=main::CoolKid`,
+        //     token
+        // );
+        // console.log("GET result:", getResult);
+
+        const result = await httpPost<Record<string, any>>(
+            `${url}/rotate-token`,
+            token,
+            {}
         );
-        console.log("GET result:", getResult);
+        console.log("POST result:", result);
     } catch (error) {
         console.error("OOPS! ->:", error);
     }
