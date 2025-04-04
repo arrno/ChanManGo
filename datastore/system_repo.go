@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -134,23 +135,38 @@ func (r *SystemRepo) ArchiveClient(id string) error {
 
 // StoreClientSecret stores a client secret in the database
 func (r *SystemRepo) StoreClientSecret(secret *domain.ClientSecret) error {
-	query := `
-		INSERT INTO client_secret_tokens (
-			id, client_id, encrypted_secret, salt, state, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		ON CONFLICT (id) DO UPDATE SET
-			encrypted_secret = $3,
-			salt = $4,
-			state = $5,
-			updated_at = $7,
-			archived_at = $8
-	`
+	return r.db.WithTx(context.Background(), func(tx SQLDatabase) error {
+		// Archive existing
+		query := `
+			UPDATE client_secret_tokens 
+			SET updated_at = NOW(), archived_at = NOW()
+			WHERE client_id = $1 AND archived_at IS NULL;
+		`
+		_, err := tx.Exec(ctx, query, secret.ClientId)
+		if err != nil {
+			return err
+		}
 
-	_, err := r.db.Exec(ctx, query,
-		secret.Id, secret.ClientId, secret.EncryptedSecret, secret.Salt, secret.State,
-		secret.CreatedAt, secret.UpdatedAt, secret.ArchivedAt)
-
-	return err
+		// Create new
+		query = `
+			INSERT INTO client_secret_tokens (
+				id, client_id, encrypted_secret, salt, state, created_at, updated_at, archived_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			ON CONFLICT (id) DO UPDATE SET
+				encrypted_secret = $3,
+				salt = $4,
+				state = $5,
+				updated_at = $7,
+				archived_at = $8
+		`
+		_, err = tx.Exec(ctx, query,
+			secret.Id, secret.ClientId, secret.EncryptedSecret, secret.Salt, secret.State,
+			secret.CreatedAt, secret.UpdatedAt, secret.ArchivedAt)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // GetClientSecret retrieves a client secret by ID
@@ -576,7 +592,7 @@ func (r *SystemRepo) ArchivePortal(id string) error {
 
 // GetClientAuthByToken retrieves client authentication information by token
 func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
-	// Find the client secret by encrypted token
+	// Find the client secret by identity
 	query := `
 		SELECT cs.id, cs.client_id, cs.encrypted_secret, cs.salt, cs.state, cs.created_at, cs.updated_at, cs.archived_at
 		FROM client_secret_tokens cs

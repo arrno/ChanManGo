@@ -21,12 +21,12 @@ type ClientProvider interface {
 }
 
 type Client struct {
-	db datastore.RepoProvider
+	repo datastore.RepoProvider
 }
 
-func NewClient(db datastore.RepoProvider) *Client {
+func NewClient(repo datastore.RepoProvider) *Client {
 	return &Client{
-		db: db,
+		repo: repo,
 	}
 }
 
@@ -40,7 +40,7 @@ func (c *Client) CreateClient(client *domain.Client, permission *domain.ClientPe
 
 	token := domain.NewToken(util.Nanoid(), client.Id).Hash()
 	secret := domain.NewClientSecretFromToken(*token)
-	return *token, c.db.WithTx(func(tx datastore.RepoProvider) error {
+	return *token, c.repo.WithTx(func(tx datastore.RepoProvider) error {
 		if err := tx.StoreClient(client); err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func (c *Client) CreateClient(client *domain.Client, permission *domain.ClientPe
 }
 
 func (c *Client) GetClient(id string) (*domain.Client, error) {
-	client, err := c.db.GetClient(id)
+	client, err := c.repo.GetClient(id)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *Client) GetClient(id string) (*domain.Client, error) {
 }
 
 func (c *Client) GetClients(pg *domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
-	clients, err := c.db.GetClients(pg)
+	clients, err := c.repo.GetClients(pg)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (c *Client) GetClients(pg *domain.Pagination[*domain.Client]) ([]*domain.Cl
 }
 
 func (c *Client) UpdateClient(client *domain.Client) error {
-	return c.db.UpdateClient(client)
+	return c.repo.UpdateClient(client)
 }
 
 func (c *Client) ArchiveClient(id string) error {
@@ -85,7 +85,7 @@ func (c *Client) ArchiveClient(id string) error {
 	now := time.Now()
 	client.ArchivedAt = &now
 	client.Active = false
-	return c.db.UpdateClient(client)
+	return c.repo.UpdateClient(client)
 }
 
 func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
@@ -101,14 +101,7 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	// Create new secret object
 	secret := domain.NewClientSecretFromToken(*token)
 
-	// Use transaction to store the secret
-	err = c.db.WithTx(func(tx datastore.RepoProvider) error {
-		// TODO: get and archive old secrets here
-
-		// Store the new secret
-		return tx.StoreClientSecret(&secret)
-	})
-
+	err = c.repo.StoreClientSecret(&secret)
 	if err != nil {
 		return domain.Token{}, err
 	}
@@ -117,7 +110,7 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 }
 
 func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
-	secret, err := c.db.GetClientSecretByClientId(clientId)
+	secret, err := c.repo.GetClientSecretByClientId(clientId)
 	if err != nil {
 		return false, err
 	}
@@ -128,7 +121,7 @@ func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
 }
 
 func (c *Client) clientExists(clientId string) (bool, error) {
-	_, err := c.db.GetClient(clientId)
+	_, err := c.repo.GetClient(clientId)
 	if err == nil {
 		return true, nil
 	} else if errors.Is(err, datastore.ErrNotFound) {

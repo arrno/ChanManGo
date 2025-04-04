@@ -107,27 +107,23 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 		ClientGroup: groupId,
 		ClientId:    client.Id,
 		ClientName:  client.Name,
-		Token:       token.Raw,
+		Token:       token.Serialize(),
 	}
 
 	RespondWithJSON(w, http.StatusCreated, response)
 }
 
 func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
-	var req ClientRequest
-	if err := UnmarshalTo(&req, r); err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
-		return
-	}
+	clientId := r.Header.Get("clientId")
 
 	// Validate required fields
-	if req.ClientId == "" {
+	if clientId == "" {
 		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
 		return
 	}
 
 	// Rotate token
-	token, err := c.system.RotateClientSecret(req.ClientId)
+	token, err := c.system.RotateClientSecret(clientId)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to rotate client token", err)
 		return
@@ -135,8 +131,8 @@ func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 
 	// Create response
 	response := ClientTokenResponse{
-		ClientId: req.ClientId,
-		Token:    token.Raw,
+		ClientId: clientId,
+		Token:    token.Serialize(),
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)

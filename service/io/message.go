@@ -13,22 +13,22 @@ type MessageProvider interface {
 }
 
 type Message struct {
-	db datastore.RepoProvider
+	repo datastore.RepoProvider
 }
 
-func NewMessage(db datastore.RepoProvider) *Message {
-	return &Message{db}
+func NewMessage(repo datastore.RepoProvider) *Message {
+	return &Message{repo}
 }
 
 func (m *Message) CreateMessage(message *domain.Message) error {
-	return m.db.StoreMessage(message)
+	return m.repo.StoreMessage(message)
 }
 func (m *Message) GetMessage(id string) (*domain.Message, error) {
-	return m.db.GetMessage(id)
+	return m.repo.GetMessage(id)
 }
 func (m *Message) UpdateMessage(message *domain.Message) error {
-	return m.db.UpdateMessage(message)
+	return m.repo.UpdateMessage(message)
 }
 func (m *Message) ArchiveMessage(id string) error {
-	return m.db.ArchiveMessage(id)
+	return m.repo.ArchiveMessage(id)
 }

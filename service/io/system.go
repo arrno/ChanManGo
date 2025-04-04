@@ -9,7 +9,7 @@ import (
 )
 
 type SystemProvider struct {
-	db datastore.RepoProvider
+	repo datastore.RepoProvider
 	ChannelProvider
 	ClientProvider
 	GroupProvider
@@ -17,12 +17,12 @@ type SystemProvider struct {
 	PortalProvider
 }
 
-func NewSystem(db datastore.RepoProvider) SystemProvider {
+func NewSystem(repo datastore.RepoProvider) SystemProvider {
 	return SystemProvider{
-		ClientProvider:  NewClient(db),
-		MessageProvider: NewMessage(db),
-		ChannelProvider: NewChannel(db),
-		GroupProvider:   NewGroup(db),
+		ClientProvider:  NewClient(repo),
+		MessageProvider: NewMessage(repo),
+		ChannelProvider: NewChannel(repo),
+		GroupProvider:   NewGroup(repo),
 		// Note: PortalProvider is still TODO, as indicated in portal.go
 	}
 }
@@ -34,7 +34,7 @@ func (s *SystemProvider) InitSandbox(
 	permission *domain.ClientPermission,
 ) (domain.Token, error) {
 	var token domain.Token
-	return token, s.db.WithTx(func(tx datastore.RepoProvider) error {
+	return token, s.repo.WithTx(func(tx datastore.RepoProvider) error {
 		// Create all resources in a single transaction
 
 		// 1. Create group

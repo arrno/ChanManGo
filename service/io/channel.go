@@ -16,15 +16,15 @@ type ChannelProvider interface {
 }
 
 type Channel struct {
-	db datastore.RepoProvider
+	repo datastore.RepoProvider
 }
 
-func NewChannel(db datastore.RepoProvider) *Channel {
-	return &Channel{db}
+func NewChannel(repo datastore.RepoProvider) *Channel {
+	return &Channel{repo}
 }
 
 func (m *Channel) CreateChannel(channel *domain.Channel) (created bool, err error) {
-	err = m.db.WithTx(func(tx datastore.RepoProvider) error {
+	err = m.repo.WithTx(func(tx datastore.RepoProvider) error {
 		channelExists, err := m.channelExistsTx(tx, channel)
 		if err != nil {
 			return err
@@ -42,13 +42,13 @@ func (m *Channel) CreateChannel(channel *domain.Channel) (created bool, err erro
 	return
 }
 func (m *Channel) GetChannel(id string) (*domain.Channel, error) {
-	return m.db.GetChannel(id)
+	return m.repo.GetChannel(id)
 }
 func (m *Channel) UpdateChannel(channel *domain.Channel) error {
-	return m.db.UpdateChannel(channel)
+	return m.repo.UpdateChannel(channel)
 }
 func (m *Channel) ArchiveChannel(id string) error {
-	return m.db.ArchiveChannel(id)
+	return m.repo.ArchiveChannel(id)
 }
 
 func (m *Channel) channelExistsTx(tx datastore.RepoProvider, channel *domain.Channel) (bool, error) {

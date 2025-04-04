@@ -6,22 +6,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// PostgresRepo implements the full RepoProvider interface by composing
+// SQLRepo implements the full RepoProvider interface by composing
 // the SystemRepo and MessageRepo implementations.
-type PostgresRepo struct {
+type SQLRepo struct {
 	SystemRepo
 	MessageRepo
 	db SQLDatabase
 }
 
-// NewPostgresRepo creates a new PostgreSQL repository with a database connection
-func NewPostgresRepo(dsn string) (*PostgresRepo, error) {
+// NewSQLRepo creates a new PostgreSQL repository with a database connection
+func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	db, err := NewPostgresDB(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to PostgreSQL: %w", err)
 	}
 
-	return &PostgresRepo{
+	return &SQLRepo{
 		SystemRepo:  SystemRepo{db: db},
 		MessageRepo: MessageRepo{db: db},
 		db:          db,
@@ -29,9 +29,9 @@ func NewPostgresRepo(dsn string) (*PostgresRepo, error) {
 }
 
 // WithTx executes a function within a transaction
-func (r *PostgresRepo) WithTx(f func(tx RepoProvider) error) error {
+func (r *SQLRepo) WithTx(f func(tx RepoProvider) error) error {
 	return r.db.WithTx(ctx, func(txDb SQLDatabase) error {
-		txRepo := &PostgresRepo{
+		txRepo := &SQLRepo{
 			SystemRepo:  SystemRepo{db: txDb},
 			MessageRepo: MessageRepo{db: txDb},
 			db:          txDb,
@@ -41,7 +41,7 @@ func (r *PostgresRepo) WithTx(f func(tx RepoProvider) error) error {
 }
 
 // Close closes the underlying database connection
-func (r *PostgresRepo) Close() {
+func (r *SQLRepo) Close() {
 	r.db.Close()
 }
 
@@ -51,7 +51,7 @@ func NewRepoProvider() (RepoProvider, error) {
 	// pgDSN := os.Getenv("POSTGRES_DSN")
 	if pgDSN != "" {
 		// Use PostgreSQL if DSN is provided
-		repo, err := NewPostgresRepo(pgDSN)
+		repo, err := NewSQLRepo(pgDSN)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create PostgreSQL repository: %w", err)
 		}

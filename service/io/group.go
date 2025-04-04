@@ -24,12 +24,12 @@ type GroupProvider interface {
 // TODO implement interface
 
 type Group struct {
-	db datastore.RepoProvider
+	repo datastore.RepoProvider
 }
 
-func NewGroup(db datastore.RepoProvider) *Group {
+func NewGroup(repo datastore.RepoProvider) *Group {
 	return &Group{
-		db: db,
+		repo: repo,
 	}
 }
 
@@ -40,20 +40,20 @@ func (g *Group) CreateGroup(group *domain.Group) error {
 	} else if exists {
 		return domain.ErrCreateOnExistingRecord
 	}
-	return g.db.StoreGroup(group)
+	return g.repo.StoreGroup(group)
 }
 
 func (g *Group) UpdateGroup(group *domain.Group) error {
-	return g.db.UpdateGroup(group)
+	return g.repo.UpdateGroup(group)
 }
 func (g *Group) GetGroup(id string) (*domain.Group, error) {
-	return g.db.GetGroup(id)
+	return g.repo.GetGroup(id)
 }
 func (g *Group) GetGroupByOwner(ownerId string) ([]*domain.Group, error) {
 	return nil, domain.ErrNotImplemented
 }
 func (g *Group) ArchiveGroup(id string) error {
-	return g.db.ArchiveGroup(id)
+	return g.repo.ArchiveGroup(id)
 }
 
 // For now, only one group
@@ -64,12 +64,12 @@ func (g *Group) CreateClientGroup(clientId, groupId string) error {
 	} else if inGroup {
 		return domain.ErrCreateOnExistingRecord
 	}
-	return g.db.StoreClientGroup(domain.NewClientGroup(clientId, groupId))
+	return g.repo.StoreClientGroup(domain.NewClientGroup(clientId, groupId))
 }
 
 func (g *Group) ArchiveClientGroup(clientId, groupId string) error {
 	// Get the client groups
-	clientGroups, err := g.db.GetClientGroupsByClientId(clientId)
+	clientGroups, err := g.repo.GetClientGroupsByClientId(clientId)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (g *Group) ArchiveClientGroup(clientId, groupId string) error {
 			now := time.Now()
 			clientGroup.ArchivedAt = &now
 			clientGroup.State = domain.STATE_ARCHIVED
-			return g.db.UpdateClientGroup(clientGroup)
+			return g.repo.UpdateClientGroup(clientGroup)
 		}
 	}
 
@@ -90,13 +90,13 @@ func (g *Group) ArchiveClientGroup(clientId, groupId string) error {
 
 func (g *Group) InGroup(channelId, clientId string) (bool, error) {
 	// Get the channel to find its groupId
-	channel, err := g.db.GetChannel(channelId)
+	channel, err := g.repo.GetChannel(channelId)
 	if err != nil {
 		return false, err
 	}
 
 	// Get client groups
-	clientGroups, err := g.db.GetClientGroupsByClientId(clientId)
+	clientGroups, err := g.repo.GetClientGroupsByClientId(clientId)
 	if err != nil {
 		if errors.Is(err, datastore.ErrNotFound) {
 			return false, nil
@@ -116,7 +116,7 @@ func (g *Group) InGroup(channelId, clientId string) (bool, error) {
 }
 
 func (g *Group) groupExists(id string) (bool, error) {
-	_, err := g.db.GetGroup(id)
+	_, err := g.repo.GetGroup(id)
 	if err == nil {
 		return true, nil
 	} else if errors.Is(err, datastore.ErrNotFound) {
@@ -126,7 +126,7 @@ func (g *Group) groupExists(id string) (bool, error) {
 }
 
 func (g *Group) clientInGroup(clientId string) (bool, error) {
-	groups, err := g.db.GetClientGroupsByClientId(clientId)
+	groups, err := g.repo.GetClientGroupsByClientId(clientId)
 	if err != nil {
 		if errors.Is(err, datastore.ErrNotFound) {
 			return false, nil

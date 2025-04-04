@@ -14,6 +14,11 @@ func RunWeb() {
 		Chain(c.rateLimit)
 	r.Post("/signup-demo", c.SignUpDemo)
 
+	rr := NewRouter().
+		Chain(c.rateLimit).
+		Chain(c.auth)
+	rr.Post("/rotate-token", c.RotateToken)
+
 	// Channel router
 	rc := NewRouter().
 		Chain(c.rateLimit).
@@ -22,7 +27,6 @@ func RunWeb() {
 	rc.Post("/pub-ws", c.HandlePublishWS)
 	rc.Post("/pub", c.HandlePublish)
 	rc.Post("/sub", c.HandleSubscribe)
-	rc.Post("/rotate-token", c.RotateToken)
 
 	// Admin router
 	ra := NewRouter().
