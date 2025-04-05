@@ -604,7 +604,7 @@ func (r *SystemRepo) ArchivePortal(id string) error {
 }
 
 // GetClientAuthByToken retrieves client authentication information by token
-func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
+func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error) {
 	// Find the client secret by identity
 	query := `
 		SELECT cs.id, cs.client_id, cs.encrypted_secret, cs.salt, cs.state, cs.created_at, cs.updated_at, cs.archived_at
@@ -617,14 +617,22 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	err := r.db.Get(ctx, &clientSecret, query, providedToken.Identity)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, false, fmt.Errorf("invalid token")
+			return nil, nil, false, false, fmt.Errorf("invalid token")
 		}
-		return nil, nil, false, fmt.Errorf("error finding token: %w", err)
+		return nil, nil, false, false, fmt.Errorf("error finding token: %w", err)
 	}
 
+	var expired bool
 	haveToken := domain.TokenFromSecret(clientSecret)
-	if !haveToken.Validate(providedToken.Raw) {
-		return nil, nil, false, fmt.Errorf("invalid token")
+	err = haveToken.Validate(providedToken.Raw)
+	if err != nil {
+		if errors.Is(err, domain.ErrTokenInvalid) {
+			return nil, nil, false, false, fmt.Errorf("invalid token")
+		} else if errors.Is(err, domain.ErrTokenExpired) {
+			expired = true
+		} else {
+			return nil, nil, false, false, err
+		}
 	}
 
 	// Get client information to check if the client is active
@@ -637,13 +645,13 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	err = r.db.Get(ctx, &client, clientQuery, clientSecret.ClientId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, false, fmt.Errorf("client not found")
+			return nil, nil, false, false, fmt.Errorf("client not found")
 		}
-		return nil, nil, false, fmt.Errorf("error finding client: %w", err)
+		return nil, nil, false, false, fmt.Errorf("error finding client: %w", err)
 	}
 
 	if !client.Active || client.ArchivedAt != nil {
-		return nil, nil, false, fmt.Errorf("client is not active")
+		return nil, nil, false, false, fmt.Errorf("client is not active")
 	}
 
 	// Get client permission
@@ -658,9 +666,9 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	err = r.db.Get(ctx, &clientPermission, permQuery, clientSecret.ClientId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, false, fmt.Errorf("client permission not found")
+			return nil, nil, false, false, fmt.Errorf("client permission not found")
 		}
-		return nil, nil, false, fmt.Errorf("error finding client permission: %w", err)
+		return nil, nil, false, false, fmt.Errorf("error finding client permission: %w", err)
 	}
 
 	// Get the primary client group
@@ -675,12 +683,12 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	err = r.db.Get(ctx, &clientGroup, groupQuery, clientSecret.ClientId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, false, fmt.Errorf("client group not found")
+			return nil, nil, false, false, fmt.Errorf("client group not found")
 		}
-		return nil, nil, false, fmt.Errorf("error finding client group: %w", err)
+		return nil, nil, false, false, fmt.Errorf("error finding client group: %w", err)
 	}
 
-	return &clientGroup, &clientPermission, client.Admin, nil
+	return &clientGroup, &clientPermission, client.Admin, expired, nil
 }
 
 // // WithTx executes the given function within a transaction

@@ -17,7 +17,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 	clientName := "client-" + util.Nanoid()
 
 	// Create domain objects
-	group, err := domain.NewGroup("", domain.GLOBAL_ADMIN_USER, domain.MAIN_PORTAL, groupName)
+	group, err := domain.NewGroup("", domain.GLOBAL_ADMIN, domain.MAIN_PORTAL, groupName)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create group", err)
 		return

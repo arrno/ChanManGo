@@ -24,10 +24,16 @@ func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Validate token and get client permissions
-		clientGroup, permission, isAdmin, err := c.db.GetClientAuthByToken(*token)
+		clientGroup, permission, isAdmin, expired, err := c.db.GetClientAuthByToken(*token)
 		if err != nil || clientGroup == nil {
 			log.Error().Err(err).Str("token", "<scrub>").Msg("Invalid authentication token")
 			RespondWithError(w, http.StatusUnauthorized, "Invalid authentication token", nil)
+			return
+		}
+
+		if expired && strings.TrimSuffix(r.URL.Path, "/") != "/rotate-token" {
+			log.Info().Err(err).Str("clientId", clientGroup.ClientId).Msg("Expired authentication token")
+			RespondWithError(w, http.StatusUnauthorized, "Authentication token is expired. Generate new token via /rotate-token", nil)
 			return
 		}
 
@@ -127,7 +133,7 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Verify channel belongs to the expected group and portal
-		if (channel.GroupId != groupId || channel.PortalId != portalId) && clientId != domain.GLOBAL_ADMIN_ID {
+		if (channel.GroupId != groupId || channel.PortalId != portalId) && clientId != domain.GLOBAL_ADMIN {
 			log.Warn().
 				Str("clientId", clientId).
 				Str("channelId", channel.Id).

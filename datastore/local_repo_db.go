@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -234,45 +235,53 @@ func (db *LocalDB) GetClientSecretByClientId(clientId string) (*domain.ClientSec
 	return nil, ErrNotFound
 }
 
-func (db *LocalDB) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, error) {
+func (db *LocalDB) GetClientAuthByToken(providedToken domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	val, ok := db.data.Load(docId("client_secret_token_by_client_id", providedToken.Identity))
 	if !ok {
-		return nil, nil, false, ErrNotFound
+		return nil, nil, false, false, ErrNotFound
 	}
 
 	clientSecret := val.(*domain.ClientSecret)
 	clientId := clientSecret.ClientId
 
+	var expired bool
 	haveToken := domain.TokenFromSecret(*clientSecret)
-	if !haveToken.Validate(providedToken.Raw) {
-		return nil, nil, false, fmt.Errorf("invalid token")
+	err := haveToken.Validate(providedToken.Raw)
+	if err != nil {
+		if errors.Is(err, domain.ErrTokenInvalid) {
+			return nil, nil, false, false, fmt.Errorf("invalid token")
+		} else if errors.Is(err, domain.ErrTokenExpired) {
+			expired = true
+		} else {
+			return nil, nil, false, false, err
+		}
 	}
 
 	// Get client groups within the lock for atomicity
 	clientGroupVal, ok := db.data.Load(docId("client_group_by_client_id", clientId))
 	if !ok {
-		return nil, nil, false, ErrNotFound
+		return nil, nil, false, false, ErrNotFound
 	}
 	clientGroup := clientGroupVal.(*domain.ClientGroup)
 
 	// Get client data
 	clientVal, ok := db.data.Load(docId("client", clientGroup.ClientId))
 	if !ok {
-		return nil, nil, false, ErrNotFound
+		return nil, nil, false, false, ErrNotFound
 	}
 	client := clientVal.(*domain.Client)
 
 	// Get permission data
 	permissionVal, ok := db.data.Load(docId("client_permission_by_client_id", clientId))
 	if !ok {
-		return nil, nil, false, ErrNotFound
+		return nil, nil, false, false, ErrNotFound
 	}
 	permission := permissionVal.(*domain.ClientPermission)
 
-	return clientGroup, permission, client.Admin, nil
+	return clientGroup, permission, client.Admin, expired, nil
 }
 
 func (db *LocalDB) UpdateClientSecret(pw *domain.ClientSecret) error {

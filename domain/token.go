@@ -4,11 +4,17 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/arrno/chanman/util"
+)
+
+var (
+	ErrTokenInvalid = errors.New("Token invalid")
+	ErrTokenExpired = errors.New("Token expired")
 )
 
 // Token represents an API token with its raw value, hashed value, and optional salt
@@ -56,10 +62,10 @@ func (t *Token) Hash() *Token {
 	return t
 }
 
-func (t Token) Validate(against string) bool {
+func (t Token) Validate(against string) error {
 	// Check if token is expired
 	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
-		return false
+		return ErrTokenExpired
 	}
 
 	hasher := sha256.New()
@@ -68,7 +74,10 @@ func (t Token) Validate(against string) bool {
 	againstHash := hex.EncodeToString(hashBytes)
 
 	// Use a constant-time comparison to prevent timing attacks
-	return subtle.ConstantTimeCompare([]byte(t.Hashed), []byte(againstHash)) == 1
+	if subtle.ConstantTimeCompare([]byte(t.Hashed), []byte(againstHash)) == 1 {
+		return nil
+	}
+	return ErrTokenInvalid
 }
 
 func (t Token) Serialize() string {

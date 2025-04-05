@@ -17,7 +17,7 @@ type ClientProvider interface {
 	ArchiveClient(id string) error
 	//
 	RotateClientSecret(clientId string) (domain.Token, error)
-	ValidateClientSecret(clientId, token string) (bool, error)
+	ValidateClientSecret(clientId, token string) error
 }
 
 type Client struct {
@@ -109,15 +109,15 @@ func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	return *token, nil
 }
 
-func (c *Client) ValidateClientSecret(clientId, password string) (bool, error) {
+func (c *Client) ValidateClientSecret(clientId, password string) error {
 	secret, err := c.repo.GetClientSecretByClientId(clientId)
 	if err != nil {
-		return false, err
+		return err
 	}
 	return domain.Token{
 		Hashed: secret.EncryptedSecret,
 		Salt:   secret.Salt,
-	}.Validate(password), nil
+	}.Validate(password)
 }
 
 func (c *Client) clientExists(clientId string) (bool, error) {

@@ -47,7 +47,7 @@ type StandardResponse struct {
 
 // ClientTokenResponse is returned when creating/authenticating clients
 type ClientTokenResponse struct {
-	ClientChannel string     `json:"channel"`
+	ClientChannel string     `json:"channel,omitempty"`
 	Token         string     `json:"token"`
 	ClientId      string     `json:"clientId,omitempty"`
 	ClientName    string     `json:"clientName,omitempty"`

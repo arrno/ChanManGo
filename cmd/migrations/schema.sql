@@ -10,6 +10,17 @@ CREATE TYPE state_enum AS ENUM (
   'error'
 );
 
+-- Create Clients table
+CREATE TABLE clients (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  admin BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  archived_at TIMESTAMP
+);
+
 -- Create Portals table
 CREATE TABLE portals (
   id VARCHAR(255) PRIMARY KEY,
@@ -41,17 +52,6 @@ CREATE TABLE groups (
 -- Create index on portal_id for groups
 CREATE INDEX idx_groups_portal_id ON groups(portal_id);
 CREATE INDEX idx_groups_parent_id ON groups(parent_group_id);
-
--- Create Clients table
-CREATE TABLE clients (
-  id VARCHAR(255) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT true,
-  admin BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  archived_at TIMESTAMP
-);
 
 CREATE TABLE client_permissions (
   id VARCHAR(255) PRIMARY KEY,
