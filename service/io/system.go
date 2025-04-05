@@ -23,6 +23,7 @@ func NewSystem(repo datastore.RepoProvider) SystemProvider {
 		MessageProvider: NewMessage(repo),
 		ChannelProvider: NewChannel(repo),
 		GroupProvider:   NewGroup(repo),
+		repo:            repo,
 		// Note: PortalProvider is still TODO, as indicated in portal.go
 	}
 }

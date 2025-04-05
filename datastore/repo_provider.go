@@ -52,7 +52,7 @@ type MessageRepoProvider interface {
 type SystemRepoProvider interface {
 	StoreClient(*domain.Client) error
 	GetClient(id string) (*domain.Client, error)
-	GetClients(pagination *domain.Pagination[*domain.Client]) ([]*domain.Client, error)
+	GetClients(pagination *domain.Pagination[*domain.Client], filter *domain.Filter) ([]*domain.Client, error)
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
 	//

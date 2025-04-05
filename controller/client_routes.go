@@ -51,6 +51,7 @@ func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid pagination request format", err)
 		return
 	}
+	filter := domain.NewFilter().FromReq(r)
 
 	// Validate pagination parameters
 	if err := pg.Validate(); err != nil {
@@ -58,7 +59,7 @@ func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clients, err := c.system.GetClients(&pg)
+	clients, err := c.system.GetClients(&pg, filter)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve clients", err)
 		return
@@ -83,7 +84,7 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 
 	groupId := req.GroupId
 	if groupId == "" {
-		groupId = domain.MAIN_GROUP
+		groupId = domain.CompositeId(domain.MAIN_GROUP, domain.MAIN_PORTAL)
 	}
 
 	// TODO, validate group belongs to caller
@@ -139,20 +140,16 @@ func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
-	var req ClientRequest
-	if err := UnmarshalTo(&req, r); err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid client request format", err)
-		return
-	}
+	clientId := r.URL.Query().Get("clientId")
 
 	// Validate required fields
-	if req.ClientId == "" {
+	if clientId == "" {
 		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
 		return
 	}
 
 	// Archive client
-	if err := c.system.ArchiveClient(req.ClientId); err != nil {
+	if err := c.system.ArchiveClient(clientId); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to archive client", err)
 		return
 	}

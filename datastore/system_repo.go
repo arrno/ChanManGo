@@ -63,7 +63,7 @@ func (r *SystemRepo) GetClient(id string) (*domain.Client, error) {
 }
 
 // GetClients retrieves clients with pagination
-func (r *SystemRepo) GetClients(pagination *domain.Pagination[*domain.Client]) ([]*domain.Client, error) {
+func (r *SystemRepo) GetClients(pagination *domain.Pagination[*domain.Client], filter *domain.Filter) ([]*domain.Client, error) {
 	// Validate pagination parameters
 	if err := pagination.Validate(); err != nil {
 		return nil, err
@@ -72,12 +72,25 @@ func (r *SystemRepo) GetClients(pagination *domain.Pagination[*domain.Client]) (
 	var clients []*domain.Client
 	offset := (pagination.Page - 1) * pagination.Count
 
-	query := `
+	var notNil bool
+	where := filter.Mask(
+		domain.Filter{
+			Archived: &notNil,
+			State:    nil,
+		},
+	).ToWhere()
+
+	if len(where) > 0 {
+		where = "WHERE " + where
+	}
+
+	query := fmt.Sprintf(`
 		SELECT id, name, active, admin, created_at, updated_at, archived_at
 		FROM clients
+		%s
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
-	`
+	`, where)
 
 	err := r.db.Select(ctx, &clients, query, pagination.Count, offset)
 	if err != nil {

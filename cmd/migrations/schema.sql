@@ -18,7 +18,8 @@ CREATE TABLE portals (
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  archived_at TIMESTAMP
+  archived_at TIMESTAMP,
+  FOREIGN KEY (owner_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
 -- Create Groups table
@@ -32,6 +33,7 @@ CREATE TABLE groups (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
+  FOREIGN KEY (owner_id) REFERENCES clients(id) ON DELETE CASCADE,
   FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_group_id) REFERENCES groups(id) ON DELETE SET NULL
 );

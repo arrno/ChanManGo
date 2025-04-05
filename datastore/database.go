@@ -3,7 +3,6 @@ package datastore
 import (
 	"context"
 
-	"github.com/arrno/chanman/domain"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -110,7 +109,7 @@ func (tx *PostgresTx) Get(ctx context.Context, dest interface{}, query string, a
 }
 
 func (tx *PostgresTx) BeginTx(ctx context.Context) (SQLDatabase, error) {
-	return nil, domain.ErrNotImplemented // Nested transactions not supported in pgx
+	return tx, nil
 }
 
 func (tx *PostgresTx) Close() {
@@ -126,7 +125,7 @@ func (tx *PostgresTx) Rollback() error {
 }
 
 func (tx *PostgresTx) WithTx(ctx context.Context, f func(tx SQLDatabase) error) error {
-	return domain.ErrNotImplemented // Nested transactions not supported
+	return f(tx)
 }
 
 // // Example Usage
