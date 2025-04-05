@@ -84,13 +84,13 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 
 	groupId := req.GroupId
 	if groupId == "" {
-		groupId = domain.CompositeId(domain.MAIN_GROUP, domain.MAIN_PORTAL)
+		groupId = domain.MAIN_GROUP
 	}
 
 	// TODO, validate group belongs to caller
 
 	// Create client
-	client, err := domain.NewClient(req.ClientName, groupId, req.Admin)
+	client, err := domain.NewClient("", req.ClientName, groupId, req.Admin)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Failed to create client", err)
 		return

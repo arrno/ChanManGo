@@ -98,32 +98,39 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		portalId := r.Header.Get("portalId")
 		clientId := r.Header.Get("clientId")
 
+		admin := len(r.Header.Get("admin")) > 0
+		write := len(r.Header.Get("write")) > 0
+		canCreate := write || admin
+
 		// Validate channel name
 		if channelName == "" {
 			RespondWithError(w, http.StatusBadRequest, "Channel name is required", nil)
 			return
 		}
 
-		// Generate full channel ID
-		channelId := domain.CompositeId(channelName, groupId)
-
 		// Fetch channel from database
-		channel, err := c.db.GetChannel(channelId)
+		channel, err := c.system.ChannelProvider.GetChannelByGroupAndName(groupId, channelName)
 		if err != nil {
 			if errors.Is(err, datastore.ErrNotFound) {
-				RespondWithError(w, http.StatusNotFound, "Channel not found", nil)
+				if !canCreate {
+					log.Error().Err(err).Str("groupId", groupId).Str("channelName", channelName).Msg("Channel not found. Insufficient permissions to create.")
+					RespondWithError(w, http.StatusInternalServerError, "Channel not found", err)
+					return
+				}
+				channel.Id = ""
+				log.Info().Str("groupId", groupId).Str("channelName", channelName).Msg("Channel not found. Channel will be created.")
 			} else {
-				log.Error().Err(err).Str("channelId", channelId).Msg("Error fetching channel")
+				log.Error().Err(err).Str("groupId", groupId).Str("channelName", channelName).Msg("Error fetching channel")
 				RespondWithError(w, http.StatusInternalServerError, "Error fetching channel", err)
+				return
 			}
-			return
 		}
 
 		// Verify channel belongs to the expected group and portal
 		if (channel.GroupId != groupId || channel.PortalId != portalId) && clientId != domain.GLOBAL_ADMIN_ID {
 			log.Warn().
 				Str("clientId", clientId).
-				Str("channelId", channelId).
+				Str("channelId", channel.Id).
 				Str("expectedGroupId", groupId).
 				Str("actualGroupId", channel.GroupId).
 				Msg("Channel group/portal mismatch")

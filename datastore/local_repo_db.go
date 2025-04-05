@@ -44,6 +44,10 @@ func (db *LocalDB) GetChannel(id string) (*domain.Channel, error) {
 	return nil, ErrNotFound
 }
 
+func (db *LocalDB) GetChannelByGroupAndName(groupId, channelName string) (*domain.Channel, error) {
+	return nil, domain.ErrNotImplemented
+}
+
 func (db *LocalDB) UpdateChannel(ch *domain.Channel) error {
 	return db.StoreChannel(ch)
 }

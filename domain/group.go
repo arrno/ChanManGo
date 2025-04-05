@@ -18,12 +18,15 @@ type Group struct {
 	ArchivedAt    *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
-func NewGroup(ownerId, portalId, name string) (*Group, error) {
+func NewGroup(id, ownerId, portalId, name string) (*Group, error) {
 	if !util.IsValidName(name) {
 		return nil, ErrInvalidName
 	}
+	if id == "" {
+		id = util.Nanoid()
+	}
 	return &Group{
-		Id:        CompositeId(name, portalId),
+		Id:        id,
 		OwnerId:   ownerId,
 		PortalId:  portalId,
 		Name:      name,

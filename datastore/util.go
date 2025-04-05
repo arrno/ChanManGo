@@ -18,8 +18,8 @@ func SeedDb(db RepoProvider) {
 	if len(clients) > 0 {
 		return
 	}
-	groupId := domain.CompositeId(domain.MAIN_GROUP, domain.MAIN_PORTAL)
-	client, err := domain.NewClient(domain.GLOBAL_ADMIN_USER, groupId, true)
+	groupId := domain.MAIN_GROUP
+	client, err := domain.NewClient("", domain.GLOBAL_ADMIN_USER, groupId, true)
 	expect(db.StoreClient(client))
 
 	token := domain.NewToken("password", client.Id).Hash()
@@ -35,7 +35,7 @@ func SeedDb(db RepoProvider) {
 	portal.Id = domain.MAIN_PORTAL
 	expect(db.StorePortal(portal))
 
-	group, err := domain.NewGroup(client.Id, portal.Id, domain.MAIN_GROUP)
+	group, err := domain.NewGroup("", client.Id, portal.Id, domain.MAIN_GROUP)
 	expect(err)
 
 	expect(db.StoreGroup(group))
@@ -43,6 +43,6 @@ func SeedDb(db RepoProvider) {
 	clientGroup := domain.NewClientGroup(client.Id, group.Id)
 	expect(db.StoreClientGroup(clientGroup))
 
-	channel, err := domain.NewChannel(portal.Id, group.Id, domain.MAIN_CHANNEL, 300)
+	channel, err := domain.NewChannel("", portal.Id, group.Id, domain.MAIN_CHANNEL, 300)
 	expect(db.StoreChannel(channel))
 }

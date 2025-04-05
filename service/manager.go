@@ -64,7 +64,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 		return worker, nil
 	}
 
-	created, err := c.channelIo.CreateChannel(channel)
+	created, err := c.channelIo.CreateChannelIfNotFound(channel)
 
 	if err != nil {
 		return nil, err

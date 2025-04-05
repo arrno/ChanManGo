@@ -16,12 +16,15 @@ type Client struct {
 	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
-func NewClient(name, groupId string, admin bool) (*Client, error) {
+func NewClient(id, name, groupId string, admin bool) (*Client, error) {
 	if !util.IsValidName(name) {
 		return nil, ErrInvalidName
 	}
+	if id == "" {
+		id = util.Nanoid()
+	}
 	return &Client{
-		Id:        CompositeId(name, groupId),
+		Id:        id,
 		Name:      name,
 		Active:    true,
 		Admin:     admin,

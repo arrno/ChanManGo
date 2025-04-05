@@ -12,24 +12,24 @@ import (
 func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 
 	// Generate unique IDs for demo resources
-	groupName := util.Nanoid()
+	groupName := "MyGroup"
 	channelName := "MyChan"
 	clientName := "client-" + util.Nanoid()
 
 	// Create domain objects
-	group, err := domain.NewGroup(domain.GLOBAL_ADMIN_USER, domain.MAIN_PORTAL, groupName)
+	group, err := domain.NewGroup("", domain.GLOBAL_ADMIN_USER, domain.MAIN_PORTAL, groupName)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create group", err)
 		return
 	}
 
-	client, err := domain.NewClient(clientName, group.Id, false)
+	client, err := domain.NewClient("", clientName, group.Id, false)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create client", err)
 		return
 	}
 
-	channel, err := domain.NewChannel(domain.MAIN_PORTAL, group.Id, channelName, 3600)
+	channel, err := domain.NewChannel("", domain.MAIN_PORTAL, group.Id, channelName, 3600)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create channel", err)
 		return

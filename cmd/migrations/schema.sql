@@ -94,7 +94,8 @@ CREATE TABLE channels (
   archived_at TIMESTAMP,
   heartbeat TIMESTAMP,
   FOREIGN KEY (portal_id) REFERENCES portals(id) ON DELETE CASCADE,
-  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+  UNIQUE (group_id, name) -- Added unique constraint
 );
 
 -- Create indexes for channels

@@ -18,10 +18,13 @@ type ChannelSubscription struct {
 	ArchivedAt *time.Time                   `db:"archived_at" json:"archivedAt"`
 }
 
-func NewChannelSubscription(channelId string, callback func(message *Message) error) *ChannelSubscription {
+func NewChannelSubscription(id, channelId string, callback func(message *Message) error) *ChannelSubscription {
 	now := time.Now()
+	if id == "" {
+		id = util.Nanoid()
+	}
 	return &ChannelSubscription{
-		Id:        util.Nanoid(),
+		Id:        id,
 		ChannelId: channelId,
 		State:     STATE_ACTIVE,
 		Archived:  false,
@@ -45,7 +48,7 @@ type TopicSubscription struct {
 	ArchivedAt *time.Time                   `db:"archived_at" json:"archivedAt"`
 }
 
-func NewTopicSubscription(clientId, channelId string, topics []string) (*TopicSubscription, error) {
+func NewTopicSubscription(id, clientId, channelId string, topics []string) (*TopicSubscription, error) {
 	// Validate that we have at least one topic
 	if len(topics) == 0 {
 		return nil, ErrEmptyTopicList
@@ -58,9 +61,13 @@ func NewTopicSubscription(clientId, channelId string, topics []string) (*TopicSu
 		}
 	}
 
+	if id == "" {
+		id = util.Nanoid()
+	}
+
 	now := time.Now()
 	return &TopicSubscription{
-		Id:        util.Nanoid(),
+		Id:        id,
 		ClientId:  clientId,
 		ChannelId: channelId,
 		Topics:    topics,

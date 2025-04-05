@@ -36,12 +36,15 @@ type Channel struct {
 	ArchivedAt      *time.Time   `db:"archived_at" json:"archivedAt"`
 }
 
-func NewChannel(portalId, groupId, name string, hbIntervalSec uint) (*Channel, error) {
+func NewChannel(id, portalId, groupId, name string, hbIntervalSec uint) (*Channel, error) {
 	if !util.IsValidName(name) {
 		return nil, ErrInvalidName
 	}
+	if id == "" {
+		id = util.Nanoid()
+	}
 	return &Channel{
-		Id:              CompositeId(name, groupId),
+		Id:              id,
 		GroupId:         groupId,
 		PortalId:        portalId,
 		Name:            name,

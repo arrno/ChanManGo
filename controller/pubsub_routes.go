@@ -15,7 +15,7 @@ import (
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
-	clientId, groupId, portalId, channelName, _, _, write := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, channelId, _, write := parseHeaders(r.Header)
 
 	if write != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -26,7 +26,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
+	channel, err := domain.NewChannel(channelId, portalId, groupId, channelName, 60)
 	if err != nil {
 		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
@@ -62,7 +62,7 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
-	clientId, groupId, portalId, channelName, _, _, write := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, channelId, _, write := parseHeaders(r.Header)
 
 	if write != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -74,7 +74,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
+	channel, err := domain.NewChannel(channelId, portalId, groupId, channelName, 60)
 	if err != nil {
 		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
@@ -144,7 +144,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
-	clientId, groupId, portalId, channelName, _, read, _ := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, channelId, read, _ := parseHeaders(r.Header)
 
 	if read != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -164,13 +164,13 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		topics = strings.Split(topicSet, ",")
 	}
 
-	channel, err := domain.NewChannel(portalId, groupId, channelName, 60)
+	channel, err := domain.NewChannel(channelId, portalId, groupId, channelName, 60)
 	if err != nil {
 		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	sub, err := domain.NewTopicSubscription(clientId, channel.Id, topics)
+	sub, err := domain.NewTopicSubscription("", clientId, channel.Id, topics)
 	if err != nil {
 		http.Error(w, "Failed to handle subscription: "+err.Error(), http.StatusBadRequest)
 		return

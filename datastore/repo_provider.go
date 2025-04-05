@@ -27,6 +27,7 @@ type RepoProvider interface {
 type MessageRepoProvider interface {
 	StoreChannel(*domain.Channel) error
 	GetChannel(id string) (*domain.Channel, error)
+	GetChannelByGroupAndName(groupId, channelName string) (*domain.Channel, error)
 	UpdateChannel(*domain.Channel) error
 	ArchiveChannel(id string) error
 	//

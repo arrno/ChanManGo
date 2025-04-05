@@ -47,6 +47,26 @@ func (r *MessageRepo) StoreChannel(channel *domain.Channel) error {
 	return err
 }
 
+func (r *MessageRepo) GetChannelByGroupAndName(groupId, channelName string) (*domain.Channel, error) {
+	query := `
+		SELECT id, portal_id, group_id, name, state, archived, interval_seconds, 
+			heartbeat, created_at, updated_at, archived_at
+		FROM channels
+		WHERE group_id = $1 AND name = $2
+	`
+
+	var channel domain.Channel
+	err := r.db.Get(ctx, &channel, query, groupId, channelName)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &channel, nil
+}
+
 // GetChannel retrieves a channel by ID
 func (r *MessageRepo) GetChannel(id string) (*domain.Channel, error) {
 	query := `

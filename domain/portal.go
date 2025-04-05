@@ -1,15 +1,14 @@
 package domain
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/arrno/chanman/util"
 )
 
-func CompositeId(selfId, parentId string) string {
-	return fmt.Sprintf("%s::%s", parentId, selfId)
-}
+// func CompositeId(selfId, parentId string) string {
+// 	return fmt.Sprintf("%s::%s", parentId, selfId)
+// }
 
 type Portal struct {
 	Id         string     `db:"id" json:"id"`
