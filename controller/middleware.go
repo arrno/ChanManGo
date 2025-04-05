@@ -82,6 +82,10 @@ func extractToken(r *http.Request) string {
 	// Check query parameters
 	token := r.URL.Query().Get("Authorization")
 	if token != "" {
+		parts := strings.Split(token, " ")
+		if len(parts) == 2 {
+			return parts[1]
+		}
 		return token
 	}
 

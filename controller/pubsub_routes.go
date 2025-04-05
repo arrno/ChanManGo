@@ -59,32 +59,62 @@ func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to publish message: %s"+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	RespondWithJSON(w, http.StatusOK, StandardResponse{
+		Success: true,
+	})
 }
 
 func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
+	// Log the incoming request details for debugging
+	log.Info().
+		Str("method", r.Method).
+		Str("path", r.URL.Path).
+		Str("query", r.URL.RawQuery).
+		Str("remote", r.RemoteAddr).
+		Str("proto", r.Proto).
+		Msg("WebSocket publish request received")
+
 	clientId, groupId, portalId, channelName, channelId, _, write := parseHeaders(r.Header)
 
+	// Log authentication details (sanitized)
+	log.Info().
+		Str("clientId", clientId).
+		Str("groupId", groupId).
+		Str("portalId", portalId).
+		Str("channelName", channelName).
+		Str("channelId", channelId).
+		Str("write", write).
+		Msg("Authentication details")
+
 	if write != "true" {
+		log.Warn().Str("clientId", clientId).Msg("Write permission denied")
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
 	if channelName == "" {
+		log.Warn().Str("clientId", clientId).Msg("No channel provided")
 		http.Error(w, "No channel provided", http.StatusBadRequest)
 		return
 	}
 
 	channel, err := domain.NewChannel(channelId, portalId, groupId, channelName, 60)
 	if err != nil {
+		log.Error().Err(err).Str("clientId", clientId).Msg("Failed to handle channel")
 		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Perform WebSocket upgrade
+	log.Info().Str("clientId", clientId).Str("channel", channelName).Msg("Upgrading to WebSocket")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		log.Error().Err(err).Str("clientId", clientId).Msg("WebSocket upgrade failed")
 		http.Error(w, "Failed to accept WebSocket connection: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	log.Info().Str("clientId", clientId).Str("channel", channelName).Msg("WebSocket connection established")
 	defer conn.Close()
 
 	log.Info().Msg("Client connected for writing")
@@ -144,14 +174,35 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
+	// Log the incoming request details for debugging
+	log.Info().
+		Str("method", r.Method).
+		Str("path", r.URL.Path).
+		Str("query", r.URL.RawQuery).
+		Str("remote", r.RemoteAddr).
+		Str("proto", r.Proto).
+		Msg("WebSocket subscribe request received")
+
 	clientId, groupId, portalId, channelName, channelId, read, _ := parseHeaders(r.Header)
 
+	// Log authentication details (sanitized)
+	log.Info().
+		Str("clientId", clientId).
+		Str("groupId", groupId).
+		Str("portalId", portalId).
+		Str("channelName", channelName).
+		Str("channelId", channelId).
+		Str("read", read).
+		Msg("Authentication details for subscription")
+
 	if read != "true" {
+		log.Warn().Str("clientId", clientId).Msg("Read permission denied for subscription")
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
 	if channelName == "" {
+		log.Warn().Str("clientId", clientId).Msg("No channel provided for subscription")
 		http.Error(w, "No channel provided", http.StatusBadRequest)
 		return
 	}
@@ -166,21 +217,35 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 
 	channel, err := domain.NewChannel(channelId, portalId, groupId, channelName, 60)
 	if err != nil {
+		log.Error().Err(err).Str("clientId", clientId).Msg("Failed to handle channel for subscription")
 		http.Error(w, "Failed to handle channel: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	sub, err := domain.NewTopicSubscription("", clientId, channel.Id, topics)
 	if err != nil {
+		log.Error().Err(err).Str("clientId", clientId).Msg("Failed to create topic subscription")
 		http.Error(w, "Failed to handle subscription: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Log subscription details
+	log.Info().
+		Str("clientId", clientId).
+		Str("channelId", channel.Id).
+		Strs("topics", topics).
+		Msg("Creating subscription")
+
+	// Perform WebSocket upgrade
+	log.Info().Str("clientId", clientId).Str("channel", channelName).Msg("Upgrading to WebSocket for subscription")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		log.Error().Err(err).Str("clientId", clientId).Msg("WebSocket upgrade failed for subscription")
 		http.Error(w, "Failed to accept WebSocket connection: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	log.Info().Str("clientId", clientId).Str("channel", channelName).Msg("WebSocket subscription connection established")
 	defer conn.Close()
 
 	done := make(chan any)

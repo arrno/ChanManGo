@@ -24,9 +24,9 @@ func RunWeb() {
 		Chain(c.rateLimit).
 		Chain(c.auth).
 		Chain(c.channelContext)
-	rc.Post("/pub-ws", c.HandlePublishWS)
+	rc.Add("/pub-ws", c.HandlePublishWS, []string{http.MethodGet, http.MethodPost}) // Support both GET and POST for WebSocket
 	rc.Post("/pub", c.HandlePublish)
-	rc.Post("/sub", c.HandleSubscribe)
+	rc.Add("/sub", c.HandleSubscribe, []string{http.MethodGet, http.MethodPost}) // Support both GET and POST for WebSocket
 
 	// Admin router
 	ra := NewRouter().

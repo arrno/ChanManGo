@@ -15,21 +15,25 @@ import (
 // WebSocket upgrader with proper origin checking
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, get allowed origins from environment variables or config
-		allowedOrigins := []string{"localhost", "127.0.0.1"}
 
-		// Get origin from request
-		origin := r.Header.Get("Origin")
+		// TODO - this should be config driven
+		return true
 
-		// For demo purposes, allow localhost and direct IP access
-		for _, allowed := range allowedOrigins {
-			if origin == "http://"+allowed || origin == "https://"+allowed ||
-				origin == "http://"+allowed+":8080" || origin == "https://"+allowed+":8080" {
-				return true
-			}
-		}
+		// // In production, get allowed origins from environment variables or config
+		// allowedOrigins := []string{"localhost", "127.0.0.1"}
 
-		return false
+		// // Get origin from request
+		// origin := r.Header.Get("Origin")
+
+		// // For demo purposes, allow localhost and direct IP access
+		// for _, allowed := range allowedOrigins {
+		// 	if origin == "http://"+allowed || origin == "https://"+allowed ||
+		// 		origin == "http://"+allowed+":8080" || origin == "https://"+allowed+":8080" {
+		// 		return true
+		// 	}
+		// }
+
+		// return false
 	},
 }
 
@@ -65,7 +69,7 @@ func parseHeaders(h http.Header) (clientId, groupId, portalId, channelName, chan
 	clientId = h.Get("clientId")
 	groupId = h.Get("groupId")
 	portalId = h.Get("portalId")
-	channelName = h.Get("channel")
+	channelName = h.Get("channelName")
 	channelId = h.Get("channelId")
 	read = h.Get("read")
 	write = h.Get("write")
