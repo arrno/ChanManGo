@@ -120,14 +120,15 @@ func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, messa
 		return domain.ErrChanOpNotPermitted
 	}
 
-	defer func() {
-		if err != nil {
-			message.UpdateState(domain.STATE_ERROR)
-		}
-		if storeErr := c.messageIo.CreateMessage(message); storeErr != nil {
-			err = fmt.Errorf("%w. %w", err, storeErr)
-		}
-	}()
+	// TODO, this should just go into a separate log
+	// defer func() {
+	// 	if err != nil {
+	// 		message.UpdateState(domain.STATE_ERROR)
+	// 	}
+	// 	if storeErr := c.messageIo.CreateMessage(message); storeErr != nil {
+	// 		err = fmt.Errorf("%w. %w", err, storeErr)
+	// 	}
+	// }()
 
 	worker, err := c.ExpectChannel(channel)
 	if err != nil {
@@ -197,7 +198,7 @@ func (c *Manager) bootChannel(channel *domain.Channel) (*Channel, chan any, erro
 		} else {
 			message.UpdateState(domain.STATE_COMPLETE)
 		}
-		return c.messageIo.UpdateMessage(message)
+		return c.messageIo.CreateMessage(message)
 	}
 
 	worker := NewChannel(channel, c.broker, update)

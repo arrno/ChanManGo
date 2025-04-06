@@ -135,6 +135,13 @@ var ChanbanSDK = class {
         if (wasConnected && this.autoReconnect) {
           this.attemptReconnectPublisher();
         }
+        if (!wasConnected) {
+          reject(
+            new Error(
+              `WebSocket error: ${event?.message || "Denied"}`
+            )
+          );
+        }
       };
       this.pubSocket.onerror = (event) => {
         this.updatePublisherState("error" /* ERROR */);

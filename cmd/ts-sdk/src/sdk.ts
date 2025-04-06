@@ -157,6 +157,13 @@ export class ChanbanSDK {
                 if (wasConnected && this.autoReconnect) {
                     this.attemptReconnectPublisher();
                 }
+                if (!wasConnected) {
+                    reject(
+                        new Error(
+                            `WebSocket error: ${event?.message || "Denied"}`
+                        )
+                    );
+                }
             };
 
             this.pubSocket.onerror = (event: any) => {
@@ -233,6 +240,14 @@ export class ChanbanSDK {
                 // Handle reconnection
                 if (wasConnected && this.autoReconnect) {
                     this.attemptReconnectSubscriber();
+                }
+
+                if (!wasConnected) {
+                    reject(
+                        new Error(
+                            `WebSocket error: ${event?.message || "Denied"}`
+                        )
+                    );
                 }
             };
 

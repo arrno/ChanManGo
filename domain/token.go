@@ -37,6 +37,7 @@ func NewToken(raw, identity string) *Token {
 	return t
 }
 
+// TODO we need to honor this in the client_secret_tokens table
 func NewTokenWithExpiry(raw, identity string, expiryDuration time.Duration) (Token, error) {
 	expires := time.Now().Add(expiryDuration)
 	t := Token{

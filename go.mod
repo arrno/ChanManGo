@@ -3,7 +3,6 @@ module github.com/arrno/chanman
 go 1.23.5
 
 require (
-	github.com/coder/websocket v1.8.12
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0

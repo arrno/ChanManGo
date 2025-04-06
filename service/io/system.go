@@ -1,8 +1,6 @@
 package io
 
 import (
-	"time"
-
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 	"github.com/arrno/chanman/util"
@@ -59,14 +57,15 @@ func (s *SystemProvider) InitSandbox(
 		}
 
 		// 5. Create client token
-		var tokenErr error
-		token, tokenErr = domain.NewTokenWithExpiry(util.Nanoid(), client.Id, 24*time.Hour)
-		if tokenErr != nil {
-			return tokenErr
-		}
+		// var tokenErr error
+		// token, tokenErr = domain.NewTokenWithExpiry(util.Nanoid(), client.Id, 24*time.Hour)
+		// if tokenErr != nil {
+		// 	return tokenErr
+		// }
+		token := domain.NewToken(util.Nanoid(), client.Id)
 		token.Hash()
 
-		secret := domain.NewClientSecretFromToken(token)
+		secret := domain.NewClientSecretFromToken(*token)
 		if err := tx.StoreClientSecret(&secret); err != nil {
 			return err
 		}

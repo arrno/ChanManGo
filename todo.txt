@@ -4,15 +4,12 @@ Roadmap:
 ---
 [base-case]
 SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
-test signup
 test segmentation - portals / groups / topics / admin / permission / token / rotate
 test retention / free subs / messages
 ---
 message ack/state
 self-healing / tidy
-implement postgres
 implement redis broker / rate-limiter
-client SDKs
 ---
 [differentiators]
 ---
@@ -21,6 +18,23 @@ client SDKs
 [scale]
 
 
+[TESTING]
+Admin:
+* CreateClient
+* GetClient
+* RotateToken
+* ArchiveClient
 
-???
-idle timeout on handlers
+User:
+* SignUp
+* RotateToken
+* Sub
+Expired Token
+Deny: 
+  * Publish, 
+  rotate other token, 
+  sub other groups/channels, 
+  admin routes aka /client(s)
+
+Data:
+managing channel/subscription/message state/archived
