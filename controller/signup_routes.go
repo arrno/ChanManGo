@@ -29,7 +29,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channel, err := domain.NewChannel("", domain.MAIN_PORTAL, group.Id, channelName, 3600)
+	channel, err := domain.NewChannel("", domain.MAIN_PORTAL, group.Id, channelName, 60)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create channel", err)
 		return

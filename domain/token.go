@@ -64,21 +64,20 @@ func (t *Token) Hash() *Token {
 }
 
 func (t Token) Validate(against string) error {
-	// Check if token is expired
-	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
-		return ErrTokenExpired
-	}
-
 	hasher := sha256.New()
 	hasher.Write([]byte(against + t.Salt))
 	hashBytes := hasher.Sum(nil)
 	againstHash := hex.EncodeToString(hashBytes)
 
 	// Use a constant-time comparison to prevent timing attacks
-	if subtle.ConstantTimeCompare([]byte(t.Hashed), []byte(againstHash)) == 1 {
-		return nil
+	if subtle.ConstantTimeCompare([]byte(t.Hashed), []byte(againstHash)) != 1 {
+		return ErrTokenInvalid
 	}
-	return ErrTokenInvalid
+	// Check if valid token is expired
+	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
+		return ErrTokenExpired
+	}
+	return nil
 }
 
 func (t Token) Serialize() string {

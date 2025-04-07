@@ -44,7 +44,7 @@ func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manage
 		broker:             broker,
 		channelIo:          io.NewChannel(db),
 		messageIo:          io.NewMessage(db),
-		cleanupIntervalSec: 60,
+		cleanupIntervalSec: 300,
 		debugMode:          true,
 		object: managerObject{
 			state:             domain.STATE_RUNNING,

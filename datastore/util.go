@@ -43,6 +43,6 @@ func SeedDb(db RepoProvider) {
 	clientGroup := domain.NewClientGroup(client.Id, group.Id)
 	expect(db.StoreClientGroup(clientGroup))
 
-	channel, err := domain.NewChannel(domain.MAIN_CHANNEL, portal.Id, group.Id, domain.MAIN_CHANNEL, 300)
+	channel, err := domain.NewChannel(domain.MAIN_CHANNEL, portal.Id, group.Id, domain.MAIN_CHANNEL, 60)
 	expect(db.StoreChannel(channel))
 }

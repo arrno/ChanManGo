@@ -70,11 +70,11 @@ export async function api() {
         // );
         // console.log("POST result:", result);
 
-        // const getResult = await httpGet<Record<string, any>>(
-        //     `${url}/clients?page=1&count=10&archived=true`,
-        //     token
-        // );
-        // console.log("GET result:", getResult);
+        const getResult = await httpGet<Record<string, any>>(
+            `${url}/clients?page=1&count=10&archived=true`,
+            token
+        );
+        console.log("GET result:", getResult);
 
         // const getResult = await httpGet<Record<string, any>>(
         //     `${url}/client?clientId=5j3bNZ7EjN0hjbu7nn3P`,
@@ -88,12 +88,12 @@ export async function api() {
         // );
         // console.log("DELETE result:", getResult);
 
-        const result = await httpPost<Record<string, any>>(
-            `${url}/rotate-token`,
-            token,
-            {}
-        );
-        console.log("POST result:", result);
+        // const result = await httpPost<Record<string, any>>(
+        //     `${url}/rotate-token`,
+        //     token,
+        //     {}
+        // );
+        // console.log("POST result:", result);
 
         // const result = await httpPost<Record<string, any>>(
         //     `${url}/signup-demo`,
