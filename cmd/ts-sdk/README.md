@@ -15,31 +15,31 @@ The SDK provides a clean interface for subscribing to topics and publishing mess
 ### Basic Example
 
 ```typescript
-import { ChanbanSDK, ConnectionState } from 'chanban-sdk';
+import { ChanbanSDK, ConnectionState } from "chanban-sdk";
 
 // Initialize the SDK
 const sdk = new ChanbanSDK({
-  baseUrl: 'http://localhost:8080',
-  authToken: 'your-auth-token',
-  channel: 'your-channel-name',
-  debug: true // Optional: enables debug logging
+    baseUrl: "http://localhost:8080",
+    authToken: "your-auth-token",
+    channel: "your-channel-name",
+    debug: true, // Optional: enables debug logging
 });
 
 // Listen for connection state changes
 sdk.onStateChange((state, connectionType) => {
-  console.log(`${connectionType} connection state: ${state}`);
+    console.log(`${connectionType} connection state: ${state}`);
 });
 
 // Subscribe to topics
-await sdk.subscribe(['updates', 'notifications'], (topic, message) => {
-  console.log(`Received message on topic '${topic}':`, message);
+await sdk.subscribe(["updates", "notifications"], (topic, message) => {
+    console.log(`Received message on topic '${topic}':`, message);
 });
 
 // Publish a message
-await sdk.publish('updates', { 
-  id: 'msg-123',
-  text: 'Hello world!',
-  timestamp: new Date().toISOString() 
+await sdk.publish("updates", {
+    id: "msg-123",
+    text: "Hello world!",
+    timestamp: new Date().toISOString(),
 });
 
 // When done, clean up
@@ -48,12 +48,12 @@ sdk.disconnect();
 
 ### Features
 
-- WebSocket-based real-time messaging
-- Auto-reconnection on connection loss
-- Connection state tracking and events
-- Topic-based publish/subscribe
-- HTTP fallback for publishing
-- Browser and Node.js support
+-   WebSocket-based real-time messaging
+-   Auto-reconnection on connection loss
+-   Connection state tracking and events
+-   Topic-based publish/subscribe
+-   HTTP fallback for publishing
+-   Browser and Node.js support
 
 ## API Reference
 
@@ -68,15 +68,16 @@ constructor(options: ChanbanOptions)
 ```
 
 Parameters:
-- `options`: Configuration options
-  - `baseUrl` (required): The base URL of the API server
-  - `authToken` (required): Authentication token
-  - `channel` (required): Channel to connect to
-  - `headers` (optional): Additional headers to include in requests
-  - `autoReconnect` (optional): Whether to automatically reconnect (default: true)
-  - `maxReconnectAttempts` (optional): Maximum reconnection attempts before giving up (default: 5)
-  - `reconnectDelay` (optional): Delay between reconnection attempts in ms (default: 3000)
-  - `debug` (optional): Whether to log debug information (default: false)
+
+-   `options`: Configuration options
+    -   `baseUrl` (required): The base URL of the API server
+    -   `authToken` (required): Authentication token
+    -   `channel` (required): Channel to connect to
+    -   `headers` (optional): Additional headers to include in requests
+    -   `autoReconnect` (optional): Whether to automatically reconnect (default: true)
+    -   `maxReconnectAttempts` (optional): Maximum reconnection attempts before giving up (default: 5)
+    -   `reconnectDelay` (optional): Delay between reconnection attempts in ms (default: 3000)
+    -   `debug` (optional): Whether to log debug information (default: false)
 
 #### Methods
 
@@ -89,8 +90,9 @@ async publish(topic: string, payload: Record<string, any>): Promise<void>
 ```
 
 Parameters:
-- `topic`: Topic name to publish to
-- `payload`: Message content as a JSON object
+
+-   `topic`: Topic name to publish to
+-   `payload`: Message content as a JSON object
 
 ##### publishHttp(topic, payload)
 
@@ -101,8 +103,9 @@ async publishHttp(topic: string, payload: Record<string, any>): Promise<Standard
 ```
 
 Parameters:
-- `topic`: Topic name to publish to
-- `payload`: Message content as a JSON object
+
+-   `topic`: Topic name to publish to
+-   `payload`: Message content as a JSON object
 
 ##### subscribe(topics, callback)
 
@@ -113,8 +116,9 @@ async subscribe(topics: string | string[], callback: MessageCallback): Promise<v
 ```
 
 Parameters:
-- `topics`: Topic name or array of topic names to subscribe to
-- `callback`: Function called with each received message
+
+-   `topics`: Topic name or array of topic names to subscribe to
+-   `callback`: Function called with each received message
 
 ##### unsubscribe(topic, callback?)
 
@@ -125,8 +129,9 @@ unsubscribe(topic: string, callback?: MessageCallback): void
 ```
 
 Parameters:
-- `topic`: Topic name to unsubscribe from
-- `callback` (optional): Specific callback to remove. If not provided, all callbacks for this topic are removed.
+
+-   `topic`: Topic name to unsubscribe from
+-   `callback` (optional): Specific callback to remove. If not provided, all callbacks for this topic are removed.
 
 ##### disconnect()
 
@@ -145,10 +150,12 @@ onStateChange(listener: (state: ConnectionState, connectionType: 'publisher' | '
 ```
 
 Parameters:
-- `listener`: Function to call when connection state changes
+
+-   `listener`: Function to call when connection state changes
 
 Returns:
-- A function that can be called to remove the listener
+
+-   A function that can be called to remove the listener
 
 ##### getPublisherState()
 
@@ -166,6 +173,14 @@ Gets the current state of the subscriber connection.
 getSubscriberState(): ConnectionState
 ```
 
+##### rotateToken()
+
+Rotates the authentication token of the caller.
+
+```typescript
+async rotateToken(): Promise<AccountResponse>
+```
+
 ### Types
 
 #### ConnectionState
@@ -174,11 +189,11 @@ An enum representing the possible connection states:
 
 ```typescript
 enum ConnectionState {
-  DISCONNECTED = "disconnected",
-  CONNECTING = "connecting",
-  CONNECTED = "connected",
-  RECONNECTING = "reconnecting",
-  ERROR = "error"
+    DISCONNECTED = "disconnected",
+    CONNECTING = "connecting",
+    CONNECTED = "connected",
+    RECONNECTING = "reconnecting",
+    ERROR = "error",
 }
 ```
 
@@ -188,8 +203,8 @@ Interface representing a message:
 
 ```typescript
 interface Message {
-  topic: string;
-  payload: Record<string, any>;
+    topic: string;
+    payload: Record<string, any>;
 }
 ```
 
@@ -199,10 +214,25 @@ Interface representing a standardized server response:
 
 ```typescript
 interface StandardResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: any;
+    success: boolean;
+    message?: string;
+    error?: string;
+    data?: any;
+}
+```
+
+#### AccountResponse
+
+Interface representing an account focused server response:
+
+```typescript
+export interface AccountResponse {
+    clientId: string;
+    channel?: string;
+    token?: string;
+    tokenExpiresAt?: Date;
+    clientName?: string;
+    clientGroup?: string;
 }
 ```
 
@@ -215,7 +245,7 @@ The SDK methods that establish connections (`subscribe`, `publish`) are async fu
 The SDK provides a helper function to load configuration from environment variables:
 
 ```typescript
-import { ChanbanSDK, loadFromEnv } from 'chanban-sdk';
+import { ChanbanSDK, loadFromEnv } from "chanban-sdk";
 
 // Load configuration from environment variables
 const config = loadFromEnv();
@@ -224,15 +254,15 @@ const sdk = new ChanbanSDK(config);
 
 Supported environment variables:
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| CHANBAN_BASE_URL | Base URL of the server | Yes | - |
-| CHANBAN_AUTH_TOKEN | Authentication token | Yes | - |
-| CHANBAN_CHANNEL | Channel name | Yes | - |
-| CHANBAN_DEBUG | Enable debug logging | No | false |
-| CHANBAN_AUTO_RECONNECT | Auto reconnect on disconnect | No | true |
-| CHANBAN_MAX_RECONNECT_ATTEMPTS | Maximum reconnection attempts | No | 5 |
-| CHANBAN_RECONNECT_DELAY | Delay between reconnection attempts (ms) | No | 3000 |
+| Variable                       | Description                              | Required | Default |
+| ------------------------------ | ---------------------------------------- | -------- | ------- |
+| CHANBAN_BASE_URL               | Base URL of the server                   | Yes      | -       |
+| CHANBAN_AUTH_TOKEN             | Authentication token                     | Yes      | -       |
+| CHANBAN_CHANNEL                | Channel name                             | Yes      | -       |
+| CHANBAN_DEBUG                  | Enable debug logging                     | No       | false   |
+| CHANBAN_AUTO_RECONNECT         | Auto reconnect on disconnect             | No       | true    |
+| CHANBAN_MAX_RECONNECT_ATTEMPTS | Maximum reconnection attempts            | No       | 5       |
+| CHANBAN_RECONNECT_DELAY        | Delay between reconnection attempts (ms) | No       | 3000    |
 
 ## Browser Support
 

@@ -1,4 +1,5 @@
 import {
+    AccountResponse,
     ChanbanOptions,
     ConnectionState,
     Message,
@@ -94,6 +95,50 @@ export class ChanbanSDK {
                 debug: this.debug,
             })
         );
+    }
+
+    /**
+     * Handling storing the new auth token and updating headers
+     *
+     * @param token The new auth token
+     */
+    private updateAuthToken(token: string): void {
+        this.authToken = token;
+        // Add Bearer prefix if not already included
+        if (this.authToken.startsWith("Bearer ")) {
+            this.headers["Authorization"] = this.authToken;
+        } else {
+            this.headers["Authorization"] = `Bearer ${this.authToken}`;
+        }
+    }
+
+    /**
+     * Rotates the account token via HTTP POST
+     *
+     * @returns Promise that resolves with the server response
+     */
+    async rotateToken(): Promise<AccountResponse> {
+        const response = await fetch(`${this.baseUrl}/rotate-token`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...this.headers,
+            },
+            body: `{}`,
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP error: ${response.status} ${response.statusText}`
+            );
+        }
+
+        // Update auth token/headers
+        const accountInfo = (await response.json()) as AccountResponse;
+        if (accountInfo.token) {
+            this.updateAuthToken(accountInfo.token);
+        }
+        return accountInfo;
     }
 
     /**

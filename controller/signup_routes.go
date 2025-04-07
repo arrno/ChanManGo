@@ -48,6 +48,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 
 	// Create successful response
 	response := ClientTokenResponse{
+		ClientId:      client.Id,
 		ClientChannel: channelName,
 		Token:         token.Serialize(),
 		ExpiresAt:     token.ExpiresAt,

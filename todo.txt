@@ -4,10 +4,7 @@ Roadmap:
 ---
 [base-case]
 SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
-test retention / free subs / messages
 ---
-message ack/state
-self-healing / tidy
 implement redis broker / rate-limiter
 ---
 [differentiators]
@@ -34,6 +31,9 @@ Deny:
   rotate other token, 
   * sub other groups/channels, 
   * admin routes aka /client(s)
+
+Misc:
+abrupt disconnect -> cleanup threads/channels
 
 Data:
 managing channel/subscription/message state/archived
