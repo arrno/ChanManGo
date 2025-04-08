@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +27,7 @@ type Manager struct {
 	cleanupIntervalSec uint
 	channelIo          io.ChannelProvider
 	messageIo          io.MessageProvider
+	subscriberIo       io.SubscriberProvider
 	broker             broker.BrokerProvider
 	object             managerObject
 	destroy            chan any
@@ -44,6 +46,7 @@ func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manage
 		broker:             broker,
 		channelIo:          io.NewChannel(db),
 		messageIo:          io.NewMessage(db),
+		subscriberIo:       io.NewSubscriber(db),
 		cleanupIntervalSec: 300,
 		debugMode:          true,
 		object: managerObject{
@@ -98,6 +101,26 @@ func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, chann
 	}
 
 	worker.RemoveSubscription(subscriber.Topics, subscriber.Id)
+
+	// no block
+	go func() {
+		subscriber.UpdateState(domain.STATE_INACTIVE)
+		log.Info().
+			Str("subscription", subscriber.Id).
+			Str("channel", channel.Id).
+			Str("client", subscriber.ClientId).
+			Str("topics", strings.Join(subscriber.Topics, ",")).
+			Msg("Setting topic subscriber inactive")
+		if err := c.subscriberIo.UpdateTopicSubscriber(subscriber); err != nil {
+			log.Error().
+				Str("subscription", subscriber.Id).
+				Str("channel", channel.Id).
+				Str("client", subscriber.ClientId).
+				Str("topics", strings.Join(subscriber.Topics, ",")).
+				Msg("Failed to update topic subscriber")
+		}
+	}()
+
 	return nil
 }
 
@@ -111,7 +134,30 @@ func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel 
 	if err != nil {
 		return false, err
 	}
-	return worker.AddSubscription(subscriber), nil
+
+	added := worker.AddSubscription(subscriber)
+
+	if added {
+		// no block
+		go func() {
+			log.Info().
+				Str("subscription", subscriber.Id).
+				Str("channel", channel.Id).
+				Str("client", subscriber.ClientId).
+				Str("topics", strings.Join(subscriber.Topics, ",")).
+				Msg("Storing topic subscriber")
+			if err := c.subscriberIo.CreateTopicSubscriber(subscriber); err != nil {
+				log.Error().
+					Str("subscription", subscriber.Id).
+					Str("channel", channel.Id).
+					Str("client", subscriber.ClientId).
+					Str("topics", strings.Join(subscriber.Topics, ",")).
+					Msg("Failed to store topic subscriber")
+			}
+		}()
+	}
+
+	return added, nil
 }
 
 func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, message *domain.Message) (err error) {

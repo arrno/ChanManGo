@@ -18,6 +18,11 @@ export interface ChanbanOptions {
     channel: string;
 
     /**
+     * Optionally the topics the root connection subscribes to
+     */
+    topics?: Array<string>;
+
+    /**
      * Additional headers to include in requests
      */
     headers?: Record<string, string>;

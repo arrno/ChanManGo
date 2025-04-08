@@ -29,6 +29,7 @@ export class ChanbanSDK {
     private maxReconnectAttempts: number;
     private reconnectDelay: number;
     private debug: boolean;
+    private rootTopics: Array<string>;
 
     // WebSocket connections
     private pubSocket: any | null = null;
@@ -64,6 +65,8 @@ export class ChanbanSDK {
         this.baseUrl = options.baseUrl;
         this.authToken = options.authToken;
         this.channel = options.channel;
+
+        this.rootTopics = options.topics ?? [];
 
         // Create headers with Authorization token
         // The server expects 'Authorization: Bearer <token>' or just the raw token

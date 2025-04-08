@@ -3,6 +3,7 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
+SDK topic subscriptions
 SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
 ---
 implement redis broker / rate-limiter
@@ -33,7 +34,7 @@ Deny:
   * admin routes aka /client(s)
 
 Misc:
-abrupt disconnect -> cleanup threads/channels
+* abrupt disconnect -> cleanup threads/channels
 
 Data:
-managing channel/subscription/message state/archived
+* managing channel/subscription/message state/archived

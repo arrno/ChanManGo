@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"sync"
 	"time"
 
 	"github.com/arrno/chanman/util"
@@ -36,6 +37,7 @@ func NewChannelSubscription(id, channelId string, callback func(message *Message
 
 // TopicSubscription is a connection from a client to a channel worker over a subset of topics
 type TopicSubscription struct {
+	mu         sync.Mutex                   `json:"-"`
 	Id         string                       `db:"id" json:"id"`
 	ClientId   string                       `db:"client_id" json:"clientId"`
 	ChannelId  string                       `db:"channel_id" json:"channelId"`
@@ -75,4 +77,11 @@ func NewTopicSubscription(id, clientId, channelId string, topics []string) (*Top
 		CreatedAt: now,
 		UpdatedAt: now,
 	}, nil
+}
+
+func (t *TopicSubscription) UpdateState(s STATE) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.State = s
+	t.UpdatedAt = time.Now()
 }
