@@ -10,9 +10,9 @@ import (
 type ClientPermission struct {
 	Id         string     `db:"id" json:"id"`
 	ClientId   string     `db:"client_id" json:"clientId"`
-	Read       bool       `db:"read" json:"read"`
-	Write      bool       `db:"write" json:"write"`
-	Create     bool       `db:"create" json:"create"`
+	Read       bool       `db:"allow_read" json:"read"`
+	Write      bool       `db:"allow_write" json:"write"`
+	Create     bool       `db:"allow_create" json:"create"`
 	CreatedAt  time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt  time.Time  `db:"updated_at" json:"updatedAt"`
 	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`

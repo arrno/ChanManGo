@@ -9,16 +9,16 @@ export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z",
-        topics: ["updates", "notifications", TOPIC_ALL],
+        authToken: "FCEDiSm67vuLzUVpvVQg::ZVlDVoEa7tnneRg5u0qw",
+        // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
     });
 
     const sdkTwo = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z",
-        topics: ["alt", TOPIC_ALL],
+        authToken: "FCEDiSm67vuLzUVpvVQg::ZVlDVoEa7tnneRg5u0qw",
+        // topics: ["alt", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
     });
@@ -31,20 +31,22 @@ export async function sdk() {
     try {
         // Subscribe to multiple topics
         console.log("Subscribing to topics...");
-        await sdkTwo.subscribe(
+        await sdk.subscribe(
             (topic, message) => {
                 console.log(`Received message on topic '${topic}':`, message);
             }
             // ["woo"]
         );
 
-        // Publish a message
-        console.log("Publishing message...");
-        await sdk.publish("alt", {
-            id: "msg-1",
-            text: "Hello from Chanban SDK!",
-            timestamp: new Date().toISOString(),
-        });
+        for (let i = 0; i < 20; i++) {
+            // Publish a message
+            console.log("Publishing message...");
+            await sdkTwo.publish("alt", {
+                id: "msg-1",
+                text: "Hello from Chanban SDK!",
+                timestamp: new Date().toISOString(),
+            });
+        }
 
         // Keep the connection open for a while to receive messages
         console.log("Waiting for messages...");
@@ -57,12 +59,13 @@ export async function sdk() {
 
         // Publish using HTTP fallback
         console.log("Publishing message via HTTP...");
-        const response = await sdk.publishHttp("alt", {
+        const response = await sdkTwo.publishHttp("alt", {
             id: "msg-2",
             text: "Hello via HTTP!",
             timestamp: new Date().toISOString(),
         });
         console.log("HTTP publish response:", response);
+
         await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error) {
         console.error("Error:", error);

@@ -44,5 +44,6 @@ func SeedDb(db RepoProvider) {
 	expect(db.StoreClientGroup(clientGroup))
 
 	channel, err := domain.NewChannel(domain.MAIN_CHANNEL, portal.Id, group.Id, domain.MAIN_CHANNEL, 60)
+	channel.State = domain.STATE_INACTIVE // inactive until used
 	expect(db.StoreChannel(channel))
 }

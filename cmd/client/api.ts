@@ -88,19 +88,19 @@ export async function api() {
         // );
         // console.log("DELETE result:", getResult);
 
-        const result = await httpPost<Record<string, any>>(
-            `${url}/rotate-token`,
-            token,
-            {}
-        );
-        console.log("POST result:", result);
-
         // const result = await httpPost<Record<string, any>>(
-        //     `${url}/signup-demo`,
-        //     "",
+        //     `${url}/rotate-token`,
+        //     token,
         //     {}
         // );
         // console.log("POST result:", result);
+
+        const result = await httpPost<Record<string, any>>(
+            `${url}/signup-demo`,
+            "",
+            {}
+        );
+        console.log("POST result:", result);
     } catch (error) {
         console.error("OOPS! ->:", error);
     }

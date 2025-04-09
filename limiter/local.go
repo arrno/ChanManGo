@@ -19,8 +19,8 @@ func NewLocalLimiter() *LocalLimiter {
 		visitors: make(map[string]*rate.Limiter),
 		// rateLimit: rate.Every(5 * time.Second),
 		// burst:     10,
-		rateLimit: rate.Every(30 * time.Minute), // slow demo mode
-		burst:     60,
+		rateLimit: rate.Every(3 * time.Minute), // slow demo mode
+		burst:     6,
 	}
 }
 

@@ -120,6 +120,7 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Fetch channel from database
+		newChannel := false
 		channel, err := c.system.ChannelProvider.GetChannelByGroupAndName(groupId, channelName)
 		if err != nil {
 			if errors.Is(err, datastore.ErrNotFound) {
@@ -128,7 +129,7 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 					RespondWithError(w, http.StatusInternalServerError, "Channel not found", err)
 					return
 				}
-				channel.Id = ""
+				newChannel = true
 				log.Info().Str("groupId", groupId).Str("channelName", channelName).Msg("Channel not found. Channel will be created.")
 			} else {
 				log.Error().Err(err).Str("groupId", groupId).Str("channelName", channelName).Msg("Error fetching channel")
@@ -138,7 +139,10 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Verify channel belongs to the expected group and portal
-		if (channel.GroupId != groupId || channel.PortalId != portalId) && clientId != domain.GLOBAL_ADMIN {
+		channelMatches := channel.GroupId == groupId && channel.PortalId == portalId
+		isAdmin := admin && clientId == domain.GLOBAL_ADMIN
+
+		if !newChannel && !channelMatches && !isAdmin {
 			log.Warn().
 				Str("clientId", clientId).
 				Str("channelId", channel.Id).

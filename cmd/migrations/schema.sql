@@ -56,8 +56,9 @@ CREATE INDEX idx_groups_parent_id ON groups(parent_group_id);
 CREATE TABLE client_permissions (
   id VARCHAR(255) PRIMARY KEY,
   client_id VARCHAR(255) NOT NULL,
-  read BOOLEAN NOT NULL DEFAULT false,
-  write BOOLEAN NOT NULL DEFAULT false,
+  allow_read BOOLEAN NOT NULL DEFAULT false,
+  allow_write BOOLEAN NOT NULL DEFAULT false,
+  allow_create BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,

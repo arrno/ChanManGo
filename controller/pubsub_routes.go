@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/arrno/chanman/domain"
 	"github.com/gorilla/websocket"
@@ -114,6 +115,8 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var mu sync.Mutex // protect conn
+
 	log.Info().Str("clientId", clientId).Str("channel", channelName).Msg("WebSocket connection established")
 	defer conn.Close()
 
@@ -121,7 +124,9 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 
 	worker, err := c.chanMan.ExpectChannel(channel)
 	if err != nil {
+		mu.Lock()
 		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to open channel"))
+		mu.Unlock()
 		return
 	}
 	decrement := worker.IncrPublishers()
@@ -147,7 +152,10 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 		err = json.Unmarshal(msg, &wrapper)
 		if err != nil {
 			log.Error().Msg(fmt.Sprintf("Json unmarshal err: %v", err))
+
+			mu.Lock()
 			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to unmarshal"))
+			mu.Unlock()
 			return
 		}
 
@@ -161,10 +169,16 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			if errors.Is(err, domain.ErrChanOpNotPermitted) {
 				log.Error().Msg(fmt.Sprintf("Auth failure. Failed to publish message: %s", err.Error()))
+
+				mu.Lock()
 				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Error: Unauthorized"))
+				mu.Unlock()
 			} else {
 				log.Error().Msg(fmt.Sprintf("Failed to publish message: %s", err.Error()))
+
+				mu.Lock()
 				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to publish message"))
+				mu.Unlock()
 			}
 			break
 		}
@@ -277,6 +291,8 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 
 	log.Info().Msg("Client connected for reading")
 
+	var mu sync.Mutex // protect conn
+
 	sub.Callback = func(message *domain.Message) error {
 		wrapper := MessageWrapper{
 			Topic:   message.Topic,
@@ -287,7 +303,11 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 			log.Error().Msg("Marshal err")
 			return err
 		}
+
+		mu.Lock()
 		err = conn.WriteMessage(websocket.TextMessage, b)
+		mu.Unlock()
+
 		if err != nil {
 			log.Error().Msg(fmt.Sprintf("Write error or client disconnected: %v", err))
 			return err
@@ -300,10 +320,16 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrChanOpNotPermitted) {
 			log.Error().Msg(fmt.Sprintf("Auth failure. Failed to add subscription: %s", err.Error()))
+
+			mu.Lock()
 			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Error: Unauthorized"))
+			mu.Unlock()
 		} else {
 			log.Error().Msg(fmt.Sprintf("Failed to add subscription: %s", err.Error()))
+
+			mu.Lock()
 			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1002, "Error: Failed to add subscription"))
+			mu.Unlock()
 		}
 		return
 	}

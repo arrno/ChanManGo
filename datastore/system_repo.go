@@ -263,17 +263,18 @@ func (r *SystemRepo) ArchiveClientSecret(id string) error {
 func (r *SystemRepo) StoreClientPermission(perm *domain.ClientPermission) error {
 	query := `
 		INSERT INTO client_permissions (
-			id, client_id, read, write, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (id) DO UPDATE SET
-			read = $3,
-			write = $4,
-			updated_at = $6,
-			archived_at = $7
+			allow_read = $3,
+			allow_write = $4,
+			allow_create = $5,
+			updated_at = $7,
+			archived_at = $8
 	`
 
 	_, err := r.db.Exec(ctx, query,
-		perm.Id, perm.ClientId, perm.Read, perm.Write,
+		perm.Id, perm.ClientId, perm.Read, perm.Write, perm.Create,
 		perm.CreatedAt, perm.UpdatedAt, perm.ArchivedAt)
 
 	return err
@@ -282,7 +283,7 @@ func (r *SystemRepo) StoreClientPermission(perm *domain.ClientPermission) error 
 // GetClientPermission retrieves a client permission by ID
 func (r *SystemRepo) GetClientPermission(id string) (*domain.ClientPermission, error) {
 	query := `
-		SELECT id, client_id, read, write, created_at, updated_at, archived_at
+		SELECT id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
 		FROM client_permissions
 		WHERE id = $1
 	`
@@ -302,7 +303,7 @@ func (r *SystemRepo) GetClientPermission(id string) (*domain.ClientPermission, e
 // GetClientPermissionByClientId retrieves a client permission by client ID
 func (r *SystemRepo) GetClientPermissionByClientId(clientId string) (*domain.ClientPermission, error) {
 	query := `
-		SELECT id, client_id, read, write, created_at, updated_at, archived_at
+		SELECT id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
 		FROM client_permissions
 		WHERE client_id = $1 AND archived_at IS NULL
 		ORDER BY created_at DESC
@@ -325,12 +326,12 @@ func (r *SystemRepo) GetClientPermissionByClientId(clientId string) (*domain.Cli
 func (r *SystemRepo) UpdateClientPermission(perm *domain.ClientPermission) error {
 	query := `
 		UPDATE client_permissions
-		SET read = $2, write = $3, updated_at = $4, archived_at = $5
+		SET allow_read = $2, allow_write = $3, allow_create = $4, updated_at = $5, archived_at = $6
 		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(ctx, query,
-		perm.Id, perm.Read, perm.Write, perm.UpdatedAt, perm.ArchivedAt)
+		perm.Id, perm.Read, perm.Write, perm.Create, perm.UpdatedAt, perm.ArchivedAt)
 	if err != nil {
 		return err
 	}
@@ -657,7 +658,7 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	// Get client permission
 	var clientPermission domain.ClientPermission
 	permQuery := `
-		SELECT id, client_id, read, write, created_at, updated_at, archived_at
+		SELECT id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
 		FROM client_permissions
 		WHERE client_id = $1 AND archived_at IS NULL
 		ORDER BY created_at DESC
