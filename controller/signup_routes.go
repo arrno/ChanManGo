@@ -35,7 +35,8 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	permission := domain.NewReadOnly(client.Id)
+	// permission := domain.NewReadOnly(client.Id)
+	permission := domain.NewReadWrite(client.Id)
 
 	// Use the database's transaction support
 	token, err := c.system.InitSandbox(client, channel, group, permission)

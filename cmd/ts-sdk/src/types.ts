@@ -18,7 +18,7 @@ export interface ChanbanOptions {
     channel: string;
 
     /**
-     * Optionally the topics the root connection subscribes to
+     * Optionally, root topics subscribed to filtered on server
      */
     topics?: Array<string>;
 
@@ -92,6 +92,11 @@ export enum ConnectionState {
     RECONNECTING = "reconnecting",
     ERROR = "error",
 }
+
+/**
+ * Constant representing all topics
+ */
+export const TOPIC_ALL: string = "_ALL_";
 
 /**
  * Response from the server to the client

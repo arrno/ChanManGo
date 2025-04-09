@@ -6,6 +6,7 @@ import {
     MessageCallback,
     SerializedMessage,
     StandardResponse,
+    TOPIC_ALL,
 } from "./types";
 
 // Import WebSocket for Node.js environments
@@ -241,12 +242,19 @@ export class ChanbanSDK {
         this.updateSubscriberState(ConnectionState.CONNECTING);
 
         // Build the query parameters from headers
-        const queryParams = Object.entries(this.headers)
+        let queryParams = Object.entries(this.headers)
             .map(
                 ([key, value]) =>
                     `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
             )
             .join("&");
+
+        // Optionally topics filtered on server
+        if (this.rootTopics.length > 0) {
+            queryParams += `&topics=${this.rootTopics
+                .map((topic) => encodeURIComponent(topic))
+                .join(",")}`;
+        }
 
         // Create the WebSocket connection
         // Note: The server expects a POST method for WebSocket upgrade
@@ -317,7 +325,11 @@ export class ChanbanSDK {
                     const message: SerializedMessage = JSON.parse(
                         event.data.toString()
                     );
-                    const listeners = this.listeners[message.topic];
+
+                    const listeners: Array<MessageCallback> = [
+                        ...(this.listeners[message.topic] ?? []),
+                        ...(this.listeners[TOPIC_ALL] ?? []),
+                    ];
 
                     if (listeners && listeners.length > 0) {
                         let parsedPayload: Record<string, any>;
@@ -501,14 +513,15 @@ export class ChanbanSDK {
     /**
      * Subscribes to one or more topics
      *
-     * @param topics Topic or topics to subscribe to
      * @param callback Callback function to call when a message is received
+     * @param topics Optional topic or topics to subscribe to filtered on client
      * @returns Promise that resolves when the subscription is established
      */
     async subscribe(
-        topics: string | string[],
-        callback: MessageCallback
+        callback: MessageCallback,
+        topics?: string | string[]
     ): Promise<void> {
+        topics = topics ?? TOPIC_ALL;
         // Ensure array of topics
         const topicArray = Array.isArray(topics) ? topics : [topics];
 

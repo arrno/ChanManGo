@@ -7,6 +7,7 @@ var ConnectionState = /* @__PURE__ */ ((ConnectionState2) => {
   ConnectionState2["ERROR"] = "error";
   return ConnectionState2;
 })(ConnectionState || {});
+var TOPIC_ALL = "_ALL_";
 
 // src/sdk.ts
 import * as ws from "ws";
@@ -34,6 +35,7 @@ var ChanbanSDK = class {
     this.baseUrl = options.baseUrl;
     this.authToken = options.authToken;
     this.channel = options.channel;
+    this.rootTopics = options.topics ?? [];
     this.headers = { ...options.headers };
     if (!this.headers["Authorization"]) {
       if (!this.authToken.startsWith("Bearer ")) {
@@ -57,6 +59,44 @@ var ChanbanSDK = class {
         debug: this.debug
       })
     );
+  }
+  /**
+   * Handling storing the new auth token and updating headers
+   *
+   * @param token The new auth token
+   */
+  updateAuthToken(token) {
+    this.authToken = token;
+    if (this.authToken.startsWith("Bearer ")) {
+      this.headers["Authorization"] = this.authToken;
+    } else {
+      this.headers["Authorization"] = `Bearer ${this.authToken}`;
+    }
+  }
+  /**
+   * Rotates the account token via HTTP POST
+   *
+   * @returns Promise that resolves with the server response
+   */
+  async rotateToken() {
+    const response = await fetch(`${this.baseUrl}/rotate-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.headers
+      },
+      body: `{}`
+    });
+    if (!response.ok) {
+      throw new Error(
+        `HTTP error: ${response.status} ${response.statusText}`
+      );
+    }
+    const accountInfo = await response.json();
+    if (accountInfo.token) {
+      this.updateAuthToken(accountInfo.token);
+    }
+    return accountInfo;
   }
   /**
    * Sets up a WebSocket connection for publishing messages
@@ -128,9 +168,12 @@ var ChanbanSDK = class {
       return;
     }
     this.updateSubscriberState("connecting" /* CONNECTING */);
-    const queryParams = Object.entries(this.headers).map(
+    let queryParams = Object.entries(this.headers).map(
       ([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
     ).join("&");
+    if (this.rootTopics.length > 0) {
+      queryParams += `&topics=${this.rootTopics.map((topic) => encodeURIComponent(topic)).join(",")}`;
+    }
     const url = `${this.getWebSocketBaseUrl()}/sub?channel=${encodeURIComponent(
       this.channel
     )}&${queryParams}`;
@@ -157,6 +200,13 @@ var ChanbanSDK = class {
         if (wasConnected && this.autoReconnect) {
           this.attemptReconnectSubscriber();
         }
+        if (!wasConnected) {
+          reject(
+            new Error(
+              `WebSocket error: ${event?.message || "Denied"}`
+            )
+          );
+        }
       };
       this.subSocket.onerror = (event) => {
         this.updateSubscriberState("error" /* ERROR */);
@@ -174,7 +224,10 @@ var ChanbanSDK = class {
           const message = JSON.parse(
             event.data.toString()
           );
-          const listeners = this.listeners[message.topic];
+          const listeners = [
+            ...this.listeners[message.topic] ?? [],
+            ...this.listeners[TOPIC_ALL] ?? []
+          ];
           if (listeners && listeners.length > 0) {
             let parsedPayload;
             try {
@@ -328,11 +381,12 @@ var ChanbanSDK = class {
   /**
    * Subscribes to one or more topics
    *
-   * @param topics Topic or topics to subscribe to
    * @param callback Callback function to call when a message is received
+   * @param topics Optional topic or topics to subscribe to filtered on client
    * @returns Promise that resolves when the subscription is established
    */
-  async subscribe(topics, callback) {
+  async subscribe(callback, topics) {
+    topics = topics ?? TOPIC_ALL;
     const topicArray = Array.isArray(topics) ? topics : [topics];
     await this.connectSubscriber();
     topicArray.forEach((topic) => {

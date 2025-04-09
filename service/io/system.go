@@ -62,10 +62,10 @@ func (s *SystemProvider) InitSandbox(
 		// if tokenErr != nil {
 		// 	return tokenErr
 		// }
-		token := domain.NewToken(util.Nanoid(), client.Id)
+		token = *(domain.NewToken(util.Nanoid(), client.Id))
 		token.Hash()
 
-		secret := domain.NewClientSecretFromToken(*token)
+		secret := domain.NewClientSecretFromToken(token)
 		if err := tx.StoreClientSecret(&secret); err != nil {
 			return err
 		}

@@ -54,8 +54,8 @@ func NewChannel(chanObject *domain.Channel, broker broker.BrokerProvider, update
 		defer update(message)
 
 		var subscribers []*domain.TopicSubscription
-		if message.Topic != "all" {
-			subscribers = c.subscriptionBook.FetchTopicSubscriptions([]string{"all"})
+		if message.Topic != domain.ALL_TOPIC {
+			subscribers = c.subscriptionBook.FetchTopicSubscriptions([]string{domain.ALL_TOPIC})
 		}
 		for _, v := range c.subscriptionBook.FetchTopicSubscriptions([]string{message.Topic}) {
 			subscribers = append(subscribers, v)

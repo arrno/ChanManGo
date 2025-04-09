@@ -31,9 +31,12 @@ sdk.onStateChange((state, connectionType) => {
 });
 
 // Subscribe to topics
-await sdk.subscribe(["updates", "notifications"], (topic, message) => {
-    console.log(`Received message on topic '${topic}':`, message);
-});
+await sdk.subscribe(
+    (topic, message) => {
+        console.log(`Received message on topic '${topic}':`, message);
+    },
+    ["updates", "notifications"]
+);
 
 // Publish a message
 await sdk.publish("updates", {
@@ -73,6 +76,7 @@ Parameters:
     -   `baseUrl` (required): The base URL of the API server
     -   `authToken` (required): Authentication token
     -   `channel` (required): Channel to connect to
+    -   `topics` (optional): Topics to subscribe to filtered on server (default: all)
     -   `headers` (optional): Additional headers to include in requests
     -   `autoReconnect` (optional): Whether to automatically reconnect (default: true)
     -   `maxReconnectAttempts` (optional): Maximum reconnection attempts before giving up (default: 5)
@@ -107,18 +111,18 @@ Parameters:
 -   `topic`: Topic name to publish to
 -   `payload`: Message content as a JSON object
 
-##### subscribe(topics, callback)
+##### subscribe(callback, topics)
 
 Subscribes to one or more topics and registers a callback function for messages.
 
 ```typescript
-async subscribe(topics: string | string[], callback: MessageCallback): Promise<void>
+async subscribe(callback: MessageCallback, topics?: string | string[]): Promise<void>
 ```
 
 Parameters:
 
--   `topics`: Topic name or array of topic names to subscribe to
 -   `callback`: Function called with each received message
+-   `topics` (optional): Topic name or array of topic names to subscribe to (default: all)
 
 ##### unsubscribe(topic, callback?)
 
@@ -182,6 +186,14 @@ async rotateToken(): Promise<AccountResponse>
 ```
 
 ### Types
+
+#### ALL constant
+
+A special constant for subscribing to ALL topics on a channel
+
+```typescript
+const TOPIC_ALL: string = "_ALL_";
+```
 
 #### ConnectionState
 

@@ -3,7 +3,6 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
-SDK topic subscriptions
 SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
 ---
 implement redis broker / rate-limiter
@@ -29,12 +28,14 @@ User:
 - Expired Token
 Deny: 
   * Publish, 
-  rotate other token, 
   * sub other groups/channels, 
   * admin routes aka /client(s)
+  * rotate other token, 
 
 Misc:
 * abrupt disconnect -> cleanup threads/channels
+* SDK topic subscriptions - handle via params; add to docs
+Test SDK topic segmentation
 
 Data:
 * managing channel/subscription/message state/archived

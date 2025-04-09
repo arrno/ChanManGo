@@ -210,7 +210,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	topicSet := r.Header.Get("topics")
 	var topics []string
 	if len(topicSet) == 0 {
-		topics = []string{"all"}
+		topics = []string{domain.ALL_TOPIC}
 	} else {
 		topics = strings.Split(topicSet, ",")
 	}

@@ -15,6 +15,10 @@ interface ChanbanOptions {
      */
     channel: string;
     /**
+     * Optionally, root topics subscribed to filtered on server
+     */
+    topics?: Array<string>;
+    /**
      * Additional headers to include in requests
      */
     headers?: Record<string, string>;
@@ -85,6 +89,17 @@ interface StandardResponse {
     data?: any;
 }
 /**
+ * Account focused response from the server to the client
+ */
+interface AccountResponse {
+    clientId: string;
+    channel?: string;
+    token?: string;
+    tokenExpiresAt?: Date;
+    clientName?: string;
+    clientGroup?: string;
+}
+/**
  * Callback type for message subscription
  */
 type MessageCallback = (topic: string, message: Record<string, any>) => void;
@@ -103,6 +118,7 @@ declare class ChanbanSDK {
     private maxReconnectAttempts;
     private reconnectDelay;
     private debug;
+    private rootTopics;
     private pubSocket;
     private subSocket;
     private pubState;
@@ -117,6 +133,18 @@ declare class ChanbanSDK {
      * @param options Configuration options for the SDK
      */
     constructor(options: ChanbanOptions);
+    /**
+     * Handling storing the new auth token and updating headers
+     *
+     * @param token The new auth token
+     */
+    private updateAuthToken;
+    /**
+     * Rotates the account token via HTTP POST
+     *
+     * @returns Promise that resolves with the server response
+     */
+    rotateToken(): Promise<AccountResponse>;
     /**
      * Sets up a WebSocket connection for publishing messages
      *
@@ -175,11 +203,11 @@ declare class ChanbanSDK {
     /**
      * Subscribes to one or more topics
      *
-     * @param topics Topic or topics to subscribe to
      * @param callback Callback function to call when a message is received
+     * @param topics Optional topic or topics to subscribe to filtered on client
      * @returns Promise that resolves when the subscription is established
      */
-    subscribe(topics: string | string[], callback: MessageCallback): Promise<void>;
+    subscribe(callback: MessageCallback, topics?: string | string[]): Promise<void>;
     /**
      * Unsubscribes from a topic
      *

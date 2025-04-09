@@ -55,7 +55,7 @@ async function httpPost<T>(
 }
 
 const url = "http://localhost:8080";
-const token = "g675bjNgR5VygTPSfiSl::4nEA9gYtgUwry9yHqDPN";
+const token = "RfDKtxxcBVXbshGFXLCV::uCMyOJB7DvCiC73WHhgS";
 
 // 6B2tz2fpuOSqiZSXiqxV
 // Example usage:
@@ -70,11 +70,11 @@ export async function api() {
         // );
         // console.log("POST result:", result);
 
-        const getResult = await httpGet<Record<string, any>>(
-            `${url}/clients?page=1&count=10&archived=true`,
-            token
-        );
-        console.log("GET result:", getResult);
+        // const getResult = await httpGet<Record<string, any>>(
+        //     `${url}/clients?page=1&count=10&archived=true`,
+        //     token
+        // );
+        // console.log("GET result:", getResult);
 
         // const getResult = await httpGet<Record<string, any>>(
         //     `${url}/client?clientId=5j3bNZ7EjN0hjbu7nn3P`,
@@ -95,12 +95,12 @@ export async function api() {
         // );
         // console.log("POST result:", result);
 
-        // const result = await httpPost<Record<string, any>>(
-        //     `${url}/signup-demo`,
-        //     "",
-        //     {}
-        // );
-        // console.log("POST result:", result);
+        const result = await httpPost<Record<string, any>>(
+            `${url}/signup-demo`,
+            "",
+            {}
+        );
+        console.log("POST result:", result);
     } catch (error) {
         console.error("OOPS! ->:", error);
     }
