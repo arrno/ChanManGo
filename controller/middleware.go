@@ -58,6 +58,7 @@ func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 			Bool("admin", isAdmin).
 			Bool("read", permission.Read).
 			Bool("write", permission.Write).
+			Bool("create", permission.Create).
 			Str("path", r.URL.Path).
 			Msg("Authenticated request")
 
@@ -109,8 +110,8 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 		clientId := r.Header.Get("clientId")
 
 		admin := len(r.Header.Get("admin")) > 0
-		write := len(r.Header.Get("write")) > 0
-		canCreate := write || admin
+		create := len(r.Header.Get("create")) > 0
+		canCreate := create || admin
 
 		// Validate channel name
 		if channelName == "" {
@@ -194,7 +195,7 @@ func (c *Controller) rateLimit(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // admin middleware ensures only admin users can access protected routes
-func admin(next http.HandlerFunc) http.HandlerFunc {
+func onlyAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		admin := r.Header.Get("admin")
 		if admin != "true" {

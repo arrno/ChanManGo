@@ -68,6 +68,9 @@ export class ChanbanSDK {
         this.channel = options.channel;
 
         this.rootTopics = options.topics ?? [];
+        if (this.rootTopics.includes(TOPIC_ALL)) {
+            this.rootTopics = [TOPIC_ALL];
+        }
 
         // Create headers with Authorization token
         // The server expects 'Authorization: Bearer <token>' or just the raw token
@@ -523,7 +526,10 @@ export class ChanbanSDK {
     ): Promise<void> {
         topics = topics ?? TOPIC_ALL;
         // Ensure array of topics
-        const topicArray = Array.isArray(topics) ? topics : [topics];
+        let topicArray = Array.isArray(topics) ? topics : [topics];
+        if (topicArray.includes(TOPIC_ALL)) {
+            topicArray = [TOPIC_ALL];
+        }
 
         // Ensure the subscriber is connected
         await this.connectSubscriber();

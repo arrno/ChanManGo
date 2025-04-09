@@ -80,6 +80,10 @@ declare enum ConnectionState {
     ERROR = "error"
 }
 /**
+ * Constant representing all topics
+ */
+declare const TOPIC_ALL: string;
+/**
  * Response from the server to the client
  */
 interface StandardResponse {
@@ -264,4 +268,4 @@ declare class ChanbanSDK {
  */
 declare function loadFromEnv(): ChanbanOptions;
 
-export { type ChanbanOptions, ChanbanSDK, ConnectionState, type Message, type MessageCallback, type SerializedMessage, type StandardResponse, loadFromEnv };
+export { type ChanbanOptions, ChanbanSDK, ConnectionState, type Message, type MessageCallback, type SerializedMessage, type StandardResponse, TOPIC_ALL, loadFromEnv };

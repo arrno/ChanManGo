@@ -65,7 +65,7 @@ func NewController() *Controller {
 	}
 }
 
-func parseHeaders(h http.Header) (clientId, groupId, portalId, channelName, channelId, read, write string) {
+func parseHeaders(h http.Header) (clientId, groupId, portalId, channelName, channelId, read, write, create string) {
 	clientId = h.Get("clientId")
 	groupId = h.Get("groupId")
 	portalId = h.Get("portalId")
@@ -73,6 +73,7 @@ func parseHeaders(h http.Header) (clientId, groupId, portalId, channelName, chan
 	channelId = h.Get("channelId")
 	read = h.Get("read")
 	write = h.Get("write")
+	create = h.Get("create")
 	return
 }
 

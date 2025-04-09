@@ -16,9 +16,11 @@ type LocalLimiter struct {
 
 func NewLocalLimiter() *LocalLimiter {
 	return &LocalLimiter{
-		visitors:  make(map[string]*rate.Limiter),
-		rateLimit: rate.Every(5 * time.Second),
-		burst:     10,
+		visitors: make(map[string]*rate.Limiter),
+		// rateLimit: rate.Every(5 * time.Second),
+		// burst:     10,
+		rateLimit: rate.Every(30 * time.Minute), // slow demo mode
+		burst:     60,
 	}
 }
 

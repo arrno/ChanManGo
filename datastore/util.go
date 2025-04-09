@@ -27,7 +27,7 @@ func SeedDb(db RepoProvider) {
 	secret := domain.NewClientSecretFromToken(*token)
 	expect(db.StoreClientSecret(&secret))
 
-	expect(db.StoreClientPermission(domain.NewReadWrite(client.Id)))
+	expect(db.StoreClientPermission(domain.NewAll(client.Id)))
 
 	portal, err := domain.NewPortal(domain.MAIN_PORTAL, client.Id, domain.MAIN_PORTAL)
 	expect(err)

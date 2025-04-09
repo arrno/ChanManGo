@@ -15,7 +15,7 @@ import (
 
 func (c *Controller) HandlePublish(w http.ResponseWriter, r *http.Request) {
 
-	clientId, groupId, portalId, channelName, channelId, _, write := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, channelId, _, write, _ := parseHeaders(r.Header)
 
 	if write != "true" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -74,7 +74,7 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 		Str("proto", r.Proto).
 		Msg("WebSocket publish request received")
 
-	clientId, groupId, portalId, channelName, channelId, _, write := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, channelId, _, write, _ := parseHeaders(r.Header)
 
 	// Log authentication details (sanitized)
 	log.Info().
@@ -183,7 +183,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		Str("proto", r.Proto).
 		Msg("WebSocket subscribe request received")
 
-	clientId, groupId, portalId, channelName, channelId, read, _ := parseHeaders(r.Header)
+	clientId, groupId, portalId, channelName, channelId, read, _, _ := parseHeaders(r.Header)
 
 	// Log authentication details (sanitized)
 	log.Info().
@@ -213,6 +213,12 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		topics = []string{domain.ALL_TOPIC}
 	} else {
 		topics = strings.Split(topicSet, ",")
+		for _, topic := range topics {
+			if topic == domain.ALL_TOPIC {
+				topics = []string{domain.ALL_TOPIC}
+				break
+			}
+		}
 	}
 
 	channel, err := domain.NewChannel(channelId, portalId, groupId, channelName, 60)

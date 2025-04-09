@@ -32,7 +32,7 @@ func RunWeb() {
 	ra := NewRouter().
 		Chain(c.rateLimit).
 		Chain(c.auth).
-		Chain(admin)
+		Chain(onlyAdmin)
 	ra.Add(
 		"/client",
 		c.ClientHandler,

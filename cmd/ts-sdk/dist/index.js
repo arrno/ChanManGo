@@ -36,6 +36,9 @@ var ChanbanSDK = class {
     this.authToken = options.authToken;
     this.channel = options.channel;
     this.rootTopics = options.topics ?? [];
+    if (this.rootTopics.includes(TOPIC_ALL)) {
+      this.rootTopics = [TOPIC_ALL];
+    }
     this.headers = { ...options.headers };
     if (!this.headers["Authorization"]) {
       if (!this.authToken.startsWith("Bearer ")) {
@@ -387,7 +390,10 @@ var ChanbanSDK = class {
    */
   async subscribe(callback, topics) {
     topics = topics ?? TOPIC_ALL;
-    const topicArray = Array.isArray(topics) ? topics : [topics];
+    let topicArray = Array.isArray(topics) ? topics : [topics];
+    if (topicArray.includes(TOPIC_ALL)) {
+      topicArray = [TOPIC_ALL];
+    }
     await this.connectSubscriber();
     topicArray.forEach((topic) => {
       if (!this.listeners[topic]) {
@@ -531,5 +537,6 @@ function loadFromEnv() {
 export {
   ChanbanSDK,
   ConnectionState,
+  TOPIC_ALL,
   loadFromEnv
 };

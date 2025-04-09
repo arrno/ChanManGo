@@ -25,7 +25,7 @@ User:
 * SignUp
 * RotateToken
 * Sub
-- Expired Token
+* Expired Token
 Deny: 
   * Publish, 
   * sub other groups/channels, 
@@ -35,7 +35,10 @@ Deny:
 Misc:
 * abrupt disconnect -> cleanup threads/channels
 * SDK topic subscriptions - handle via params; add to docs
-Test SDK topic segmentation
+* Test SDK topic segmentation
+* if sub to _ALL_, flatten any other topics
+Channel create permissions
+rate limiter
 
 Data:
 * managing channel/subscription/message state/archived

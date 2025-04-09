@@ -55,7 +55,7 @@ async function httpPost<T>(
 }
 
 const url = "http://localhost:8080";
-const token = "RfDKtxxcBVXbshGFXLCV::uCMyOJB7DvCiC73WHhgS";
+const token = "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z";
 
 // 6B2tz2fpuOSqiZSXiqxV
 // Example usage:
@@ -88,19 +88,19 @@ export async function api() {
         // );
         // console.log("DELETE result:", getResult);
 
-        // const result = await httpPost<Record<string, any>>(
-        //     `${url}/rotate-token`,
-        //     token,
-        //     {}
-        // );
-        // console.log("POST result:", result);
-
         const result = await httpPost<Record<string, any>>(
-            `${url}/signup-demo`,
-            "",
+            `${url}/rotate-token`,
+            token,
             {}
         );
         console.log("POST result:", result);
+
+        // const result = await httpPost<Record<string, any>>(
+        //     `${url}/signup-demo`,
+        //     "",
+        //     {}
+        // );
+        // console.log("POST result:", result);
     } catch (error) {
         console.error("OOPS! ->:", error);
     }

@@ -1,19 +1,24 @@
-import { ChanbanSDK, loadFromEnv, ConnectionState } from "chanban-sdk";
+import {
+    ChanbanSDK,
+    loadFromEnv,
+    ConnectionState,
+    TOPIC_ALL,
+} from "chanban-sdk";
 
 export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "Xp4Ve4azTepGQ1qE3LRo::rBJtTSg6Ufb8f1LhOBbZ",
-        topics: ["updates", "notifications"],
+        authToken: "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z",
+        topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
     });
 
     const sdkTwo = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "Xp4Ve4azTepGQ1qE3LRo::rBJtTSg6Ufb8f1LhOBbZ",
-        topics: ["alt"],
+        authToken: "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z",
+        topics: ["alt", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
     });

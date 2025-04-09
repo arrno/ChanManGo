@@ -7,4 +7,5 @@ export {
     MessageCallback,
     SerializedMessage,
     StandardResponse,
+    TOPIC_ALL,
 } from "./types";
