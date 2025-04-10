@@ -318,21 +318,22 @@ func (r *MessageRepo) ArchiveChannelSubscriber(id string) error {
 func (r *MessageRepo) StoreMessage(msg *domain.Message) error {
 	query := `
 		INSERT INTO messages (
-			id, topic, client_id, channel_id, processed_at, acknowledged_at,
+			id, topic, client_id, channel_id, processed_at, acknowledged_at, destinations,
 			state, archived, payload, attempts, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		ON CONFLICT (id) DO UPDATE SET
 			processed_at = $5,
 			acknowledged_at = $6,
-			state = $7,
-			archived = $8,
-			attempts = $10,
-			updated_at = $12,
-			archived_at = $13
+			destinations = $7,
+			state = $8,
+			archived = $9,
+			attempts = $11,
+			updated_at = $13,
+			archived_at = $14
 	`
 
 	_, err := r.db.Exec(ctx, query,
-		msg.Id, msg.Topic, msg.ClientId, msg.ChannelId, msg.ProcessedAt, msg.AcknowledgedAt,
+		msg.Id, msg.Topic, msg.ClientId, msg.ChannelId, msg.ProcessedAt, msg.AcknowledgedAt, msg.Destinations,
 		msg.State, msg.Archived, msg.Payload, msg.Attempts, msg.CreatedAt, msg.UpdatedAt, msg.ArchivedAt)
 
 	return err
@@ -341,7 +342,7 @@ func (r *MessageRepo) StoreMessage(msg *domain.Message) error {
 // GetMessage retrieves a message by ID
 func (r *MessageRepo) GetMessage(id string) (*domain.Message, error) {
 	query := `
-		SELECT id, topic, client_id, channel_id, processed_at, acknowledged_at,
+		SELECT id, topic, client_id, channel_id, processed_at, acknowledged_at, destinations,
 			state, archived, payload, attempts, created_at, updated_at, archived_at
 		FROM messages
 		WHERE id = $1
@@ -364,14 +365,14 @@ func (r *MessageRepo) UpdateMessage(msg *domain.Message) error {
 	query := `
 		UPDATE messages
 		SET topic = $2, client_id = $3, channel_id = $4, processed_at = $5,
-			acknowledged_at = $6, state = $7, archived = $8, payload = $9,
-			attempts = $10, updated_at = $11, archived_at = $12
+			acknowledged_at = $6, destinations = $7, state = $8, archived = $9, payload = $10,
+			attempts = $11, updated_at = $12, archived_at = $13
 		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(ctx, query,
 		msg.Id, msg.Topic, msg.ClientId, msg.ChannelId, msg.ProcessedAt,
-		msg.AcknowledgedAt, msg.State, msg.Archived, msg.Payload,
+		msg.AcknowledgedAt, msg.Destinations, msg.State, msg.Archived, msg.Payload,
 		msg.Attempts, msg.UpdatedAt, msg.ArchivedAt)
 	if err != nil {
 		return err

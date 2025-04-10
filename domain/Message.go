@@ -19,6 +19,7 @@ type Message struct {
 	Archived       bool       `db:"archived" json:"archived"`
 	Payload        []byte     `db:"payload" json:"payload"`
 	Attempts       uint       `db:"attempts" json:"attempts"`
+	Destinations   uint       `db:"destinations" json:"destinations"`
 	CreatedAt      time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt      time.Time  `db:"updated_at" json:"updatedAt"`
 	ArchivedAt     *time.Time `db:"archived_at" json:"archivedAt"`
@@ -85,9 +86,10 @@ func (m *Message) Process() {
 	m.Attempts++
 }
 
-func (m *Message) Acknowledge() {
+func (m *Message) Acknowledge(count uint) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	t := time.Now()
 	m.AcknowledgedAt = &t
+	m.Destinations = count
 }

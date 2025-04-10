@@ -212,6 +212,12 @@ func (c *Manager) SpawnWatcher() chan any {
 				if err := c.PruneChannels(); err != nil {
 					log.Error().Msg("Failed to prune workers. Err: " + err.Error())
 				}
+				if err := c.PruneMessages(); err != nil {
+					log.Error().Msg("Failed to prune messages. Err: " + err.Error())
+				}
+				if err := c.ReportUsage(); err != nil {
+					log.Error().Msg("Failed to report usage. Err: " + err.Error())
+				}
 			}
 		}
 	}()
@@ -317,6 +323,19 @@ func (c *Manager) PruneChannels() (err error) {
 			}
 		}
 	}
+	return
+}
+
+func (c *Manager) PruneMessages() (err error) {
+	log.Info().Msg("pruning messages")
+	// TODO fetch all messages written prior to now - retentionPeriod and delete
+	return
+}
+
+func (c *Manager) ReportUsage() (err error) {
+	log.Info().Msg("reporting usage")
+	// TODO: for each active client, query sum of destinations on messages created
+	// during most recent time window, report to payment manager
 	return
 }
 

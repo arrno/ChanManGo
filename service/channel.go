@@ -50,9 +50,6 @@ func NewChannel(chanObject *domain.Channel, broker broker.BrokerProvider, update
 	// Broadcast
 	c.rootSubscription.Callback = func(message *domain.Message) (err error) {
 
-		message.Acknowledge()
-		defer update(message)
-
 		var subscribers []*domain.TopicSubscription
 		if message.Topic != domain.ALL_TOPIC {
 			subscribers = c.subscriptionBook.FetchTopicSubscriptions([]string{domain.ALL_TOPIC})
@@ -60,6 +57,9 @@ func NewChannel(chanObject *domain.Channel, broker broker.BrokerProvider, update
 		for _, v := range c.subscriptionBook.FetchTopicSubscriptions([]string{message.Topic}) {
 			subscribers = append(subscribers, v)
 		}
+
+		message.Acknowledge(uint(len(subscribers)))
+		defer update(message)
 
 		var wg sync.WaitGroup
 		wg.Add(len(subscribers))

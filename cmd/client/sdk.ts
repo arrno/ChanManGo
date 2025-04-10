@@ -9,15 +9,37 @@ export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "fioT5oPYSJg1bh0IpxRG::R3ayRZtNwKhRrnEkFkk5",
+        authToken: "OBZx5SEpFIAZfJfsHyDG::EGmUVXliEipRW50FOWvp",
         // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
     });
 
+    let subs: Array<ChanbanSDK> = [];
+    for (let i = 0; i < 10; i++) {
+        subs.push(
+            new ChanbanSDK({
+                baseUrl: "http://localhost:8080",
+                authToken: "OBZx5SEpFIAZfJfsHyDG::EGmUVXliEipRW50FOWvp",
+                // topics: ["updates", "notifications", TOPIC_ALL],
+                channel: "MyChan",
+                debug: true,
+            })
+        );
+        subs[subs.length - 1]?.subscribe(
+            (topic, message) => {
+                console.log(
+                    `Received message on ${i} topic '${topic}':`,
+                    message
+                );
+            }
+            // ["woo"]
+        );
+    }
+
     const sdkTwo = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "fioT5oPYSJg1bh0IpxRG::R3ayRZtNwKhRrnEkFkk5",
+        authToken: "OBZx5SEpFIAZfJfsHyDG::EGmUVXliEipRW50FOWvp",
         // topics: ["alt", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
@@ -38,15 +60,12 @@ export async function sdk() {
             // ["woo"]
         );
 
-        for (let i = 0; i < 10; i++) {
-            // Publish a message
-            console.log("Publishing message...");
-            await sdkTwo.publish("alt", {
-                id: "msg-1",
-                text: "Hello from Chanban SDK!",
-                timestamp: new Date().toISOString(),
-            });
-        }
+        console.log("Publishing message...");
+        await sdkTwo.publish("alt", {
+            id: "msg-1",
+            text: "Hello from Chanban SDK!",
+            timestamp: new Date().toISOString(),
+        });
 
         // Keep the connection open for a while to receive messages
         console.log("Waiting for messages...");
@@ -73,6 +92,7 @@ export async function sdk() {
         // Clean up
         sdk.disconnect();
         sdkTwo.disconnect();
+        subs.forEach((sub) => sub.disconnect());
         console.log("Disconnected");
     }
 }
