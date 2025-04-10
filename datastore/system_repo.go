@@ -207,7 +207,7 @@ func (r *SystemRepo) GetClientSecretByClientId(clientId string) (*domain.ClientS
 	query := `
 		SELECT id, client_id, encrypted_secret, state, created_at, updated_at, archived_at
 		FROM client_secret_tokens
-		WHERE client_id = $1 AND (archived_at IS NULL OR state != 'archived')
+		WHERE client_id = $1 AND archived_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT 1
 	`
@@ -460,7 +460,7 @@ func (r *SystemRepo) GetClientGroupsByClientId(clientId string) ([]*domain.Clien
 	query := `
 		SELECT id, client_id, group_id, state, created_at, updated_at, archived_at
 		FROM client_groups
-		WHERE client_id = $1 AND (archived_at IS NULL OR state != 'archived')
+		WHERE client_id = $1 AND archived_at IS NULL
 		ORDER BY created_at DESC
 	`
 

@@ -18,6 +18,7 @@ type ClientProvider interface {
 	//
 	RotateClientSecret(clientId string) (domain.Token, error)
 	ValidateClientSecret(clientId, token string) error
+	FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
 }
 
 type Client struct {
@@ -114,6 +115,9 @@ func (c *Client) ValidateClientSecret(clientId, password string) error {
 	if err != nil {
 		return err
 	}
+	if secret.ArchivedAt != nil {
+		return domain.ErrTokenArchived
+	}
 	return domain.Token{
 		Hashed: secret.EncryptedSecret,
 		Salt:   secret.Salt,
@@ -128,4 +132,15 @@ func (c *Client) clientExists(clientId string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func (c *Client) FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error) {
+	clientGroup, permission, isAdmin, expired, err := c.repo.GetClientAuthByToken(token)
+	if clientGroup.ArchivedAt != nil {
+		clientGroup = nil
+	}
+	if permission.ArchivedAt != nil {
+		permission = nil
+	}
+	return clientGroup, permission, isAdmin, expired, err
 }

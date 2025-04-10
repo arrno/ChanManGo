@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrTokenInvalid = errors.New("Token invalid")
-	ErrTokenExpired = errors.New("Token expired")
+	ErrTokenInvalid  = errors.New("Token invalid")
+	ErrTokenArchived = errors.New("Token archived")
+	ErrTokenExpired  = errors.New("Token expired")
 )
 
 // Token represents an API token with its raw value, hashed value, and optional salt

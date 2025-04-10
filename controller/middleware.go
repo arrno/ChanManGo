@@ -24,8 +24,8 @@ func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Validate token and get client permissions
-		clientGroup, permission, isAdmin, expired, err := c.db.GetClientAuthByToken(*token)
-		if err != nil || clientGroup == nil {
+		clientGroup, permission, isAdmin, expired, err := c.system.FetchActiveClaims(*token)
+		if err != nil || clientGroup == nil || permission == nil {
 			log.Error().Err(err).Str("token", "<scrub>").Msg("Invalid authentication token")
 			RespondWithError(w, http.StatusUnauthorized, "Invalid authentication token", nil)
 			return

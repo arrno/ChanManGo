@@ -6,6 +6,7 @@ Roadmap:
 SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
 ---
 implement redis broker / rate-limiter
+implement manager side effects -> healing / pruning / reporting
 ---
 [differentiators]
 ---
