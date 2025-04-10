@@ -9,7 +9,7 @@ export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "FCEDiSm67vuLzUVpvVQg::ZVlDVoEa7tnneRg5u0qw",
+        authToken: "fioT5oPYSJg1bh0IpxRG::R3ayRZtNwKhRrnEkFkk5",
         // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
@@ -17,7 +17,7 @@ export async function sdk() {
 
     const sdkTwo = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "FCEDiSm67vuLzUVpvVQg::ZVlDVoEa7tnneRg5u0qw",
+        authToken: "fioT5oPYSJg1bh0IpxRG::R3ayRZtNwKhRrnEkFkk5",
         // topics: ["alt", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
@@ -38,7 +38,7 @@ export async function sdk() {
             // ["woo"]
         );
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 10; i++) {
             // Publish a message
             console.log("Publishing message...");
             await sdkTwo.publish("alt", {

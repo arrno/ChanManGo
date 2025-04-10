@@ -19,26 +19,26 @@ func NewLocalLimiter() *LocalLimiter {
 		visitors: make(map[string]*rate.Limiter),
 		// rateLimit: rate.Every(5 * time.Second),
 		// burst:     10,
-		rateLimit: rate.Every(3 * time.Minute), // slow demo mode
-		burst:     6,
+		rateLimit: rate.Every(30 * time.Minute), // slow demo mode
+		burst:     60,
 	}
 }
 
-func (l *LocalLimiter) Allow(ip string) bool {
+func (l *LocalLimiter) Allow(identity string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	var limiter *rate.Limiter
 	var exists bool
-	if limiter, exists = l.visitors[ip]; !exists {
+	if limiter, exists = l.visitors[identity]; !exists {
 		limiter = rate.NewLimiter(l.rateLimit, l.burst)
-		l.visitors[ip] = limiter
+		l.visitors[identity] = limiter
 	}
 
 	go func() {
 		time.Sleep(5 * time.Minute)
 		l.mu.Lock()
-		delete(l.visitors, ip)
+		delete(l.visitors, identity)
 		l.mu.Unlock()
 	}()
 

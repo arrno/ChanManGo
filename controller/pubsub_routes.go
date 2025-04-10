@@ -159,6 +159,18 @@ func (c *Controller) HandlePublishWS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if !c.rateLimiter.Allow(clientId) {
+			log.Warn().
+				Str("identifier", clientId).
+				Str("path", r.URL.Path).
+				Msg("Rate limit exceeded")
+
+			mu.Lock()
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1013, "Rate limit exceeded. Please try again later."))
+			mu.Unlock()
+			return
+		}
+
 		message, err := domain.NewMessage(clientId, channel.Id, wrapper.Topic, []byte(wrapper.Payload))
 		if err != nil {
 			http.Error(w, "Failed to process message", http.StatusBadRequest)
@@ -269,6 +281,7 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	done := make(chan any)
+	var mu sync.Mutex // protect conn
 
 	go func() {
 		defer close(done)
@@ -286,12 +299,22 @@ func (c *Controller) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 				log.Info().Msg("Received CloseMessage from client, closing WebSocket")
 				break
 			}
+
+			if !c.rateLimiter.Allow(clientId) {
+				log.Warn().
+					Str("identifier", clientId).
+					Str("path", r.URL.Path).
+					Msg("Rate limit exceeded")
+
+				mu.Lock()
+				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1013, "Rate limit exceeded. Please try again later."))
+				mu.Unlock()
+				return
+			}
 		}
 	}()
 
 	log.Info().Msg("Client connected for reading")
-
-	var mu sync.Mutex // protect conn
 
 	sub.Callback = func(message *domain.Message) error {
 		wrapper := MessageWrapper{
