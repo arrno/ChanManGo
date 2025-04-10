@@ -65,6 +65,8 @@ CREATE TABLE client_permissions (
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
+CREATE INDEX idx_client_permissions_archived_null ON client_permissions(client_id) WHERE archived_at IS NULL;
+
 CREATE TABLE client_secret_tokens (
   id VARCHAR(255) PRIMARY KEY,
   client_id VARCHAR(255) NOT NULL,
@@ -80,6 +82,7 @@ CREATE TABLE client_secret_tokens (
 -- Create indexes for client_secret_tokens
 CREATE INDEX idx_secret_token_client_id ON client_secret_tokens(client_id);
 CREATE INDEX idx_secret_token_encrypted_secret ON client_secret_tokens(encrypted_secret);
+CREATE INDEX idx_client_secret_tokens_archived_null ON client_secret_tokens(client_id) WHERE archived_at IS NULL;
 
 -- Create Channels table
 CREATE TABLE channels (
