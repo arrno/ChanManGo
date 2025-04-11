@@ -33,6 +33,14 @@ func NewClient(id, name, groupId string, admin bool) (*Client, error) {
 	}, nil
 }
 
+type ClientUsage struct {
+	Id       string    `db:"id" json:"id"`
+	ClientId string    `db:"client_id" json:"client_id"`
+	Start    time.Time `db:"start" json:"start"`
+	Stop     time.Time `db:"stop" json:"stop"`
+	Count    uint      `db:"count" json:"count"`
+}
+
 type ClientSecret struct {
 	Id              string     `db:"id" json:"id"`
 	ClientId        string     `db:"client_id" json:"clientId"`

@@ -21,6 +21,18 @@ CREATE TABLE clients (
   archived_at TIMESTAMP
 );
 
+-- Create Client Usage table
+CREATE TABLE client_usage (
+  id VARCHAR(255) PRIMARY KEY,
+  client_id VARCHAR(255) NOT NULL,
+  count INTEGER CHECK (count >= 0),
+  start TIMESTAMP NOT NULL DEFAULT NOW(),
+  stop TIMESTAMP NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_client_usage_start ON messages (client_id, start);
+
 -- Create Portals table
 CREATE TABLE portals (
   id VARCHAR(255) PRIMARY KEY,
@@ -186,5 +198,6 @@ CREATE INDEX idx_messages_client_id ON messages(client_id);
 CREATE INDEX idx_messages_channel_id ON messages(channel_id);
 CREATE INDEX idx_messages_topic ON messages(topic);
 CREATE INDEX idx_messages_state ON messages(state);
+CREATE INDEX idx_messages_sender_time ON messages (client_id, created_at);
 
 -- TODO create admin user/secret_token, main portal, main group, main channel

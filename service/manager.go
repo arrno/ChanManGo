@@ -28,8 +28,10 @@ type Manager struct {
 	channelIo          io.ChannelProvider
 	messageIo          io.MessageProvider
 	subscriberIo       io.SubscriberProvider
+	clientIo           io.ClientProvider
 	broker             broker.BrokerProvider
 	object             managerObject
+	usageStart         time.Time
 	destroy            chan any
 	debugMode          bool
 }
@@ -47,8 +49,10 @@ func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manage
 		channelIo:          io.NewChannel(db),
 		messageIo:          io.NewMessage(db),
 		subscriberIo:       io.NewSubscriber(db),
+		clientIo:           io.NewClient(db),
 		cleanupIntervalSec: 300,
 		debugMode:          true,
+		usageStart:         time.Now(),
 		object: managerObject{
 			state:             domain.STATE_RUNNING,
 			channels:          map[string]ChannelProvider{},
@@ -215,7 +219,17 @@ func (c *Manager) SpawnWatcher() chan any {
 				if err := c.PruneMessages(); err != nil {
 					log.Error().Msg("Failed to prune messages. Err: " + err.Error())
 				}
-				if err := c.ReportUsage(); err != nil {
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-destroy:
+				return
+			case <-time.After(time.Duration(domain.USAGE_AGG_INTERVAL_SECONDS) * time.Second):
+				if err := c.RecordUsage(); err != nil {
 					log.Error().Msg("Failed to report usage. Err: " + err.Error())
 				}
 			}
@@ -326,17 +340,23 @@ func (c *Manager) PruneChannels() (err error) {
 	return
 }
 
-func (c *Manager) PruneMessages() (err error) {
+func (c *Manager) PruneMessages() error {
 	log.Info().Msg("pruning messages")
-	// TODO fetch all messages written prior to now - retentionPeriod and delete
-	return
+	return c.messageIo.PruneMessages(domain.MESSAGE_RETENTION_HOURS)
 }
 
-func (c *Manager) ReportUsage() (err error) {
-	log.Info().Msg("reporting usage")
-	// TODO: for each active client, query sum of destinations on messages created
-	// during most recent time window, report to payment manager
-	return
+func (c *Manager) RecordUsage() (err error) {
+	log.Info().Msg(fmt.Sprintf("recording usage since last stop: %s", c.usageStart.Format(time.RFC3339)))
+	usage, stop, err := c.clientIo.AggregateRecentMessageUsage(c.usageStart)
+	if err != nil {
+		return err
+	}
+	err = c.clientIo.StoreUsageLog(usage)
+	if err != nil {
+		return err
+	}
+	c.usageStart = stop
+	return nil
 }
 
 // This is sufficiently handled in the middleware but may be expanded in the future

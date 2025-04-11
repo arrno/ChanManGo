@@ -3,10 +3,10 @@ Roadmap:
 [prototype] -done
 ---
 [base-case]
-SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
 ---
-implement redis broker / rate-limiter
-implement manager side effects -> healing / pruning / reporting
+implement manager side effects -> reporting
+integration-tests
+UI / stripe
 ---
 [differentiators]
 ---
@@ -14,6 +14,11 @@ implement manager side effects -> healing / pruning / reporting
 ---
 [scale]
 
+
+L8er:
+SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
+implement redis broker / rate-limiter
+manager healing
 
 [TESTING]
 Admin:
@@ -40,7 +45,7 @@ Misc:
 * if sub to _ALL_, flatten any other topics
 * Channel create permissions
 * rate limiter http
-rate limit websocket messages
+* rate limit websocket messages
 
 Data:
 * managing channel/subscription/message state/archived

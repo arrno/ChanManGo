@@ -10,6 +10,7 @@ type MessageProvider interface {
 	GetMessage(id string) (*domain.Message, error)
 	UpdateMessage(message *domain.Message) error
 	ArchiveMessage(id string) error
+	PruneMessages(retentionHours uint) error
 }
 
 type Message struct {
@@ -31,4 +32,7 @@ func (m *Message) UpdateMessage(message *domain.Message) error {
 }
 func (m *Message) ArchiveMessage(id string) error {
 	return m.repo.ArchiveMessage(id)
+}
+func (m *Message) PruneMessages(retentionHours uint) error {
+	return m.repo.PruneMessages(retentionHours)
 }

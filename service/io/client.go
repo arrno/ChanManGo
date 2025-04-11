@@ -19,6 +19,9 @@ type ClientProvider interface {
 	RotateClientSecret(clientId string) (domain.Token, error)
 	ValidateClientSecret(clientId, token string) error
 	FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
+	//
+	AggregateRecentMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error)
+	StoreUsageLog([]domain.ClientUsage) error
 }
 
 type Client struct {
@@ -143,4 +146,25 @@ func (c *Client) FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *do
 		permission = nil
 	}
 	return clientGroup, permission, isAdmin, expired, err
+}
+
+func (c *Client) AggregateRecentMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error) {
+	stop := time.Now()
+	usage, err := c.repo.AggregateClientMessageUsage(since, stop)
+	if err != nil {
+		return nil, stop, err
+	}
+	return usage, stop, nil
+}
+
+func (c *Client) DailyUsage(date time.Time) ([]domain.ClientUsage, error) {
+	// TODO
+	// use repo to query client_usage table for aggregate usage per client on the given day
+	return nil, nil
+}
+
+func (c *Client) StoreUsageLog([]domain.ClientUsage) error {
+	// TODO
+	// use repo to write client usage records to client_usage table
+	return nil
 }

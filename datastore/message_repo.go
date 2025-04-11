@@ -360,6 +360,17 @@ func (r *MessageRepo) GetMessage(id string) (*domain.Message, error) {
 	return &msg, nil
 }
 
+func (r *MessageRepo) PruneMessages(retentionHours uint) error {
+	query := `DELETE FROM messages WHERE created_at < now() - ($1 * INTERVAL '1 hour')`
+
+	_, err := r.db.Exec(ctx, query, retentionHours)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // UpdateMessage updates a message in the database
 func (r *MessageRepo) UpdateMessage(msg *domain.Message) error {
 	query := `

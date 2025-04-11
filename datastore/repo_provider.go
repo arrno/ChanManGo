@@ -2,14 +2,11 @@ package datastore
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/arrno/chanman/domain"
 )
-
-// many messages from a subscriber
-// many subscribers to a worker
-// many workers to a channel
-// many messages in a channel
 
 var (
 	ErrNotFound = errors.New("Target record not found")
@@ -45,6 +42,7 @@ type MessageRepoProvider interface {
 	GetMessage(id string) (*domain.Message, error)
 	UpdateMessage(*domain.Message) error
 	ArchiveMessage(id string) error
+	PruneMessages(retentionHours uint) error
 }
 
 // TODO all these queries should honor the caller's portal
@@ -56,6 +54,7 @@ type SystemRepoProvider interface {
 	GetClients(pagination *domain.Pagination[*domain.Client], filter *domain.Filter) ([]*domain.Client, error)
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
+	AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error)
 	//
 	GetClientAuthByToken(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
 	//
@@ -88,22 +87,57 @@ type SystemRepoProvider interface {
 	ArchivePortal(id string) error
 }
 
-// // NewRepo creates a new repository instance based on environment configuration
-// func NewRepo() (RepoProvider, error) {
-// 	// Check for Postgres environment variable
-// 	pgDSN := os.Getenv("POSTGRES_DSN")
-// 	if pgDSN != "" {
-// 		// Use PostgreSQL if DSN is provided
-// 		repo, err := NewPostgresRepo(pgDSN)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to create PostgreSQL repository: %w", err)
-// 		}
-// 		return repo, nil
-// 	}
+// SQLRepo implements the full RepoProvider interface by composing
+// the SystemRepo and MessageRepo implementations.
+type SQLRepo struct {
+	SystemRepo
+	MessageRepo
+	db SQLDatabase
+}
 
-// 	// Default to in-memory repository
-// 	return NewInMemoryDB(), nil
-// }
+// NewSQLRepo creates a new PostgreSQL repository with a database connection
+func NewSQLRepo(dsn string) (*SQLRepo, error) {
+	db, err := NewPostgresDB(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to PostgreSQL: %w", err)
+	}
 
-// // DatastoreProvider is an alias for RepoProvider for backward compatibility
-// type DatastoreProvider = RepoProvider
+	return &SQLRepo{
+		SystemRepo:  SystemRepo{db: db},
+		MessageRepo: MessageRepo{db: db},
+		db:          db,
+	}, nil
+}
+
+// WithTx executes a function within a transaction
+func (r *SQLRepo) WithTx(f func(tx RepoProvider) error) error {
+	return r.db.WithTx(ctx, func(txDb SQLDatabase) error {
+		txRepo := &SQLRepo{
+			SystemRepo:  SystemRepo{db: txDb},
+			MessageRepo: MessageRepo{db: txDb},
+			db:          txDb,
+		}
+		return f(txRepo)
+	})
+}
+
+// Close closes the underlying database connection
+func (r *SQLRepo) Close() {
+	r.db.Close()
+}
+
+// NewRepoProvider creates a repository based on environment configuration
+func NewRepoProvider() (RepoProvider, error) {
+	pgDSN := "postgresql://myuser:password@localhost:5433/postgres"
+	// pgDSN := os.Getenv("POSTGRES_DSN")
+	if pgDSN == "" {
+		return nil, errors.New("failed to create PostgreSQL repository: pgDSN not found.")
+	}
+
+	// Use PostgreSQL if DSN is provided
+	repo, err := NewSQLRepo(pgDSN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create PostgreSQL repository: %w", err)
+	}
+	return repo, nil
+}

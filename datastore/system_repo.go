@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/arrno/chanman/domain"
 	"github.com/jackc/pgx/v5"
@@ -690,6 +691,27 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	}
 
 	return &clientGroup, &clientPermission, client.Admin, expired, nil
+}
+
+// GetClient retrieves a client by ID
+func (r *SystemRepo) AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error) {
+	query := `
+		SELECT client_id, SUM(destinations) AS count
+		FROM messages
+		WHERE created_at >= $1 AND created_at < $2
+		GROUP BY client_id;
+	`
+
+	var clientUsageCounts []domain.ClientUsage
+	err := r.db.Select(ctx, &clientUsageCounts, query, start, stop)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return clientUsageCounts, nil
 }
 
 // // WithTx executes the given function within a transaction
