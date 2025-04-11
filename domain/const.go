@@ -8,4 +8,5 @@ const (
 	MAIN_CHANNEL               string = "_MAIN_"
 	MESSAGE_RETENTION_HOURS    uint   = 72
 	USAGE_AGG_INTERVAL_SECONDS uint   = 60 * 60
+	CLEANUP_INTERVAL_SECONDS   uint   = 60 * 5
 )

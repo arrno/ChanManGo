@@ -693,10 +693,12 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	return &clientGroup, &clientPermission, client.Admin, expired, nil
 }
 
-// GetClient retrieves a client by ID
+// AggregateClientMessageUsage retrieves message usage statistics for clients during a time period
 func (r *SystemRepo) AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error) {
 	query := `
-		SELECT client_id, SUM(destinations) AS count
+		SELECT 
+			client_id, 
+			SUM(destinations) AS count
 		FROM messages
 		WHERE created_at >= $1 AND created_at < $2
 		GROUP BY client_id;
@@ -711,7 +713,72 @@ func (r *SystemRepo) AggregateClientMessageUsage(start, stop time.Time) ([]domai
 		return nil, err
 	}
 
+	startStr, stopStr := start.Format("20060102150405"), stop.Format("20060102150405")
+	// Generate IDs and set start/stop times for the usage records
+	for i := range clientUsageCounts {
+		clientUsageCounts[i].Id = fmt.Sprintf("%s-%s-%s",
+			clientUsageCounts[i].ClientId,
+			startStr,
+			stopStr)
+		clientUsageCounts[i].Start = start
+		clientUsageCounts[i].Stop = stop
+	}
+
 	return clientUsageCounts, nil
+}
+
+// GetClientUsageByDay retrieves client usage statistics for a specific day
+func (r *SystemRepo) GetClientUsageByDay(date time.Time) ([]domain.ClientUsage, error) {
+	// Create start and end times for the specified day
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	query := `
+		SELECT 
+			id,
+			client_id,
+			count,
+			start,
+			stop
+		FROM client_usage
+		WHERE start >= $1 AND stop < $2
+		ORDER BY client_id, start;
+	`
+
+	var clientUsage []domain.ClientUsage
+	err := r.db.Select(ctx, &clientUsage, query, startOfDay, endOfDay)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// Return empty array instead of error for no usage data
+			return []domain.ClientUsage{}, nil
+		}
+		return nil, err
+	}
+
+	return clientUsage, nil
+}
+
+// StoreClientUsage stores client usage records in the database
+func (r *SystemRepo) StoreClientUsage(usageRecords []domain.ClientUsage) error {
+	// Use a transaction to ensure all records are stored atomically
+	return r.db.WithTx(ctx, func(tx SQLDatabase) error {
+		for _, record := range usageRecords {
+			query := `
+				INSERT INTO client_usage (
+					id, client_id, count, start, stop
+				) VALUES ($1, $2, $3, $4, $5)
+				ON CONFLICT (id) DO UPDATE SET
+					count = client_usage.count + EXCLUDED.count
+			`
+
+			_, err := tx.Exec(ctx, query,
+				record.Id, record.ClientId, record.Count, record.Start, record.Stop)
+			if err != nil {
+				return fmt.Errorf("failed to store client usage record: %w", err)
+			}
+		}
+		return nil
+	})
 }
 
 // // WithTx executes the given function within a transaction

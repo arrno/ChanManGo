@@ -50,7 +50,7 @@ func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manage
 		messageIo:          io.NewMessage(db),
 		subscriberIo:       io.NewSubscriber(db),
 		clientIo:           io.NewClient(db),
-		cleanupIntervalSec: 300,
+		cleanupIntervalSec: domain.CLEANUP_INTERVAL_SECONDS,
 		debugMode:          true,
 		usageStart:         time.Now(),
 		object: managerObject{
@@ -347,7 +347,7 @@ func (c *Manager) PruneMessages() error {
 
 func (c *Manager) RecordUsage() (err error) {
 	log.Info().Msg(fmt.Sprintf("recording usage since last stop: %s", c.usageStart.Format(time.RFC3339)))
-	usage, stop, err := c.clientIo.AggregateRecentMessageUsage(c.usageStart)
+	usage, stop, err := c.clientIo.AggregateClientMessageUsage(c.usageStart)
 	if err != nil {
 		return err
 	}

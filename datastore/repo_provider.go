@@ -54,7 +54,10 @@ type SystemRepoProvider interface {
 	GetClients(pagination *domain.Pagination[*domain.Client], filter *domain.Filter) ([]*domain.Client, error)
 	UpdateClient(*domain.Client) error
 	ArchiveClient(id string) error
+	//
 	AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error)
+	GetClientUsageByDay(date time.Time) ([]domain.ClientUsage, error)
+	StoreClientUsage(usage []domain.ClientUsage) error
 	//
 	GetClientAuthByToken(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
 	//

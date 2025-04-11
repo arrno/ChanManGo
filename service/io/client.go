@@ -2,6 +2,7 @@ package io
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/arrno/chanman/datastore"
@@ -20,8 +21,9 @@ type ClientProvider interface {
 	ValidateClientSecret(clientId, token string) error
 	FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
 	//
-	AggregateRecentMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error)
+	AggregateClientMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error)
 	StoreUsageLog([]domain.ClientUsage) error
+	DailyUsage(date time.Time) ([]domain.ClientUsage, error)
 }
 
 type Client struct {
@@ -148,7 +150,7 @@ func (c *Client) FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *do
 	return clientGroup, permission, isAdmin, expired, err
 }
 
-func (c *Client) AggregateRecentMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error) {
+func (c *Client) AggregateClientMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error) {
 	stop := time.Now()
 	usage, err := c.repo.AggregateClientMessageUsage(since, stop)
 	if err != nil {
@@ -158,13 +160,22 @@ func (c *Client) AggregateRecentMessageUsage(since time.Time) ([]domain.ClientUs
 }
 
 func (c *Client) DailyUsage(date time.Time) ([]domain.ClientUsage, error) {
-	// TODO
-	// use repo to query client_usage table for aggregate usage per client on the given day
-	return nil, nil
+	// Retrieve client usage records for the specified day
+	clientUsage, err := c.repo.GetClientUsageByDay(date)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve daily usage: %w", err)
+	}
+
+	return clientUsage, nil
 }
 
-func (c *Client) StoreUsageLog([]domain.ClientUsage) error {
-	// TODO
-	// use repo to write client usage records to client_usage table
+func (c *Client) StoreUsageLog(usageRecords []domain.ClientUsage) error {
+
+	// Store the validated usage records in the database
+	err := c.repo.StoreClientUsage(usageRecords)
+	if err != nil {
+		return fmt.Errorf("failed to store usage records: %w", err)
+	}
+
 	return nil
 }
