@@ -122,7 +122,7 @@ func (c *Controller) channelContext(next http.HandlerFunc) http.HandlerFunc {
 
 		// Fetch channel from database
 		newChannel := false
-		channel, err := c.system.ChannelProvider.GetChannelByGroupAndName(groupId, channelName)
+		channel, err := c.system.GetChannelByGroupAndName(groupId, channelName)
 		if err != nil {
 			if errors.Is(err, datastore.ErrNotFound) {
 				if !canCreate {

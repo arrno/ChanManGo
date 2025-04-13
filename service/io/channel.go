@@ -10,10 +10,6 @@ import (
 
 type ChannelProvider interface {
 	CreateChannelIfNotFound(channel *domain.Channel) (bool, error)
-	GetChannel(id string) (*domain.Channel, error)
-	GetChannelByGroupAndName(groupId, channelName string) (*domain.Channel, error)
-	UpdateChannel(channel *domain.Channel) error
-	ArchiveChannel(id string) error
 }
 
 type Channel struct {
@@ -41,18 +37,6 @@ func (m *Channel) CreateChannelIfNotFound(channel *domain.Channel) (created bool
 		return nil
 	})
 	return
-}
-func (m *Channel) GetChannel(id string) (*domain.Channel, error) {
-	return m.repo.GetChannel(id)
-}
-func (m *Channel) GetChannelByGroupAndName(groupId, channelName string) (*domain.Channel, error) {
-	return m.repo.GetChannelByGroupAndName(groupId, channelName)
-}
-func (m *Channel) UpdateChannel(channel *domain.Channel) error {
-	return m.repo.UpdateChannel(channel)
-}
-func (m *Channel) ArchiveChannel(id string) error {
-	return m.repo.ArchiveChannel(id)
 }
 
 func (m *Channel) channelExistsTx(tx datastore.RepoProvider, channel *domain.Channel) (bool, error) {

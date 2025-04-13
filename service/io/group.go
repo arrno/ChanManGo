@@ -10,10 +10,6 @@ import (
 
 type GroupProvider interface {
 	CreateGroup(group *domain.Group) error
-	UpdateGroup(group *domain.Group) error
-	GetGroup(id string) (*domain.Group, error)
-	GetGroupByOwner(ownerId string) ([]*domain.Group, error)
-	ArchiveGroup(id string) error
 	//
 	CreateClientGroup(clientId, groupId string) error
 	ArchiveClientGroup(clientId, groupId string) error
@@ -41,19 +37,6 @@ func (g *Group) CreateGroup(group *domain.Group) error {
 		return domain.ErrCreateOnExistingRecord
 	}
 	return g.repo.StoreGroup(group)
-}
-
-func (g *Group) UpdateGroup(group *domain.Group) error {
-	return g.repo.UpdateGroup(group)
-}
-func (g *Group) GetGroup(id string) (*domain.Group, error) {
-	return g.repo.GetGroup(id)
-}
-func (g *Group) GetGroupByOwner(ownerId string) ([]*domain.Group, error) {
-	return nil, domain.ErrNotImplemented
-}
-func (g *Group) ArchiveGroup(id string) error {
-	return g.repo.ArchiveGroup(id)
 }
 
 // For now, only one group

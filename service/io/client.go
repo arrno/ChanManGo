@@ -12,17 +12,11 @@ import (
 
 type ClientProvider interface {
 	CreateClient(client *domain.Client, permission *domain.ClientPermission) (domain.Token, error)
-	GetClient(id string) (*domain.Client, error)
-	GetClients(pg *domain.Pagination[*domain.Client], filter *domain.Filter) ([]*domain.Client, error)
-	UpdateClient(client *domain.Client) error
-	ArchiveClient(id string) error
 	//
 	RotateClientSecret(clientId string) (domain.Token, error)
 	ValidateClientSecret(clientId, token string) error
 	FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
 	//
-	AggregateClientMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error)
-	StoreUsageLog([]domain.ClientUsage) error
 	DailyUsage(date time.Time) ([]domain.ClientUsage, error)
 }
 
@@ -63,40 +57,9 @@ func (c *Client) CreateClient(client *domain.Client, permission *domain.ClientPe
 	})
 }
 
-func (c *Client) GetClient(id string) (*domain.Client, error) {
-	client, err := c.repo.GetClient(id)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
-func (c *Client) GetClients(pg *domain.Pagination[*domain.Client], filter *domain.Filter) ([]*domain.Client, error) {
-	clients, err := c.repo.GetClients(pg, filter)
-	if err != nil {
-		return nil, err
-	}
-	return clients, nil
-}
-
-func (c *Client) UpdateClient(client *domain.Client) error {
-	return c.repo.UpdateClient(client)
-}
-
-func (c *Client) ArchiveClient(id string) error {
-	client, err := c.GetClient(id)
-	if err != nil {
-		return err
-	}
-	now := time.Now()
-	client.ArchivedAt = &now
-	client.Active = false
-	return c.repo.UpdateClient(client)
-}
-
 func (c *Client) RotateClientSecret(clientId string) (domain.Token, error) {
 	// First validate the client exists
-	client, err := c.GetClient(clientId)
+	client, err := c.repo.GetClient(clientId)
 	if err != nil {
 		return domain.Token{}, err
 	}
@@ -150,15 +113,6 @@ func (c *Client) FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *do
 	return clientGroup, permission, isAdmin, expired, err
 }
 
-func (c *Client) AggregateClientMessageUsage(since time.Time) ([]domain.ClientUsage, time.Time, error) {
-	stop := time.Now()
-	usage, err := c.repo.AggregateClientMessageUsage(since, stop)
-	if err != nil {
-		return nil, stop, err
-	}
-	return usage, stop, nil
-}
-
 func (c *Client) DailyUsage(date time.Time) ([]domain.ClientUsage, error) {
 	// Retrieve client usage records for the specified day
 	clientUsage, err := c.repo.GetClientUsageByDay(date)
@@ -167,15 +121,4 @@ func (c *Client) DailyUsage(date time.Time) ([]domain.ClientUsage, error) {
 	}
 
 	return clientUsage, nil
-}
-
-func (c *Client) StoreUsageLog(usageRecords []domain.ClientUsage) error {
-
-	// Store the validated usage records in the database
-	err := c.repo.StoreClientUsage(usageRecords)
-	if err != nil {
-		return fmt.Errorf("failed to store usage records: %w", err)
-	}
-
-	return nil
 }

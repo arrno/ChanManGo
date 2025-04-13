@@ -783,9 +783,18 @@ func (r *SystemRepo) StoreClientUsage(usageRecords []domain.ClientUsage) error {
 	})
 }
 
-func (r *SystemRepo) StoreContactRequest(*domain.ContactRequest) error {
-	// TODO store
-	return nil
+func (r *SystemRepo) StoreContactRequest(contactRequest *domain.ContactRequest) error {
+	query := `
+		INSERT INTO contact_requests (
+			id, name, email, message, created_at
+		) VALUES ($1, $2, $3, $4, $5)
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		contactRequest.Id, contactRequest.Name, contactRequest.Email,
+		contactRequest.Message, contactRequest.CreatedAt)
+
+	return err
 }
 
 // // WithTx executes the given function within a transaction

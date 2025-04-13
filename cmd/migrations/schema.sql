@@ -209,7 +209,7 @@ CREATE INDEX idx_messages_sender_time ON messages (client_id, created_at);
 
 -- contact request
 CREATE TABLE contact_requests (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     message TEXT NOT NULL
