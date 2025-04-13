@@ -60,7 +60,3 @@ func (c *Controller) SignUpBeta(w http.ResponseWriter, r *http.Request) {
 	// Return success response
 	RespondWithJSON(w, http.StatusCreated, response)
 }
-
-func (c *Controller) Contact(w http.ResponseWriter, r *http.Request) {
-	// TODO parse request to domain.ContactRequest use c.system to store ContactRequest into database
-}

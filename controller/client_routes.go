@@ -142,6 +142,28 @@ func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
+func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
+	clientId := r.URL.Query().Get("clientId")
+
+	// Validate required fields
+	if clientId == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
+		return
+	}
+
+	// Archive client
+	if err := c.system.ArchiveClient(clientId); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Failed to archive client", err)
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, map[string]bool{"archived": true})
+}
+
+func (c *Controller) Contact(w http.ResponseWriter, r *http.Request) {
+	// TODO parse request to domain.ContactRequest use c.system to store ContactRequest into database
+}
+
 func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 	clientId := r.Header.Get("clientId")
 
@@ -194,22 +216,4 @@ func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
-}
-
-func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
-	clientId := r.URL.Query().Get("clientId")
-
-	// Validate required fields
-	if clientId == "" {
-		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
-		return
-	}
-
-	// Archive client
-	if err := c.system.ArchiveClient(clientId); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Failed to archive client", err)
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, map[string]bool{"archived": true})
 }
