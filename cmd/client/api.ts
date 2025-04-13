@@ -96,7 +96,7 @@ export async function api() {
         // console.log("POST result:", result);
 
         const result = await httpPost<Record<string, any>>(
-            `${url}/signup-demo`,
+            `${url}/beta/signup`,
             "",
             {}
         );

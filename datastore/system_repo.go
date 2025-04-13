@@ -26,19 +26,20 @@ func NewSystemRepo(db SQLDatabase) *SystemRepo {
 func (r *SystemRepo) StoreClient(client *domain.Client) error {
 	query := `
 		INSERT INTO clients (
-			id, name, active, admin, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			id, name, active, admin, created_at, updated_at, archived_at, email
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (id) DO UPDATE SET
 			name = $2,
 			active = $3,
 			admin = $4,
 			updated_at = $6,
-			archived_at = $7
+			archived_at = $7,
+			email = $8
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		client.Id, client.Name, client.Active, client.Admin,
-		client.CreatedAt, client.UpdatedAt, client.ArchivedAt)
+		client.CreatedAt, client.UpdatedAt, client.ArchivedAt, client.Email)
 
 	return err
 }
@@ -46,7 +47,7 @@ func (r *SystemRepo) StoreClient(client *domain.Client) error {
 // GetClient retrieves a client by ID
 func (r *SystemRepo) GetClient(id string) (*domain.Client, error) {
 	query := `
-		SELECT id, name, active, admin, created_at, updated_at, archived_at
+		SELECT id, name, active, admin, email, created_at, updated_at, archived_at
 		FROM clients
 		WHERE id = $1
 	`
@@ -86,7 +87,7 @@ func (r *SystemRepo) GetClients(pagination *domain.Pagination[*domain.Client], f
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, active, admin, created_at, updated_at, archived_at
+		SELECT id, name, active, admin, email, created_at, updated_at, archived_at
 		FROM clients
 		%s
 		ORDER BY created_at DESC
@@ -116,13 +117,13 @@ func (r *SystemRepo) GetClients(pagination *domain.Pagination[*domain.Client], f
 func (r *SystemRepo) UpdateClient(client *domain.Client) error {
 	query := `
 		UPDATE clients
-		SET name = $2, active = $3, admin = $4, updated_at = $5, archived_at = $6
+		SET name = $2, active = $3, admin = $4, updated_at = $5, archived_at = $6, email = $7
 		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(ctx, query,
 		client.Id, client.Name, client.Active, client.Admin,
-		client.UpdatedAt, client.ArchivedAt)
+		client.UpdatedAt, client.ArchivedAt, client.Email)
 	if err != nil {
 		return err
 	}
@@ -264,19 +265,20 @@ func (r *SystemRepo) ArchiveClientSecret(id string) error {
 func (r *SystemRepo) StoreClientPermission(perm *domain.ClientPermission) error {
 	query := `
 		INSERT INTO client_permissions (
-			id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at, tier
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (id) DO UPDATE SET
 			allow_read = $3,
 			allow_write = $4,
 			allow_create = $5,
 			updated_at = $7,
-			archived_at = $8
+			archived_at = $8,
+			tier = $9
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		perm.Id, perm.ClientId, perm.Read, perm.Write, perm.Create,
-		perm.CreatedAt, perm.UpdatedAt, perm.ArchivedAt)
+		perm.CreatedAt, perm.UpdatedAt, perm.ArchivedAt, perm.Tier)
 
 	return err
 }
@@ -284,7 +286,7 @@ func (r *SystemRepo) StoreClientPermission(perm *domain.ClientPermission) error 
 // GetClientPermission retrieves a client permission by ID
 func (r *SystemRepo) GetClientPermission(id string) (*domain.ClientPermission, error) {
 	query := `
-		SELECT id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
+		SELECT id, client_id, allow_read, allow_write, allow_create, tier, created_at, updated_at, archived_at
 		FROM client_permissions
 		WHERE id = $1
 	`
@@ -304,7 +306,7 @@ func (r *SystemRepo) GetClientPermission(id string) (*domain.ClientPermission, e
 // GetClientPermissionByClientId retrieves a client permission by client ID
 func (r *SystemRepo) GetClientPermissionByClientId(clientId string) (*domain.ClientPermission, error) {
 	query := `
-		SELECT id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
+		SELECT id, client_id, allow_read, allow_write, allow_create, tier, created_at, updated_at, archived_at
 		FROM client_permissions
 		WHERE client_id = $1 AND archived_at IS NULL
 		ORDER BY created_at DESC
@@ -327,12 +329,12 @@ func (r *SystemRepo) GetClientPermissionByClientId(clientId string) (*domain.Cli
 func (r *SystemRepo) UpdateClientPermission(perm *domain.ClientPermission) error {
 	query := `
 		UPDATE client_permissions
-		SET allow_read = $2, allow_write = $3, allow_create = $4, updated_at = $5, archived_at = $6
+		SET allow_read = $2, allow_write = $3, allow_create = $4, updated_at = $5, archived_at = $6, tier = $7
 		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(ctx, query,
-		perm.Id, perm.Read, perm.Write, perm.Create, perm.UpdatedAt, perm.ArchivedAt)
+		perm.Id, perm.Read, perm.Write, perm.Create, perm.UpdatedAt, perm.ArchivedAt, perm.Tier)
 	if err != nil {
 		return err
 	}
@@ -640,7 +642,7 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	// Get client information to check if the client is active
 	var client domain.Client
 	clientQuery := `
-		SELECT id, name, active, admin, created_at, updated_at, archived_at
+		SELECT id, name, active, admin, email, created_at, updated_at, archived_at
 		FROM clients
 		WHERE id = $1
 	`
@@ -659,7 +661,7 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 	// Get client permission
 	var clientPermission domain.ClientPermission
 	permQuery := `
-		SELECT id, client_id, allow_read, allow_write, allow_create, created_at, updated_at, archived_at
+		SELECT id, client_id, allow_read, allow_write, allow_create, tier, created_at, updated_at, archived_at
 		FROM client_permissions
 		WHERE client_id = $1 AND archived_at IS NULL
 		ORDER BY created_at DESC
@@ -779,6 +781,11 @@ func (r *SystemRepo) StoreClientUsage(usageRecords []domain.ClientUsage) error {
 		}
 		return nil
 	})
+}
+
+func (r *SystemRepo) StoreContactRequest(*domain.ContactRequest) error {
+	// TODO store
+	return nil
 }
 
 // // WithTx executes the given function within a transaction

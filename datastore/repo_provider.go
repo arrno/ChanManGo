@@ -88,6 +88,8 @@ type SystemRepoProvider interface {
 	GetPortal(id string) (*domain.Portal, error)
 	UpdatePortal(*domain.Portal) error
 	ArchivePortal(id string) error
+	//
+	StoreContactRequest(*domain.ContactRequest) error
 }
 
 // SQLRepo implements the full RepoProvider interface by composing

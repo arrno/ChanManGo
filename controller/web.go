@@ -12,12 +12,15 @@ func RunWeb() {
 	// public
 	r := NewRouter().
 		Chain(c.rateLimit)
-	r.Post("/signup-demo", c.SignUpDemo)
+	r.Post("/beta/signup", c.SignUpBeta)
+	r.Post("/contact", c.Contact)
 
 	rr := NewRouter().
 		Chain(c.rateLimit).
 		Chain(c.auth)
 	rr.Post("/rotate-token", c.RotateToken)
+	rr.Get("/beta/check-token", c.CheckTokenBeta)
+	rr.Post("/beta/update-token", c.UpdateTokenBeta)
 
 	// Channel router
 	rc := NewRouter().

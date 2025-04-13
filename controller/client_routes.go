@@ -90,14 +90,15 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 	// TODO, validate group belongs to caller
 
 	// Create client
-	client, err := domain.NewClient("", req.ClientName, groupId, req.Admin)
+	client, err := domain.NewClient("", req.ClientName, groupId, req.Email, req.Admin)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Failed to create client", err)
 		return
 	}
 
 	// Create client with permissions
-	token, err := c.system.CreateClient(client, domain.NewReadWrite(client.Id))
+	permission := domain.NewReadWrite(client.Id)
+	token, err := c.system.CreateClient(client, permission)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to store client", err)
 		return
@@ -107,6 +108,8 @@ func (c *Controller) CreateClient(w http.ResponseWriter, r *http.Request) {
 	response := ClientTokenResponse{
 		ClientGroup: groupId,
 		ClientId:    client.Id,
+		Email:       client.Email,
+		Tier:        permission.Tier,
 		ClientName:  client.Name,
 		Token:       token.Serialize(),
 	}
@@ -134,6 +137,60 @@ func (c *Controller) RotateToken(w http.ResponseWriter, r *http.Request) {
 	response := ClientTokenResponse{
 		ClientId: clientId,
 		Token:    token.Serialize(),
+	}
+
+	RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
+	clientId := r.Header.Get("clientId")
+
+	// Validate required fields
+	if clientId == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
+		return
+	}
+
+	// via c.system SystemProvider
+	// Fetch client/clientGroup/clientChannel/clientPermission
+
+	// Create response
+	response := ClientTokenResponse{
+		ClientId:      clientId,
+		Email:         "TODO",
+		Tier:          "TODO",
+		ClientChannel: "TODO",
+		ClientName:    "TODO",
+		ClientGroup:   "TODO",
+	}
+
+	RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
+	clientId := r.Header.Get("clientId")
+
+	// TODO parse body into UpdateClientRequest
+	// if requester is trying to update Tier and is not admin (request header per middleware), respond with Forbidden
+
+	// Validate required fields
+	if clientId == "" {
+		RespondWithError(w, http.StatusBadRequest, "Client ID is required", nil)
+		return
+	}
+
+	// via c.system SystemProvider...
+	// Update permission tier if applicable
+	// Update client email/name if applicable
+
+	// Create response
+	response := ClientTokenResponse{
+		ClientId:      clientId,
+		Email:         "TODO",
+		Tier:          "TODO",
+		ClientChannel: "TODO",
+		ClientName:    "TODO",
+		ClientGroup:   "TODO",
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)

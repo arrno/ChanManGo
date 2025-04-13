@@ -10,10 +10,16 @@ CREATE TYPE state_enum AS ENUM (
   'error'
 );
 
+CREATE TYPE tier_enum AS ENUM (
+  'free',
+  'pro',
+);
+
 -- Create Clients table
 CREATE TABLE clients (
   id VARCHAR(255) PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
   admin BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -71,6 +77,7 @@ CREATE TABLE client_permissions (
   allow_read BOOLEAN NOT NULL DEFAULT false,
   allow_write BOOLEAN NOT NULL DEFAULT false,
   allow_create BOOLEAN NOT NULL DEFAULT false,
+  tier tier_enum NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   archived_at TIMESTAMP,
@@ -200,4 +207,10 @@ CREATE INDEX idx_messages_topic ON messages(topic);
 CREATE INDEX idx_messages_state ON messages(state);
 CREATE INDEX idx_messages_sender_time ON messages (client_id, created_at);
 
--- TODO create admin user/secret_token, main portal, main group, main channel
+-- contact request
+CREATE TABLE contact_requests (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    message TEXT NOT NULL
+);

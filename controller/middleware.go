@@ -60,6 +60,7 @@ func (c *Controller) auth(next http.HandlerFunc) http.HandlerFunc {
 			Bool("write", permission.Write).
 			Bool("create", permission.Create).
 			Str("path", r.URL.Path).
+			Str("tier", string(permission.Tier)).
 			Msg("Authenticated request")
 
 		// Continue with the next handler

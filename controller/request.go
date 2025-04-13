@@ -2,6 +2,8 @@ package controller
 
 import (
 	"time"
+
+	"github.com/arrno/chanman/domain"
 )
 
 // Request structures
@@ -11,6 +13,7 @@ type ClientRequest struct {
 	ClientId   string `json:"clientId"`
 	GroupId    string `json:"groupId,omitempty"`
 	Admin      bool   `json:"admin"`
+	Email      string `json:"email"`
 	ClientName string `json:"clientName"`
 }
 
@@ -35,6 +38,12 @@ type MessageRequest struct {
 	Payload string `json:"payload"`
 }
 
+type UpdateClientRequest struct {
+	Email      string      `json:"email,omitempty"`
+	Tier       domain.Tier `json:"tier,omitempty"`
+	ClientName string      `json:"clientName,omitempty"`
+}
+
 // Response structures
 
 // StandardResponse is a consistent response structure
@@ -47,12 +56,14 @@ type StandardResponse struct {
 
 // ClientTokenResponse is returned when creating/authenticating clients
 type ClientTokenResponse struct {
-	ClientId      string     `json:"clientId"`
-	ClientChannel string     `json:"channel,omitempty"`
-	Token         string     `json:"token,omitempty"`
-	ClientName    string     `json:"clientName,omitempty"`
-	ClientGroup   string     `json:"clientGroup,omitempty"`
-	ExpiresAt     *time.Time `json:"tokenExpiresAt,omitempty"`
+	ClientId      string      `json:"clientId"`
+	Email         string      `json:"email,omitempty"`
+	Tier          domain.Tier `json:"tier,omitempty"`
+	ClientChannel string      `json:"channel,omitempty"`
+	Token         string      `json:"token,omitempty"`
+	ClientName    string      `json:"clientName,omitempty"`
+	ClientGroup   string      `json:"clientGroup,omitempty"`
+	ExpiresAt     *time.Time  `json:"tokenExpiresAt,omitempty"`
 }
 
 // ChannelResponse includes channel information

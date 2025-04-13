@@ -13,6 +13,7 @@ type SystemProvider struct {
 	GroupProvider
 	MessageProvider
 	PortalProvider
+	ContactProvider
 }
 
 func NewSystem(repo datastore.RepoProvider) SystemProvider {
@@ -21,6 +22,7 @@ func NewSystem(repo datastore.RepoProvider) SystemProvider {
 		MessageProvider: NewMessage(repo),
 		ChannelProvider: NewChannel(repo),
 		GroupProvider:   NewGroup(repo),
+		ContactProvider: NewContact(repo),
 		repo:            repo,
 		// Note: PortalProvider is still TODO, as indicated in portal.go
 	}

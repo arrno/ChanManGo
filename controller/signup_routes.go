@@ -8,13 +8,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// SignUpDemo creates a new demo environment with client, group, and channel
-func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
+// SignUpBeta creates a new demo environment with client, group, and channel
+func (c *Controller) SignUpBeta(w http.ResponseWriter, r *http.Request) {
 
 	// Generate unique IDs for demo resources
 	groupName := "MyGroup"
 	channelName := "MyChan"
 	clientName := "client-" + util.Nanoid()
+
+	email := r.Header.Get("email")
 
 	// Create domain objects
 	group, err := domain.NewGroup("", domain.GLOBAL_ADMIN, domain.MAIN_PORTAL, groupName)
@@ -23,7 +25,7 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := domain.NewClient("", clientName, group.Id, false)
+	client, err := domain.NewClient("", clientName, group.Id, email, false)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to create client", err)
 		return
@@ -57,4 +59,8 @@ func (c *Controller) SignUpDemo(w http.ResponseWriter, r *http.Request) {
 
 	// Return success response
 	RespondWithJSON(w, http.StatusCreated, response)
+}
+
+func (c *Controller) Contact(w http.ResponseWriter, r *http.Request) {
+	// TODO parse request to domain.ContactRequest use c.system to store ContactRequest into database
 }

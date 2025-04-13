@@ -4,9 +4,9 @@ Roadmap:
 ---
 [base-case]
 ---
-implement manager side effects -> reporting
 integration-tests
 UI / stripe
+verify message-pruning/usage-reporting
 ---
 [differentiators]
 ---

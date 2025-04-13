@@ -19,7 +19,7 @@ func SeedDb(db RepoProvider) {
 		return
 	}
 	groupId := domain.MAIN_GROUP
-	client, err := domain.NewClient(domain.GLOBAL_ADMIN, domain.GLOBAL_ADMIN, groupId, true)
+	client, err := domain.NewClient(domain.GLOBAL_ADMIN, domain.GLOBAL_ADMIN, groupId, "admin@multicast.co", true)
 	expect(db.StoreClient(client))
 
 	token := domain.NewToken("password", client.Id).Hash()

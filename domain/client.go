@@ -11,12 +11,13 @@ type Client struct {
 	Name       string     `db:"name" json:"name"`
 	Active     bool       `db:"active" json:"active"`
 	Admin      bool       `db:"admin" json:"admin"`
+	Email      string     `db:"email" json:"email"`
 	CreatedAt  time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt  time.Time  `db:"updated_at" json:"updatedAt"`
 	ArchivedAt *time.Time `db:"archived_at" json:"archivedAt"`
 }
 
-func NewClient(id, name, groupId string, admin bool) (*Client, error) {
+func NewClient(id, name, groupId, email string, admin bool) (*Client, error) {
 	if !util.IsValidName(name) {
 		return nil, ErrInvalidName
 	}
@@ -27,6 +28,7 @@ func NewClient(id, name, groupId string, admin bool) (*Client, error) {
 		Id:        id,
 		Name:      name,
 		Active:    true,
+		Email:     email,
 		Admin:     admin,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
