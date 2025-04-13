@@ -6,6 +6,8 @@ import (
 	"github.com/arrno/chanman/util"
 )
 
+// io layer is a very light mask over the repo layer for some extra-query logic
+
 type SystemProvider struct {
 	datastore.RepoProvider
 	ChannelProvider

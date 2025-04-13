@@ -25,16 +25,12 @@ type ManagerProvider interface {
 
 type Manager struct {
 	cleanupIntervalSec uint
-	// channelIo          io.ChannelProvider
-	// messageIo          io.MessageProvider
-	// subscriberIo       io.SubscriberProvider
-	// clientIo           io.ClientProvider
-	system     io.SystemProvider
-	broker     broker.BrokerProvider
-	object     managerObject
-	usageStart time.Time
-	destroy    chan any
-	debugMode  bool
+	systemIo           io.SystemProvider
+	broker             broker.BrokerProvider
+	object             managerObject
+	usageStart         time.Time
+	destroy            chan any
+	debugMode          bool
 }
 
 type managerObject struct {
@@ -47,7 +43,7 @@ type managerObject struct {
 func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manager {
 	m := Manager{
 		broker:             broker,
-		system:             io.NewSystem(db),
+		systemIo:           io.NewSystem(db),
 		cleanupIntervalSec: domain.CLEANUP_INTERVAL_SECONDS,
 		debugMode:          true,
 		usageStart:         time.Now(),
@@ -69,7 +65,7 @@ func (c *Manager) ExpectChannel(channel *domain.Channel) (ChannelProvider, error
 		return worker, nil
 	}
 
-	created, err := c.system.CreateChannelIfNotFound(channel)
+	created, err := c.systemIo.CreateChannelIfNotFound(channel)
 
 	if err != nil {
 		return nil, err
@@ -113,7 +109,7 @@ func (c *Manager) RemoveSubscription(subscriber *domain.TopicSubscription, chann
 			Str("client", subscriber.ClientId).
 			Str("topics", strings.Join(subscriber.Topics, ",")).
 			Msg("Setting topic subscriber inactive")
-		if err := c.system.UpdateTopicSubscriber(subscriber); err != nil {
+		if err := c.systemIo.UpdateTopicSubscriber(subscriber); err != nil {
 			log.Error().
 				Str("subscription", subscriber.Id).
 				Str("channel", channel.Id).
@@ -148,7 +144,7 @@ func (c *Manager) AddSubscription(subscriber *domain.TopicSubscription, channel 
 				Str("client", subscriber.ClientId).
 				Str("topics", strings.Join(subscriber.Topics, ",")).
 				Msg("Storing topic subscriber")
-			if err := c.system.StoreTopicSubscriber(subscriber); err != nil {
+			if err := c.systemIo.StoreTopicSubscriber(subscriber); err != nil {
 				log.Error().
 					Str("subscription", subscriber.Id).
 					Str("channel", channel.Id).
@@ -188,7 +184,7 @@ func (c *Manager) PublishMessage(clientId string, channel *domain.Channel, messa
 
 func (c *Manager) handleHeartbeat(channel *domain.Channel) {
 	channel.UpdateHeartbeat()
-	err := c.system.UpdateChannel(channel)
+	err := c.systemIo.UpdateChannel(channel)
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("Channel heartbeat failed to update: %s. Err: %s ", channel.Repr(), err.Error()))
 	}
@@ -262,7 +258,7 @@ func (c *Manager) bootChannel(channel *domain.Channel) (*Channel, chan any, erro
 		} else {
 			message.UpdateState(domain.STATE_COMPLETE)
 		}
-		return c.system.StoreMessage(message)
+		return c.systemIo.StoreMessage(message)
 	}
 
 	worker := NewChannel(channel, c.broker, update)
@@ -299,7 +295,7 @@ func (c *Manager) DestroyChannel(channel *domain.Channel) (err error) {
 		} else {
 			channel.UpdateState(domain.STATE_INACTIVE)
 		}
-		if writeErr := c.system.UpdateChannel(channel); writeErr != nil {
+		if writeErr := c.systemIo.UpdateChannel(channel); writeErr != nil {
 			log.Error().Msg(fmt.Sprintf("Failed to write update to worker. Err: %s", writeErr.Error()))
 		}
 	}()
@@ -340,17 +336,17 @@ func (c *Manager) PruneChannels() (err error) {
 
 func (c *Manager) PruneMessages() error {
 	log.Info().Msg("pruning messages")
-	return c.system.PruneMessages(domain.MESSAGE_RETENTION_HOURS)
+	return c.systemIo.PruneMessages(domain.MESSAGE_RETENTION_HOURS)
 }
 
 func (c *Manager) RecordUsage() (err error) {
 	log.Info().Msg(fmt.Sprintf("recording usage since last stop: %s", c.usageStart.Format(time.RFC3339)))
 	stop := time.Now()
-	usage, err := c.system.AggregateClientMessageUsage(c.usageStart, stop)
+	usage, err := c.systemIo.AggregateClientMessageUsage(c.usageStart, stop)
 	if err != nil {
 		return err
 	}
-	err = c.system.StoreClientUsage(usage)
+	err = c.systemIo.StoreClientUsage(usage)
 	if err != nil {
 		return err
 	}
