@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/arrno/chanman/datastore"
@@ -229,5 +230,41 @@ func methodGuard(allowedMethod string, next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		next(w, r)
+	}
+}
+
+// cors middleware handles CORS headers for specified routes
+func (c *Controller) cors(next http.HandlerFunc) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get the origin from the request
+		origin := r.Header.Get("Origin")
+
+		re := regexp.MustCompile(`^https?://(localhost|127\.0\.0\.1)(:\d+)?$`)
+
+		// Check if the origin is allowed
+		allowed := false
+		if origin == "" {
+			allowed = true // Allow requests without origin (e.g., from curl)
+		} else if re.MatchString(origin) || strings.HasSuffix(origin, ".multicast.co") {
+			allowed = true
+		}
+
+		if allowed {
+			// Set CORS headers
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Continue to the next handler
+		next.ServeHTTP(w, r)
 	}
 }

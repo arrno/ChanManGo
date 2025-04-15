@@ -17,6 +17,7 @@ type SystemProvider struct {
 
 func NewSystem(repo datastore.RepoProvider) SystemProvider {
 	return SystemProvider{
+		RepoProvider:    repo,
 		ClientProvider:  NewClient(repo),
 		ChannelProvider: NewChannel(repo),
 		GroupProvider:   NewGroup(repo),

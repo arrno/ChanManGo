@@ -11,16 +11,18 @@ func RunWeb() {
 
 	// public
 	r := NewRouter().
-		Chain(c.rateLimit)
-	r.Post("/beta/signup", c.SignUpBeta)
-	r.Post("/contact", c.Contact)
+		Chain(c.rateLimit).
+		Chain(c.cors)
+	r.Add("/beta/signup", c.Contact, []string{http.MethodPost, http.MethodOptions})
+	r.Add("/contact", c.Contact, []string{http.MethodPost, http.MethodOptions})
 
 	rr := NewRouter().
 		Chain(c.rateLimit).
-		Chain(c.auth)
-	rr.Post("/rotate-token", c.RotateToken)
-	rr.Get("/beta/check-token", c.CheckTokenBeta)
-	rr.Post("/beta/update-token", c.UpdateTokenBeta)
+		Chain(c.auth).
+		Chain(c.cors)
+	rr.Add("/rotate-token", c.RotateToken, []string{http.MethodPost, http.MethodOptions})
+	rr.Add("/beta/check-token", c.RotateToken, []string{http.MethodGet, http.MethodOptions})
+	rr.Add("/beta/update-token", c.RotateToken, []string{http.MethodPost, http.MethodOptions})
 
 	// Channel router
 	rc := NewRouter().

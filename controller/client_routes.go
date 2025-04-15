@@ -161,25 +161,6 @@ func (c *Controller) ArchiveClient(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, map[string]bool{"archived": true})
 }
 
-// Contact handles form submissions from the public contact page.
-// This is a public endpoint that does not require authentication.
-//
-// Endpoint: POST /contact
-//
-// Request body:
-//
-//	{
-//	  "name": "User Name",
-//	  "email": "user@example.com",
-//	  "message": "Contact message content"
-//	}
-//
-// Response: 200 OK on success
-//
-//	{
-//	  "success": true,
-//	  "message": "Contact request submitted successfully"
-//	}
 func (c *Controller) Contact(w http.ResponseWriter, r *http.Request) {
 	// Parse the contact request from the request body
 	var contactReq struct {
@@ -229,24 +210,6 @@ func (c *Controller) Contact(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// CheckTokenBeta verifies the client's token and returns their information.
-// This endpoint requires authentication through the auth middleware.
-//
-// Endpoint: GET /beta/check-token
-//
-// Headers required:
-// - clientId: The client ID (provided by auth middleware)
-//
-// Response: 200 OK on success
-//
-//	{
-//	  "clientId": "client-id",
-//	  "email": "user@example.com",
-//	  "tier": "free|pro",
-//	  "channel": "client-channel",
-//	  "clientName": "Client Name",
-//	  "clientGroup": "group-id"
-//	}
 func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 	clientId := r.Header.Get("clientId")
 
@@ -306,34 +269,6 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-// UpdateTokenBeta updates client information based on the request.
-// This endpoint requires authentication through the auth middleware.
-// Only admin users can update the client tier.
-//
-// Endpoint: POST /beta/update-token
-//
-// Headers required:
-// - clientId: The client ID (provided by auth middleware)
-// - admin: "true" if the requester is an admin (provided by auth middleware)
-//
-// Request body:
-//
-//	{
-//	  "email": "user@example.com", // Optional
-//	  "tier": "free|pro",          // Optional, requires admin privileges
-//	  "clientName": "Client Name"  // Optional
-//	}
-//
-// Response: 200 OK on success
-//
-//	{
-//	  "clientId": "client-id",
-//	  "email": "updated@example.com",
-//	  "tier": "free|pro",
-//	  "channel": "client-channel",
-//	  "clientName": "Updated Name",
-//	  "clientGroup": "group-id"
-//	}
 func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
 	clientId := r.Header.Get("clientId")
 	isAdmin := r.Header.Get("admin") == "true"

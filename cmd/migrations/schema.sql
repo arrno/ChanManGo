@@ -12,7 +12,7 @@ CREATE TYPE state_enum AS ENUM (
 
 CREATE TYPE tier_enum AS ENUM (
   'free',
-  'pro',
+  'pro'
 );
 
 -- Create Clients table
@@ -37,7 +37,7 @@ CREATE TABLE client_usage (
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_client_usage_start ON messages (client_id, start);
+CREATE INDEX idx_client_usage_start ON client_usage (client_id, start);
 
 -- Create Portals table
 CREATE TABLE portals (
@@ -212,5 +212,6 @@ CREATE TABLE contact_requests (
     id VARCHAR(255) PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
-    message TEXT NOT NULL
+    message TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
