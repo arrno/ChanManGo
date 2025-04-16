@@ -2,8 +2,6 @@ package io
 
 import (
 	"errors"
-	"fmt"
-	"time"
 
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
@@ -16,8 +14,6 @@ type ClientProvider interface {
 	RotateClientSecret(clientId string) (domain.Token, error)
 	ValidateClientSecret(clientId, token string) error
 	FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)
-	//
-	DailyUsage(date time.Time) ([]domain.ClientUsage, error)
 }
 
 type Client struct {
@@ -111,14 +107,4 @@ func (c *Client) FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *do
 		permission = nil
 	}
 	return clientGroup, permission, isAdmin, expired, err
-}
-
-func (c *Client) DailyUsage(date time.Time) ([]domain.ClientUsage, error) {
-	// Retrieve client usage records for the specified day
-	clientUsage, err := c.repo.GetClientUsageByDay(date)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve daily usage: %w", err)
-	}
-
-	return clientUsage, nil
 }

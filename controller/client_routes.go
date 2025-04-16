@@ -256,6 +256,8 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 		groupId = domain.MAIN_GROUP
 	}
 
+	// TODO fetch client usage
+
 	// Create response
 	response := ClientTokenResponse{
 		ClientId:      clientId,

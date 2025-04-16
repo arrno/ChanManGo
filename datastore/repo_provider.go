@@ -56,7 +56,7 @@ type SystemRepoProvider interface {
 	ArchiveClient(id string) error
 	//
 	AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error)
-	GetClientUsageByDay(date time.Time) ([]domain.ClientUsage, error)
+	GetClientUsageByDay(date time.Time, clientId string) ([]domain.ClientUsage, error)
 	StoreClientUsage(usage []domain.ClientUsage) error
 	//
 	GetClientAuthByToken(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error)

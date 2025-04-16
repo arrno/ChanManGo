@@ -21,7 +21,7 @@ func RunWeb() {
 		Chain(c.auth).
 		Chain(c.cors)
 	rr.Add("/rotate-token", c.RotateToken, []string{http.MethodPost, http.MethodOptions})
-	rr.Add("/beta/check-token", c.RotateToken, []string{http.MethodGet, http.MethodOptions})
+	rr.Add("/beta/check-token", c.CheckTokenBeta, []string{http.MethodGet, http.MethodOptions})
 	rr.Add("/beta/update-token", c.RotateToken, []string{http.MethodPost, http.MethodOptions})
 
 	// Channel router

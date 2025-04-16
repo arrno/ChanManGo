@@ -63,6 +63,8 @@ type ClientTokenResponse struct {
 	Token         string      `json:"token,omitempty"`
 	ClientName    string      `json:"clientName,omitempty"`
 	ClientGroup   string      `json:"clientGroup,omitempty"`
+	PubCount      uint        `json:"pubCount,omitempty"`
+	SubCount      uint        `json:"subCount,omitempty"`
 	ExpiresAt     *time.Time  `json:"tokenExpiresAt,omitempty"`
 }
 

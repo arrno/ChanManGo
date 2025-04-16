@@ -730,12 +730,19 @@ func (r *SystemRepo) AggregateClientMessageUsage(start, stop time.Time) ([]domai
 }
 
 // GetClientUsageByDay retrieves client usage statistics for a specific day
-func (r *SystemRepo) GetClientUsageByDay(date time.Time) ([]domain.ClientUsage, error) {
+func (r *SystemRepo) GetClientUsageByDay(date time.Time, clientId string) ([]domain.ClientUsage, error) {
 	// Create start and end times for the specified day
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endOfDay := startOfDay.Add(24 * time.Hour)
 
-	query := `
+	args := []any{startOfDay, endOfDay}
+
+	where := ""
+	if clientId != "" {
+		where = "AND client_id = $3"
+		args = append(args, clientId)
+	}
+	query := fmt.Sprintf(`
 		SELECT 
 			id,
 			client_id,
@@ -743,12 +750,12 @@ func (r *SystemRepo) GetClientUsageByDay(date time.Time) ([]domain.ClientUsage, 
 			start,
 			stop
 		FROM client_usage
-		WHERE start >= $1 AND stop < $2
+		WHERE start >= $1 AND stop < $2 %s
 		ORDER BY client_id, start;
-	`
+	`, where)
 
 	var clientUsage []domain.ClientUsage
-	err := r.db.Select(ctx, &clientUsage, query, startOfDay, endOfDay)
+	err := r.db.Select(ctx, &clientUsage, query, args...)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// Return empty array instead of error for no usage data
