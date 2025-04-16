@@ -425,14 +425,40 @@ func (r *MessageRepo) ArchiveMessage(id string) error {
 	return r.UpdateMessage(msg)
 }
 
-// StoreMessage stores a message in the database
-func (r *MessageRepo) StoreMessageSubscribers([]*domain.MessageSubscriber) error {
-	query := `
-		INSERT INTO message_subscribers...
-	`
+// StoreMessageSubscribers stores a batch of message subscribers in the database using bulk insert
+func (r *MessageRepo) StoreMessageSubscribers(subscribers []*domain.MessageSubscriber) error {
+	if len(subscribers) == 0 {
+		return nil // Nothing to store
+	}
 
-	// TODO
-	fmt.Println(query)
-
+	// Build the bulk insert query with value placeholders
+	// Format: INSERT INTO message_subscribers VALUES ($1,$2,$3,$4), ($5,$6,$7,$8), ...
+	query := "INSERT INTO message_subscribers (id, message_id, client_id, created_at) VALUES "
+	args := []interface{}{}
+	
+	for i, sub := range subscribers {
+		// Add placeholders for this row
+		if i > 0 {
+			query += ", "
+		}
+		
+		// Calculate the position of parameters for this record
+		pos := i * 4
+		query += fmt.Sprintf("($%d, $%d, $%d, $%d)", 
+			pos+1, pos+2, pos+3, pos+4)
+		
+		// Add values to the args slice
+		args = append(args, sub.Id, sub.MessageId, sub.ClientId, sub.CreatedAt)
+	}
+	
+	// Add conflict handling
+	query += " ON CONFLICT (id) DO NOTHING"
+	
+	// Execute the bulk insert
+	_, err := r.db.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to bulk insert message subscribers: %w", err)
+	}
+	
 	return nil
 }
