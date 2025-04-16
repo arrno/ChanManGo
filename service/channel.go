@@ -7,6 +7,7 @@ import (
 
 	"github.com/arrno/chanman/broker"
 	"github.com/arrno/chanman/domain"
+	"github.com/rs/zerolog/log"
 )
 
 type ChannelProvider interface {
@@ -33,7 +34,11 @@ type Channel struct {
 	publishers       uint
 }
 
-func NewChannel(chanObject *domain.Channel, broker broker.BrokerProvider, update func(message *domain.Message) error) *Channel {
+func NewChannel(
+	chanObject *domain.Channel,
+	broker broker.BrokerProvider,
+	update func(message *domain.Message, subs []*domain.MessageSubscriber) error,
+) *Channel {
 	c := Channel{
 		object: chanObject,
 		broker: broker,
@@ -59,7 +64,29 @@ func NewChannel(chanObject *domain.Channel, broker broker.BrokerProvider, update
 		}
 
 		message.Acknowledge(uint(len(subscribers)))
-		defer update(message)
+
+		defer func() {
+			messageSubscribers := make([]*domain.MessageSubscriber, len(subscribers))
+			for i, sub := range subscribers {
+				messageSubscribers[i] = domain.NewMessageSubscriber(
+					message.Id, sub.ClientId,
+				)
+			}
+
+			if err != nil {
+				message.UpdateState(domain.STATE_ERROR)
+			} else {
+				message.UpdateState(domain.STATE_COMPLETE)
+			}
+
+			if err := update(message, messageSubscribers); err != nil {
+				log.Error().
+					Str("messageId", message.Id).
+					Str("clientId", message.ClientId).
+					Str("channelId", message.ChannelId).
+					Msg("Failed to store message. Err: " + err.Error())
+			}
+		}()
 
 		var wg sync.WaitGroup
 		wg.Add(len(subscribers))

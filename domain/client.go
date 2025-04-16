@@ -40,7 +40,8 @@ type ClientUsage struct {
 	ClientId string    `db:"client_id" json:"client_id"`
 	Start    time.Time `db:"start" json:"start"`
 	Stop     time.Time `db:"stop" json:"stop"`
-	Count    uint      `db:"count" json:"count"`
+	SubCount uint      `db:"sub_count" json:"subCount"`
+	PubCount uint      `db:"pub_count" json:"spubCount"`
 }
 
 type ClientSecret struct {

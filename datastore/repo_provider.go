@@ -43,6 +43,8 @@ type MessageRepoProvider interface {
 	UpdateMessage(*domain.Message) error
 	ArchiveMessage(id string) error
 	PruneMessages(retentionHours uint) error
+	//
+	StoreMessageSubscribers([]*domain.MessageSubscriber) error
 }
 
 // TODO all these queries should honor the caller's portal

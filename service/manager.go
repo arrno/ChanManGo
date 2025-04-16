@@ -252,13 +252,11 @@ func (c *Manager) Destroy() {
 }
 
 func (c *Manager) bootChannel(channel *domain.Channel) (*Channel, chan any, error) {
-	update := func(message *domain.Message) (err error) {
-		if err != nil {
-			message.UpdateState(domain.STATE_ERROR)
-		} else {
-			message.UpdateState(domain.STATE_COMPLETE)
+	update := func(message *domain.Message, subs []*domain.MessageSubscriber) (err error) {
+		if err := c.systemIo.StoreMessage(message); err != nil {
+			return err
 		}
-		return c.systemIo.StoreMessage(message)
+		return c.systemIo.StoreMessageSubscribers(subs)
 	}
 
 	worker := NewChannel(channel, c.broker, update)

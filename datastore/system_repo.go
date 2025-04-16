@@ -699,11 +699,24 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 func (r *SystemRepo) AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error) {
 	query := `
 		SELECT 
-			client_id, 
-			SUM(destinations) AS count
-		FROM messages
-		WHERE created_at >= $1 AND created_at < $2
-		GROUP BY client_id;
+		client_id,
+		COUNT(*) FILTER (WHERE role = 'sender') AS pub_count,
+		COUNT(*) FILTER (WHERE role = 'receiver') AS sub_count
+		FROM (
+			SELECT messages.client_id AS client_id, 'sender' AS role
+			FROM messages
+			JOIN message_subscribers ON message_subscribers.message_id = messages.id
+			WHERE messages.created_at >= $1 AND messages.created_at < $2
+
+			UNION ALL
+
+			SELECT message_subscribers.client_id AS client_id, 'receiver' AS role
+			FROM messages
+			JOIN message_subscribers ON message_subscribers.message_id = messages.id
+			WHERE messages.created_at >= $1 AND messages.created_at < $2
+		) AS combined
+		GROUP BY client_id
+		ORDER BY client_id;
 	`
 
 	var clientUsageCounts []domain.ClientUsage
@@ -746,7 +759,8 @@ func (r *SystemRepo) GetClientUsageByDay(date time.Time, clientId string) ([]dom
 		SELECT 
 			id,
 			client_id,
-			count,
+			sub_count,
+			pub_count,
 			start,
 			stop
 		FROM client_usage
@@ -774,14 +788,15 @@ func (r *SystemRepo) StoreClientUsage(usageRecords []domain.ClientUsage) error {
 		for _, record := range usageRecords {
 			query := `
 				INSERT INTO client_usage (
-					id, client_id, count, start, stop
-				) VALUES ($1, $2, $3, $4, $5)
+					id, client_id, pub_count, sub_count, start, stop
+				) VALUES ($1, $2, $3, $4, $5, $6)
 				ON CONFLICT (id) DO UPDATE SET
-					count = client_usage.count + EXCLUDED.count
+					pub_count = client_usage.pub_count + EXCLUDED.pub_count,
+					sub_count = client_usage.sub_count + EXCLUDED.sub_count
 			`
 
 			_, err := tx.Exec(ctx, query,
-				record.Id, record.ClientId, record.Count, record.Start, record.Stop)
+				record.Id, record.ClientId, record.PubCount, record.SubCount, record.Start, record.Stop)
 			if err != nil {
 				return fmt.Errorf("failed to store client usage record: %w", err)
 			}

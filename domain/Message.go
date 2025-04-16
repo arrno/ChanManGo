@@ -93,3 +93,19 @@ func (m *Message) Acknowledge(count uint) {
 	m.AcknowledgedAt = &t
 	m.Destinations = count
 }
+
+type MessageSubscriber struct {
+	Id        string    `db:"id" json:"id"`
+	MessageId string    `db:"message_id" json:"messageId"`
+	ClientId  string    `db:"client_id" json:"clientId"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+}
+
+func NewMessageSubscriber(messageId, clientId string) *MessageSubscriber {
+	return &MessageSubscriber{
+		Id:        util.Nanoid(),
+		MessageId: messageId,
+		ClientId:  clientId,
+		CreatedAt: time.Now(),
+	}
+}

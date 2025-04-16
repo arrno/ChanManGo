@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -361,14 +362,24 @@ func (r *MessageRepo) GetMessage(id string) (*domain.Message, error) {
 }
 
 func (r *MessageRepo) PruneMessages(retentionHours uint) error {
-	query := `DELETE FROM messages WHERE created_at < now() - ($1 * INTERVAL '1 hour')`
 
-	_, err := r.db.Exec(ctx, query, retentionHours)
-	if err != nil {
-		return err
-	}
+	return r.db.WithTx(context.Background(), func(tx SQLDatabase) error {
+		query := `DELETE FROM messages WHERE created_at < now() - ($1 * INTERVAL '1 hour')`
 
-	return nil
+		_, err := tx.Exec(ctx, query, retentionHours)
+		if err != nil {
+			return err
+		}
+
+		query = `DELETE FROM message_subscribers WHERE created_at < now() - ($1 * INTERVAL '1 hour')`
+
+		_, err = tx.Exec(ctx, query, retentionHours)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
 }
 
 // UpdateMessage updates a message in the database
@@ -412,4 +423,16 @@ func (r *MessageRepo) ArchiveMessage(id string) error {
 	msg.UpdatedAt = now
 
 	return r.UpdateMessage(msg)
+}
+
+// StoreMessage stores a message in the database
+func (r *MessageRepo) StoreMessageSubscribers([]*domain.MessageSubscriber) error {
+	query := `
+		INSERT INTO message_subscribers...
+	`
+
+	// TODO
+	fmt.Println(query)
+
+	return nil
 }

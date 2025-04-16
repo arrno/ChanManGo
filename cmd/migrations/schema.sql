@@ -31,7 +31,8 @@ CREATE TABLE clients (
 CREATE TABLE client_usage (
   id VARCHAR(255) PRIMARY KEY,
   client_id VARCHAR(255) NOT NULL,
-  count INTEGER CHECK (count >= 0),
+  sub_count INTEGER CHECK (sub_count >= 0),
+  pub_count INTEGER CHECK (pub_count >= 0),
   start TIMESTAMP NOT NULL,
   stop TIMESTAMP NOT NULL,
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
@@ -215,3 +216,17 @@ CREATE TABLE contact_requests (
     message TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- contact request
+CREATE TABLE message_subscribers (
+    id VARCHAR(255) PRIMARY KEY,
+    message_id VARCHAR(255) NOT NULL,
+    client_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_subscribers_client_id ON message_subscribers(client_id);
+CREATE INDEX idx_subscribers_message_id ON message_subscribers(message_id);
+CREATE INDEX idx_subscribers_receiver_time ON messages (client_id, created_at);

@@ -38,7 +38,7 @@ func (c *Controller) GetClient(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "Client not found", err)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client", err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (c *Controller) GetClients(w http.ResponseWriter, r *http.Request) {
 
 	clients, err := c.system.GetClients(&pg, filter)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve clients", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get clients", err)
 		return
 	}
 	pg.Items = clients
@@ -226,7 +226,7 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "Client not found", err)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client", err)
 		return
 	}
 
@@ -237,14 +237,14 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "Client permission not found", err)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client permission", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client permission", err)
 		return
 	}
 
 	// Get client groups
 	clientGroups, err := c.system.GetClientGroupsByClientId(clientId)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client groups", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client groups", err)
 		return
 	}
 
@@ -256,7 +256,14 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 		groupId = domain.MAIN_GROUP
 	}
 
-	// TODO fetch client usage
+	usage, err := c.system.GetClientUsageByDay(time.Now(), clientId)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client usage", err)
+		return
+	}
+	if len(usage) == 0 {
+		usage[0] = domain.ClientUsage{}
+	}
 
 	// Create response
 	response := ClientTokenResponse{
@@ -265,6 +272,8 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 		Tier:          permission.Tier,
 		ClientName:    client.Name,
 		ClientGroup:   groupId,
+		PubCount:      usage[0].PubCount,
+		SubCount:      usage[0].SubCount,
 		ClientChannel: "", // Client channel is optional
 	}
 
@@ -304,7 +313,7 @@ func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "Client not found", err)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client", err)
 		return
 	}
 
@@ -338,7 +347,7 @@ func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
 				RespondWithError(w, http.StatusNotFound, "Client permission not found", err)
 				return
 			}
-			RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client permission", err)
+			RespondWithError(w, http.StatusInternalServerError, "Failed to get client permission", err)
 			return
 		}
 
@@ -357,7 +366,7 @@ func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
 		// Get updated client permission
 		permission, err = c.system.GetClientPermissionByClientId(clientId)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client permission", err)
+			RespondWithError(w, http.StatusInternalServerError, "Failed to get client permission", err)
 			return
 		}
 	}
@@ -365,7 +374,7 @@ func (c *Controller) UpdateTokenBeta(w http.ResponseWriter, r *http.Request) {
 	// Get client groups
 	clientGroups, err := c.system.GetClientGroupsByClientId(clientId)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve client groups", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to get client groups", err)
 		return
 	}
 
