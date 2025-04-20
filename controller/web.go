@@ -13,13 +13,13 @@ func RunWeb() {
 	r := NewRouter().
 		Chain(c.rateLimit).
 		Chain(c.cors)
-	r.Add("/beta/signup", c.Contact, []string{http.MethodPost, http.MethodOptions})
+	r.Add("/beta/signup", c.SignUpBeta, []string{http.MethodPost, http.MethodOptions})
 	r.Add("/contact", c.Contact, []string{http.MethodPost, http.MethodOptions})
 
 	rr := NewRouter().
 		Chain(c.rateLimit).
-		Chain(c.auth).
-		Chain(c.cors)
+		Chain(c.cors).
+		Chain(c.auth)
 	rr.Add("/rotate-token", c.RotateToken, []string{http.MethodPost, http.MethodOptions})
 	rr.Add("/beta/check-token", c.CheckTokenBeta, []string{http.MethodGet, http.MethodOptions})
 	rr.Add("/beta/update-token", c.RotateToken, []string{http.MethodPost, http.MethodOptions})

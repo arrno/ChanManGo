@@ -100,6 +100,9 @@ func (c *Client) clientExists(clientId string) (bool, error) {
 
 func (c *Client) FetchActiveClaims(token domain.Token) (*domain.ClientGroup, *domain.ClientPermission, bool, bool, error) {
 	clientGroup, permission, isAdmin, expired, err := c.repo.GetClientAuthByToken(token)
+	if err != nil {
+		return nil, nil, false, false, err
+	}
 	if clientGroup.ArchivedAt != nil {
 		clientGroup = nil
 	}

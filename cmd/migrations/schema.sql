@@ -222,7 +222,7 @@ CREATE TABLE message_subscribers (
     id VARCHAR(255) PRIMARY KEY,
     message_id VARCHAR(255) NOT NULL,
     client_id VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
