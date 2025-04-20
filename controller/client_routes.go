@@ -262,11 +262,11 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(usage) == 0 {
-		usage[0] = domain.ClientUsage{}
+		usage = append(usage, domain.ClientUsage{})
 	}
 
 	// Create response
-	response := ClientTokenResponse{
+	response := ClientTokenUsageResponse{
 		ClientId:      clientId,
 		Email:         client.Email,
 		Tier:          permission.Tier,

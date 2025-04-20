@@ -63,8 +63,19 @@ type ClientTokenResponse struct {
 	Token         string      `json:"token,omitempty"`
 	ClientName    string      `json:"clientName,omitempty"`
 	ClientGroup   string      `json:"clientGroup,omitempty"`
-	PubCount      uint        `json:"pubCount,omitempty"`
-	SubCount      uint        `json:"subCount,omitempty"`
+	ExpiresAt     *time.Time  `json:"tokenExpiresAt,omitempty"`
+}
+
+type ClientTokenUsageResponse struct {
+	ClientId      string      `json:"clientId"`
+	Email         string      `json:"email,omitempty"`
+	Tier          domain.Tier `json:"tier,omitempty"`
+	ClientChannel string      `json:"channel,omitempty"`
+	Token         string      `json:"token,omitempty"`
+	ClientName    string      `json:"clientName,omitempty"`
+	ClientGroup   string      `json:"clientGroup,omitempty"`
+	PubCount      uint        `json:"pubCount"`
+	SubCount      uint        `json:"subCount"`
 	ExpiresAt     *time.Time  `json:"tokenExpiresAt,omitempty"`
 }
 
