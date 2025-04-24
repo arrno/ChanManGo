@@ -33,7 +33,14 @@ func (env *EnvVar) Load() *EnvVar {
 
 	env.DotEnv("")
 	expectedVars := []string{
+		"WEB_PORT",
+		"WEB_HOST",
 		"LOCAL_SECRET",
+		"DB_HOST",
+		"DB_PORT",
+		"DB_USER",
+		"DB_PASSWORD",
+		"DB_DATASTORE",
 	}
 	for _, key := range expectedVars {
 		env.Vars[key] = os.Getenv(key)

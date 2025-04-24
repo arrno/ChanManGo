@@ -1,9 +1,12 @@
 package controller
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/arrno/chanman/util"
+)
 
 // ENV VARS...
-const PORT string = "8080"
 
 func RunWeb() {
 
@@ -45,7 +48,11 @@ func RunWeb() {
 	)
 	ra.Get("/clients", c.GetClients)
 
-	if err := http.ListenAndServe(":"+PORT, nil); err != nil {
+	port := util.NewEnv().Expect("WEB_PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		panic(err.Error())
 	}
 }

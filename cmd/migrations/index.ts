@@ -2,15 +2,7 @@ import { Client } from "pg";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { clearDatabase, bootDatabase, ping } from "./util";
-
-// --- Configuration ---
-export const dbConfig = {
-    user: "myuser",
-    host: "localhost",
-    database: "postgres",
-    password: "password",
-    port: 5433, // Default PostgreSQL port
-};
+import { dbConfig } from "./config";
 
 async function main() {
     const client = new Client(dbConfig);

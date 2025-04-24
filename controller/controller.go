@@ -15,25 +15,7 @@ import (
 // WebSocket upgrader with proper origin checking
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-
-		// TODO - this should be config driven
-		return true
-
-		// // In production, get allowed origins from environment variables or config
-		// allowedOrigins := []string{"localhost", "127.0.0.1"}
-
-		// // Get origin from request
-		// origin := r.Header.Get("Origin")
-
-		// // For demo purposes, allow localhost and direct IP access
-		// for _, allowed := range allowedOrigins {
-		// 	if origin == "http://"+allowed || origin == "https://"+allowed ||
-		// 		origin == "http://"+allowed+":8080" || origin == "https://"+allowed+":8080" {
-		// 		return true
-		// 	}
-		// }
-
-		// return false
+		return true // loosen up my buttons
 	},
 }
 
