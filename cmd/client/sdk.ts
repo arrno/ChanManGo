@@ -9,7 +9,7 @@ export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
         baseUrl: "http://localhost:8080",
-        authToken: "D8vNI25k3BYJVUBWz1zE::KIwMeCeOUKZMWmr3SC8M",
+        authToken: "VVJXjCqIobaSivgC67AN::0royPZX33zAZlJAI2wQX",
         // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
@@ -37,13 +37,13 @@ export async function sdk() {
     //     );
     // }
 
-    const sdkTwo = new ChanbanSDK({
-        baseUrl: "http://localhost:8080",
-        authToken: "D8vNI25k3BYJVUBWz1zE::KIwMeCeOUKZMWmr3SC8M",
-        // topics: ["alt", TOPIC_ALL],
-        channel: "MyChan",
-        debug: true,
-    });
+    // const sdkTwo = new ChanbanSDK({
+    //     baseUrl: "http://localhost:8080",
+    //     authToken: "D8vNI25k3BYJVUBWz1zE::KIwMeCeOUKZMWmr3SC8M",
+    //     // topics: ["alt", TOPIC_ALL],
+    //     channel: "MyChan",
+    //     debug: true,
+    // });
 
     // Listen for connection state changes
     const unsubscribe = sdk.onStateChange((state, connectionType) => {
@@ -61,7 +61,7 @@ export async function sdk() {
         );
 
         console.log("Publishing message...");
-        await sdkTwo.publish("alt", {
+        await sdk.publish("alt", {
             id: "msg-1",
             text: "Hello from Chanban SDK!",
             timestamp: new Date().toISOString(),
@@ -78,7 +78,7 @@ export async function sdk() {
 
         // Publish using HTTP fallback
         console.log("Publishing message via HTTP...");
-        const response = await sdkTwo.publishHttp("alt", {
+        const response = await sdk.publishHttp("alt", {
             id: "msg-2",
             text: "Hello via HTTP!",
             timestamp: new Date().toISOString(),
@@ -91,7 +91,7 @@ export async function sdk() {
     } finally {
         // Clean up
         sdk.disconnect();
-        sdkTwo.disconnect();
+        // sdkTwo.disconnect();
         // subs.forEach((sub) => sub.disconnect());
         console.log("Disconnected");
     }

@@ -1,6 +1,4 @@
 import { Client } from "pg";
-import * as fs from "fs/promises";
-import * as path from "path";
 import { clearDatabase, bootDatabase, ping } from "./util";
 import { dbConfig } from "./config";
 
