@@ -1,6 +1,8 @@
 package io
 
 import (
+	"time"
+
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 	"github.com/arrno/chanman/util"
@@ -76,4 +78,11 @@ func (s *SystemProvider) InitSandbox(
 
 		return nil
 	})
+}
+
+func (s *SystemProvider) GetCurrentClientUsage(clientId string) (domain.ClientUsage, error) {
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	stop := start.Add(24 * time.Hour)
+	return s.AggregateClientMessageUsageByClient(start, stop, clientId)
 }

@@ -256,13 +256,10 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 		groupId = domain.MAIN_GROUP
 	}
 
-	usage, err := c.system.GetClientUsageByDay(time.Now(), clientId)
+	usage, err := c.system.GetCurrentClientUsage(clientId)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to get client usage", err)
 		return
-	}
-	if len(usage) == 0 {
-		usage = append(usage, domain.ClientUsage{})
 	}
 
 	// Create response
@@ -272,8 +269,8 @@ func (c *Controller) CheckTokenBeta(w http.ResponseWriter, r *http.Request) {
 		Tier:          permission.Tier,
 		ClientName:    client.Name,
 		ClientGroup:   groupId,
-		PubCount:      usage[0].PubCount,
-		SubCount:      usage[0].SubCount,
+		PubCount:      usage.PubCount,
+		SubCount:      usage.SubCount,
 		ClientChannel: "", // Client channel is optional
 	}
 

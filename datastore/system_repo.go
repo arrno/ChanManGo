@@ -696,6 +696,54 @@ func (r *SystemRepo) GetClientAuthByToken(providedToken domain.Token) (*domain.C
 }
 
 // AggregateClientMessageUsage retrieves message usage statistics for clients during a time period
+func (r *SystemRepo) AggregateClientMessageUsageByClient(start, stop time.Time, clientId string) (domain.ClientUsage, error) {
+	query := `
+		SELECT 
+		client_id,
+		COUNT(*) FILTER (WHERE role = 'sender') AS pub_count,
+		COUNT(*) FILTER (WHERE role = 'receiver') AS sub_count
+		FROM (
+			SELECT messages.client_id AS client_id, 'sender' AS role
+			FROM messages
+			JOIN message_subscribers ON message_subscribers.message_id = messages.id
+			WHERE messages.created_at >= $1 AND messages.created_at < $2 AND messages.client_id = $3
+
+			UNION ALL
+
+			SELECT message_subscribers.client_id AS client_id, 'receiver' AS role
+			FROM messages
+			JOIN message_subscribers ON message_subscribers.message_id = messages.id
+			WHERE messages.created_at >= $1 AND messages.created_at < $2 AND message_subscribers.client_id = $3
+		) AS combined
+		GROUP BY client_id
+		ORDER BY client_id;
+	`
+
+	var clientUsageCounts []domain.ClientUsage
+	err := r.db.Select(ctx, &clientUsageCounts, query, start, stop, clientId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ClientUsage{}, ErrNotFound
+		}
+		return domain.ClientUsage{}, err
+	} else if len(clientUsageCounts) == 0 {
+		return domain.ClientUsage{}, nil
+	}
+	clientUsageCount := clientUsageCounts[0]
+
+	startStr, stopStr := start.Format("20060102150405"), stop.Format("20060102150405")
+	// Generate IDs and set start/stop times for the usage records
+	clientUsageCount.Id = fmt.Sprintf("%s-%s-%s",
+		clientUsageCount.ClientId,
+		startStr,
+		stopStr)
+	clientUsageCount.Start = start
+	clientUsageCount.Stop = stop
+
+	return clientUsageCount, nil
+}
+
+// AggregateClientMessageUsage retrieves message usage statistics for clients during a time period
 func (r *SystemRepo) AggregateClientMessageUsage(start, stop time.Time) ([]domain.ClientUsage, error) {
 	query := `
 		SELECT 
