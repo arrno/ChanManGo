@@ -1,12 +1,18 @@
+Deploy:
+- deploy database (min size)
+- deploy compute (max one instance cloud run)
+- verify client reconnect on short lived compute instance
+- update/publish SDK
+- add component/docs pages to mcast.co
+
 Roadmap:
 
 [prototype] -done
 ---
 [base-case]
 ---
-integration-tests
 UI / stripe
-verify message-pruning/usage-reporting
+verify message-pruning
 ---
 [differentiators]
 ---

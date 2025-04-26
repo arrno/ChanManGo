@@ -377,6 +377,13 @@ func (r *MessageRepo) PruneMessages(retentionHours uint) error {
 		if err != nil {
 			return err
 		}
+
+		query = `DELETE FROM topic_subscriptions WHERE created_at < now() - ($1 * INTERVAL '1 hour') AND state = 'inactive'`
+
+		_, err = tx.Exec(ctx, query, retentionHours)
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -435,30 +442,30 @@ func (r *MessageRepo) StoreMessageSubscribers(subscribers []*domain.MessageSubsc
 	// Format: INSERT INTO message_subscribers VALUES ($1,$2,$3,$4), ($5,$6,$7,$8), ...
 	query := "INSERT INTO message_subscribers (id, message_id, client_id, created_at) VALUES "
 	args := []interface{}{}
-	
+
 	for i, sub := range subscribers {
 		// Add placeholders for this row
 		if i > 0 {
 			query += ", "
 		}
-		
+
 		// Calculate the position of parameters for this record
 		pos := i * 4
-		query += fmt.Sprintf("($%d, $%d, $%d, $%d)", 
+		query += fmt.Sprintf("($%d, $%d, $%d, $%d)",
 			pos+1, pos+2, pos+3, pos+4)
-		
+
 		// Add values to the args slice
 		args = append(args, sub.Id, sub.MessageId, sub.ClientId, sub.CreatedAt)
 	}
-	
+
 	// Add conflict handling
 	query += " ON CONFLICT (id) DO NOTHING"
-	
+
 	// Execute the bulk insert
 	_, err := r.db.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to bulk insert message subscribers: %w", err)
 	}
-	
+
 	return nil
 }
