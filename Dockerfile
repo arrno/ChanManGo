@@ -1,0 +1,14 @@
+FROM golang:latest as builder
+WORKDIR /build
+COPY ./ ./
+RUN go mod download
+RUN CGO_ENABLED=0 go build -o ./main
+
+FROM scratch
+WORKDIR /app
+COPY --from=builder /build/main ./main
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /build/keys/gcp-service-key.json gcp-service-key.json
+COPY --from=builder /build/.env ./.env
+EXPOSE 80
+ENTRYPOINT ["./main"]

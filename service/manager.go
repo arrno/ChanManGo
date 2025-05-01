@@ -10,6 +10,7 @@ import (
 	"github.com/arrno/chanman/datastore"
 	"github.com/arrno/chanman/domain"
 	"github.com/arrno/chanman/service/io"
+	"github.com/arrno/chanman/util"
 	"github.com/rs/zerolog/log"
 )
 
@@ -45,7 +46,7 @@ func NewManager(db datastore.RepoProvider, broker broker.BrokerProvider) *Manage
 		broker:             broker,
 		systemIo:           io.NewSystem(db),
 		cleanupIntervalSec: domain.CLEANUP_INTERVAL_SECONDS,
-		debugMode:          true,
+		debugMode:          util.Env().Expect("DEBUG") == "true",
 		usageStart:         time.Now(),
 		object: managerObject{
 			state:             domain.STATE_RUNNING,

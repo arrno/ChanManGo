@@ -11,7 +11,7 @@
 
   "scripts": {
     "build": "docker build -t my-postgres .",
-    "database": "docker run -d -p 5433:5432 --name new-postgres-container -e POSTGRES_USER=dbroot -e POSTGRES_PASSWORD=... -e POSTGRES_DB=chanban new-postgres",
+    "database": "docker run -d -p 5433:5432 --name new-postgres-container -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres new-postgres",
     "reset": "bun index.ts "
   },
   "peerDependencies": {

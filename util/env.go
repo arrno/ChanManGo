@@ -16,7 +16,7 @@ type EnvVar struct {
 // globalEnv is the global scoped env singleton
 var globalEnv *EnvVar
 
-func NewEnv() *EnvVar {
+func Env() *EnvVar {
 	if globalEnv == nil {
 		globalEnv = &EnvVar{
 			Vars: map[string]string{},
@@ -36,6 +36,7 @@ func (env *EnvVar) Load() *EnvVar {
 		"WEB_PORT",
 		"WEB_HOST",
 		"LOCAL_SECRET",
+		"DEBUG",
 		"DB_HOST",
 		"DB_PORT",
 		"DB_USER",

@@ -48,7 +48,7 @@ func RunWeb() {
 	)
 	ra.Get("/clients", c.GetClients)
 
-	port := util.NewEnv().Expect("WEB_PORT")
+	port := util.Env().Expect("WEB_PORT")
 	if len(port) == 0 {
 		port = "8080"
 	}

@@ -1,0 +1,26 @@
+steps:
+    # Step 1: Build the container image
+    - name: "gcr.io/cloud-builders/docker"
+      args: ["build", "-t", "gcr.io/multicast-458021/chanban:latest", "."]
+
+    # Step 2: Push the image to GCR
+    - name: "gcr.io/cloud-builders/docker"
+      args: ["push", "gcr.io/multicast-458021/chanban:latest"]
+
+    # Step 3: Deploy to Cloud Run
+    - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+      entrypoint: gcloud
+      args:
+          - run
+          - deploy
+          - chanban
+          - --image=gcr.io/multicast-458021/chanban:latest
+          - --region=us-east4
+          - --platform=managed
+          - --allow-unauthenticated
+          - --add-cloudsql-instances=multicast-458021:us-east4:chanban-db
+          - --set-env-vars=DB_USER=[user],DB_PASSWORD=[password],DB_DATASTORE=postgres,DB_HOST=localhost,DB_PORT=5432,LOCAL_SECRET=[secret],WEB_PORT=80
+          - --project=multicast-458021
+
+images:
+    - "gcr.io/multicast-458021/chanban:latest"

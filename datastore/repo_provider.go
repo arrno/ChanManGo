@@ -137,7 +137,7 @@ func (r *SQLRepo) Close() {
 
 // NewRepoProvider creates a repository based on environment configuration
 func NewRepoProvider() (RepoProvider, error) {
-	env := util.NewEnv()
+	env := util.Env()
 	un, pw, host, port, datastore := env.Expect("DB_USER"), env.Expect("DB_PASSWORD"),
 		env.Expect("DB_HOST"), env.Expect("DB_PORT"), env.Expect("DB_DATASTORE")
 	pgDSN := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", un, pw, host, port, datastore)
