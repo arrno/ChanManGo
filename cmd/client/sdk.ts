@@ -8,7 +8,6 @@ import {
 export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
-        baseUrl: "http://localhost:8080",
         authToken: "VVJXjCqIobaSivgC67AN::0royPZX33zAZlJAI2wQX",
         // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",

@@ -19,6 +19,7 @@ var ChanbanSDK = class {
    * @param options Configuration options for the SDK
    */
   constructor(options) {
+    this.baseUrl = "https://chanban-112482603531.us-east4.run.app";
     // WebSocket connections
     this.pubSocket = null;
     this.subSocket = null;
@@ -32,7 +33,6 @@ var ChanbanSDK = class {
     this.listeners = {};
     // Connection state change listeners
     this.stateChangeListeners = [];
-    this.baseUrl = options.baseUrl;
     this.authToken = options.authToken;
     this.channel = options.channel;
     this.rootTopics = options.topics ?? [];
@@ -508,12 +508,8 @@ var ChanbanSDK = class {
 
 // src/env.ts
 function loadFromEnv() {
-  const baseUrl = process.env.CHANBAN_BASE_URL;
   const authToken = process.env.CHANBAN_AUTH_TOKEN;
   const channel = process.env.CHANBAN_CHANNEL;
-  if (!baseUrl) {
-    throw new Error("CHANBAN_BASE_URL environment variable is required");
-  }
   if (!authToken) {
     throw new Error("CHANBAN_AUTH_TOKEN environment variable is required");
   }
@@ -522,10 +518,15 @@ function loadFromEnv() {
   }
   const debug = process.env.CHANBAN_DEBUG === "true";
   const autoReconnect = process.env.CHANBAN_AUTO_RECONNECT !== "false";
-  const maxReconnectAttempts = parseInt(process.env.CHANBAN_MAX_RECONNECT_ATTEMPTS || "5", 10);
-  const reconnectDelay = parseInt(process.env.CHANBAN_RECONNECT_DELAY || "3000", 10);
+  const maxReconnectAttempts = parseInt(
+    process.env.CHANBAN_MAX_RECONNECT_ATTEMPTS || "5",
+    10
+  );
+  const reconnectDelay = parseInt(
+    process.env.CHANBAN_RECONNECT_DELAY || "3000",
+    10
+  );
   return {
-    baseUrl,
     authToken,
     channel,
     debug,

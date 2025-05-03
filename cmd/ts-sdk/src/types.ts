@@ -3,11 +3,6 @@
  */
 export interface ChanbanOptions {
     /**
-     * The base URL of the server (e.g. "http://localhost:8080" or "https://api.example.com")
-     */
-    baseUrl: string;
-
-    /**
      * Authentication token for the client
      */
     authToken: string;

@@ -1,60 +1,61 @@
-import { ChanbanSDK, ConnectionState } from './index';
+import { ChanbanSDK, ConnectionState } from "./index";
 
 async function main() {
-  // Initialize the SDK with your credentials
-  const sdk = new ChanbanSDK({
-    baseUrl: 'http://localhost:8080',
-    authToken: 'your-auth-token',
-    channel: 'test-channel',
-    debug: true
-  });
-
-  // Listen for connection state changes
-  const unsubscribe = sdk.onStateChange((state, connectionType) => {
-    console.log(`${connectionType} connection state changed to: ${state}`);
-  });
-
-  try {
-    // Subscribe to multiple topics
-    console.log('Subscribing to topics...');
-    await sdk.subscribe(['updates', 'notifications'], (topic, message) => {
-      console.log(`Received message on topic '${topic}':`, message);
+    // Initialize the SDK with your credentials
+    const sdk = new ChanbanSDK({
+        authToken: "your-auth-token",
+        channel: "test-channel",
+        debug: true,
     });
 
-    // Publish a message
-    console.log('Publishing message...');
-    await sdk.publish('updates', {
-      id: 'msg-1',
-      text: 'Hello from Chanban SDK!',
-      timestamp: new Date().toISOString()
+    // Listen for connection state changes
+    const unsubscribe = sdk.onStateChange((state, connectionType) => {
+        console.log(`${connectionType} connection state changed to: ${state}`);
     });
 
-    // Keep the connection open for a while to receive messages
-    console.log('Waiting for messages...');
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    try {
+        // Subscribe to multiple topics
+        console.log("Subscribing to topics...");
+        await sdk.subscribe(
+            (topic, message) => {
+                console.log(`Received message on topic '${topic}':`, message);
+            },
+            ["updates", "notifications"]
+        );
 
-    // Unsubscribe from state change events
-    unsubscribe();
+        // Publish a message
+        console.log("Publishing message...");
+        await sdk.publish("updates", {
+            id: "msg-1",
+            text: "Hello from Chanban SDK!",
+            timestamp: new Date().toISOString(),
+        });
 
-    // Unsubscribe from a topic
-    sdk.unsubscribe('notifications');
+        // Keep the connection open for a while to receive messages
+        console.log("Waiting for messages...");
+        await new Promise((resolve) => setTimeout(resolve, 30000));
 
-    // Publish using HTTP fallback
-    console.log('Publishing message via HTTP...');
-    const response = await sdk.publishHttp('updates', {
-      id: 'msg-2',
-      text: 'Hello via HTTP!',
-      timestamp: new Date().toISOString()
-    });
-    console.log('HTTP publish response:', response);
+        // Unsubscribe from state change events
+        unsubscribe();
 
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    // Clean up
-    sdk.disconnect();
-    console.log('Disconnected');
-  }
+        // Unsubscribe from a topic
+        sdk.unsubscribe("notifications");
+
+        // Publish using HTTP fallback
+        console.log("Publishing message via HTTP...");
+        const response = await sdk.publishHttp("updates", {
+            id: "msg-2",
+            text: "Hello via HTTP!",
+            timestamp: new Date().toISOString(),
+        });
+        console.log("HTTP publish response:", response);
+    } catch (error) {
+        console.error("Error:", error);
+    } finally {
+        // Clean up
+        sdk.disconnect();
+        console.log("Disconnected");
+    }
 }
 
 // Run the example

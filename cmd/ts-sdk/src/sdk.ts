@@ -22,7 +22,7 @@ const WebSocketImpl =
  * Manages WebSocket connections to a Chanban server for real-time messaging
  */
 export class ChanbanSDK {
-    private baseUrl: string;
+    private baseUrl: string = "https://chanban-112482603531.us-east4.run.app";
     private authToken: string;
     private channel: string;
     private headers: Record<string, string>;
@@ -63,7 +63,6 @@ export class ChanbanSDK {
      * @param options Configuration options for the SDK
      */
     constructor(options: ChanbanOptions) {
-        this.baseUrl = options.baseUrl;
         this.authToken = options.authToken;
         this.channel = options.channel;
 

@@ -31,8 +31,14 @@ func (env *EnvVar) Load() *EnvVar {
 	env.mu.Lock()
 	defer env.mu.Unlock()
 
-	env.DotEnv("")
+	file := ""
+	if os.Getenv("LOCAL") == "true" {
+		file = ".dev.env"
+	}
+	env.DotEnv(file)
+
 	expectedVars := []string{
+		"LOCAL",
 		"WEB_PORT",
 		"WEB_HOST",
 		"LOCAL_SECRET",

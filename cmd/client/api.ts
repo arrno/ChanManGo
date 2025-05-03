@@ -54,8 +54,8 @@ async function httpPost<T>(
     }
 }
 
-const url = "http://localhost:8080";
-const token = "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z";
+const url = "https://chanban-112482603531.us-east4.run.app";
+// const token = "Xp4Ve4azTepGQ1qE3LRo::INwOx6XCoqTSzCbK6T4Z";
 
 // 6B2tz2fpuOSqiZSXiqxV
 // Example usage:

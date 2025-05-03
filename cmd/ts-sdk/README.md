@@ -19,7 +19,6 @@ import { ChanbanSDK, ConnectionState } from "chanban-sdk";
 
 // Initialize the SDK
 const sdk = new ChanbanSDK({
-    baseUrl: "http://localhost:8080",
     authToken: "your-auth-token",
     channel: "your-channel-name",
     debug: true, // Optional: enables debug logging
@@ -73,7 +72,6 @@ constructor(options: ChanbanOptions)
 Parameters:
 
 -   `options`: Configuration options
-    -   `baseUrl` (required): The base URL of the API server
     -   `authToken` (required): Authentication token
     -   `channel` (required): Channel to connect to
     -   `topics` (optional): Topics to subscribe to filtered on server (default: all)
@@ -268,7 +266,6 @@ Supported environment variables:
 
 | Variable                       | Description                              | Required | Default |
 | ------------------------------ | ---------------------------------------- | -------- | ------- |
-| CHANBAN_BASE_URL               | Base URL of the server                   | Yes      | -       |
 | CHANBAN_AUTH_TOKEN             | Authentication token                     | Yes      | -       |
 | CHANBAN_CHANNEL                | Channel name                             | Yes      | -       |
 | CHANBAN_DEBUG                  | Enable debug logging                     | No       | false   |
