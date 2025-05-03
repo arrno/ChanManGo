@@ -28,6 +28,9 @@ steps:
           - --add-cloudsql-instances=multicast-458021:us-east4:chanban-db
           - --set-env-vars=DB_USER=postgres,DB_PASSWORD=[password],DB_DATASTORE=postgres,DB_HOST=/cloudsql/multicast-458021:us-east4:chanban-db,DB_PORT=5432,LOCAL_SECRET=[secret],WEB_PORT=8080
           - --project=multicast-458021
+          - --cpu=1
+          - --memory=512Mi
+          - --max-instances=1
 
 images:
     - "us-docker.pkg.dev/multicast-458021/chanban/chanban:latest"

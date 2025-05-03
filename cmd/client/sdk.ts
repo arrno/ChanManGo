@@ -8,41 +8,11 @@ import {
 export async function sdk() {
     // Initialize the SDK with your credentials
     const sdk = new ChanbanSDK({
-        authToken: "VVJXjCqIobaSivgC67AN::0royPZX33zAZlJAI2wQX",
+        authToken: "",
         // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
         debug: true,
     });
-
-    // let subs: Array<ChanbanSDK> = [];
-    // for (let i = 0; i < 10; i++) {
-    //     subs.push(
-    //         new ChanbanSDK({
-    //             baseUrl: "http://localhost:8080",
-    //             authToken: "D8vNI25k3BYJVUBWz1zE::KIwMeCeOUKZMWmr3SC8M",
-    //             // topics: ["updates", "notifications", TOPIC_ALL],
-    //             channel: "MyChan",
-    //             debug: true,
-    //         })
-    //     );
-    //     subs[subs.length - 1]?.subscribe(
-    //         (topic, message) => {
-    //             console.log(
-    //                 `Received message on ${i} topic '${topic}':`,
-    //                 message
-    //             );
-    //         }
-    //         // ["woo"]
-    //     );
-    // }
-
-    // const sdkTwo = new ChanbanSDK({
-    //     baseUrl: "http://localhost:8080",
-    //     authToken: "D8vNI25k3BYJVUBWz1zE::KIwMeCeOUKZMWmr3SC8M",
-    //     // topics: ["alt", TOPIC_ALL],
-    //     channel: "MyChan",
-    //     debug: true,
-    // });
 
     // Listen for connection state changes
     const unsubscribe = sdk.onStateChange((state, connectionType) => {
@@ -59,39 +29,33 @@ export async function sdk() {
             // ["woo"]
         );
 
-        console.log("Publishing message...");
-        await sdk.publish("alt", {
-            id: "msg-1",
-            text: "Hello from Chanban SDK!",
-            timestamp: new Date().toISOString(),
-        });
+        for (let i = 0; i < 20; i++) {
+            console.log("Publishing message...");
+            await sdk.publish("alt", {
+                id: "msg-1",
+                text: "Hello from Chanban SDK!",
+                timestamp: new Date().toISOString(),
+            });
 
-        // Keep the connection open for a while to receive messages
-        console.log("Waiting for messages...");
+            // Publish using HTTP fallback
+            console.log("Publishing message via HTTP...");
+            const response = await sdk.publishHttp("alt", {
+                id: "msg-2",
+                text: "Hello via HTTP!",
+                timestamp: new Date().toISOString(),
+            });
+            console.log("HTTP publish response:", response);
 
-        // Unsubscribe from state change events
-        unsubscribe();
-
-        // Unsubscribe from a topic
-        sdk.unsubscribe("notifications");
-
-        // Publish using HTTP fallback
-        console.log("Publishing message via HTTP...");
-        const response = await sdk.publishHttp("alt", {
-            id: "msg-2",
-            text: "Hello via HTTP!",
-            timestamp: new Date().toISOString(),
-        });
-        console.log("HTTP publish response:", response);
-
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+            console.log(
+                `Sleeping for 60 seconds: ${new Date().toLocaleString()}`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 60000)); // one minute
+        }
     } catch (error) {
         console.error("Error:", error);
     } finally {
         // Clean up
         sdk.disconnect();
-        // sdkTwo.disconnect();
-        // subs.forEach((sub) => sub.disconnect());
         console.log("Disconnected");
     }
 }
