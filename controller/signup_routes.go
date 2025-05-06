@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/arrno/chanman/domain"
@@ -17,6 +18,11 @@ func (c *Controller) SignUpBeta(w http.ResponseWriter, r *http.Request) {
 	clientName := "client-" + util.Nanoid()
 
 	email := r.Header.Get("email")
+
+	if len(email) == 0 {
+		RespondWithError(w, http.StatusBadRequest, "Email value is required in URL", errors.New("Email value is required in URL"))
+		return
+	}
 
 	// Create domain objects
 	group, err := domain.NewGroup("", domain.GLOBAL_ADMIN, domain.MAIN_PORTAL, groupName)
