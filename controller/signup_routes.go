@@ -17,7 +17,7 @@ func (c *Controller) SignUpBeta(w http.ResponseWriter, r *http.Request) {
 	channelName := "MyChan"
 	clientName := "client-" + util.Nanoid()
 
-	email := r.Header.Get("email")
+	email := r.URL.Query().Get("email")
 
 	if len(email) == 0 {
 		RespondWithError(w, http.StatusBadRequest, "Email value is required in URL", errors.New("Email value is required in URL"))

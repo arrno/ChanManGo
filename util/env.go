@@ -33,6 +33,7 @@ func (env *EnvVar) Load() *EnvVar {
 
 	file := ""
 	if os.Getenv("LOCAL") == "true" {
+		log.Info().Msg("Running in local/dev mode.")
 		file = ".dev.env"
 	}
 	env.DotEnv(file)

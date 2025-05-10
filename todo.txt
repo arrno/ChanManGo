@@ -1,6 +1,5 @@
 Deploy:
 - update/publish SDK
-- add component/docs pages to mcast.co
 
 Roadmap:
 
