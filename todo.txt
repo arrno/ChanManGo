@@ -1,5 +1,8 @@
 Deploy:
+- prod db usage?
 - update/publish SDK
+- UI links/snippets
+- reset prod db
 
 Roadmap:
 
