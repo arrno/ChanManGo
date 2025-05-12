@@ -1,5 +1,4 @@
 Deploy:
-- prod db client-usage?
 - update/publish SDK
 - UI links/snippets
 - reset prod db

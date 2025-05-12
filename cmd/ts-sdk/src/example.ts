@@ -1,22 +1,22 @@
-import { ChanbanSDK, ConnectionState } from "./index";
+import { McastClient, ConnectionState } from "./index";
 
 async function main() {
-    // Initialize the SDK with your credentials
-    const sdk = new ChanbanSDK({
+    // Initialize the client with your credentials
+    const client = new McastClient({
         authToken: "your-auth-token",
         channel: "test-channel",
         debug: true,
     });
 
     // Listen for connection state changes
-    const unsubscribe = sdk.onStateChange((state, connectionType) => {
+    const unsubscribe = client.onStateChange((state, connectionType) => {
         console.log(`${connectionType} connection state changed to: ${state}`);
     });
 
     try {
         // Subscribe to multiple topics
         console.log("Subscribing to topics...");
-        await sdk.subscribe(
+        await client.subscribe(
             (topic, message) => {
                 console.log(`Received message on topic '${topic}':`, message);
             },
@@ -25,9 +25,9 @@ async function main() {
 
         // Publish a message
         console.log("Publishing message...");
-        await sdk.publish("updates", {
+        await client.publish("updates", {
             id: "msg-1",
-            text: "Hello from Chanban SDK!",
+            text: "Hello from Mcast client!",
             timestamp: new Date().toISOString(),
         });
 
@@ -39,11 +39,11 @@ async function main() {
         unsubscribe();
 
         // Unsubscribe from a topic
-        sdk.unsubscribe("notifications");
+        client.unsubscribe("notifications");
 
         // Publish using HTTP fallback
         console.log("Publishing message via HTTP...");
-        const response = await sdk.publishHttp("updates", {
+        const response = await client.publishHttp("updates", {
             id: "msg-2",
             text: "Hello via HTTP!",
             timestamp: new Date().toISOString(),
@@ -53,7 +53,7 @@ async function main() {
         console.error("Error:", error);
     } finally {
         // Clean up
-        sdk.disconnect();
+        client.disconnect();
         console.log("Disconnected");
     }
 }

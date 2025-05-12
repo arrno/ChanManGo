@@ -1,13 +1,13 @@
 import {
-    ChanbanSDK,
+    McastClient,
     loadFromEnv,
     ConnectionState,
     TOPIC_ALL,
-} from "chanban-sdk";
+} from "mcast-client";
 
 export async function sdk() {
     // Initialize the SDK with your credentials
-    const sdk = new ChanbanSDK({
+    const client = new McastClient({
         authToken: "",
         // topics: ["updates", "notifications", TOPIC_ALL],
         channel: "MyChan",
@@ -15,14 +15,14 @@ export async function sdk() {
     });
 
     // Listen for connection state changes
-    const unsubscribe = sdk.onStateChange((state, connectionType) => {
+    const unsubscribe = client.onStateChange((state, connectionType) => {
         console.log(`${connectionType} connection state changed to: ${state}`);
     });
 
     try {
         // Subscribe to multiple topics
         console.log("Subscribing to topics...");
-        await sdk.subscribe(
+        await client.subscribe(
             (topic, message) => {
                 console.log(`Received message on topic '${topic}':`, message);
             }
@@ -31,7 +31,7 @@ export async function sdk() {
 
         for (let i = 0; i < 20; i++) {
             console.log("Publishing message...");
-            await sdk.publish("alt", {
+            await client.publish("alt", {
                 id: "msg-1",
                 text: "Hello from Chanban SDK!",
                 timestamp: new Date().toISOString(),
@@ -39,7 +39,7 @@ export async function sdk() {
 
             // Publish using HTTP fallback
             console.log("Publishing message via HTTP...");
-            const response = await sdk.publishHttp("alt", {
+            const response = await client.publishHttp("alt", {
                 id: "msg-2",
                 text: "Hello via HTTP!",
                 timestamp: new Date().toISOString(),
@@ -55,7 +55,7 @@ export async function sdk() {
         console.error("Error:", error);
     } finally {
         // Clean up
-        sdk.disconnect();
+        client.disconnect();
         console.log("Disconnected");
     }
 }

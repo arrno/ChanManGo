@@ -1,7 +1,7 @@
 /**
- * Configuration options for the ChanbanSDK
+ * Configuration options for the McastClient
  */
-export interface ChanbanOptions {
+export interface McastOptions {
     /**
      * Authentication token for the client
      */

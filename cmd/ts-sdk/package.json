@@ -1,7 +1,7 @@
 {
-  "name": "chanban-sdk",
+  "name": "mcast-client",
   "version": "0.1.0",
-  "description": "WebSocket SDK for Chanban real-time messaging",
+  "description": "WebSocket client for Mcast real-time messaging",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -39,7 +39,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/arrno/chanban"
+    "url": "https://github.com/arrno/mcast"
   },
   "engines": {
     "node": ">=16.0.0"

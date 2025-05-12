@@ -1,7 +1,7 @@
-export { ChanbanSDK } from "./sdk";
+export { McastClient } from "./client";
 export { loadFromEnv } from "./env";
 export {
-    ChanbanOptions,
+    McastOptions,
     ConnectionState,
     Message,
     MessageCallback,

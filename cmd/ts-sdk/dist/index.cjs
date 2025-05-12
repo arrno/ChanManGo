@@ -30,8 +30,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
-  ChanbanSDK: () => ChanbanSDK,
   ConnectionState: () => ConnectionState,
+  McastClient: () => McastClient,
   TOPIC_ALL: () => TOPIC_ALL,
   loadFromEnv: () => loadFromEnv
 });
@@ -48,14 +48,14 @@ var ConnectionState = /* @__PURE__ */ ((ConnectionState2) => {
 })(ConnectionState || {});
 var TOPIC_ALL = "_ALL_";
 
-// src/sdk.ts
+// src/client.ts
 var ws = __toESM(require("ws"), 1);
 var WebSocketImpl = typeof WebSocket !== "undefined" ? WebSocket : ws.WebSocket;
-var ChanbanSDK = class {
+var McastClient = class {
   /**
-   * Creates a new instance of the ChanbanSDK
+   * Creates a new instance of the McastClient
    *
-   * @param options Configuration options for the SDK
+   * @param options Configuration options for the client
    */
   constructor(options) {
     this.baseUrl = "https://chanban-112482603531.us-east4.run.app";
@@ -537,9 +537,9 @@ var ChanbanSDK = class {
   logDebug(message, ...args) {
     if (this.debug) {
       if (args.length > 0) {
-        console.debug(`[ChanbanSDK] ${message}`, ...args);
+        console.debug(`[McastClient] ${message}`, ...args);
       } else {
-        console.debug(`[ChanbanSDK] ${message}`);
+        console.debug(`[McastClient] ${message}`);
       }
     }
   }
@@ -547,22 +547,22 @@ var ChanbanSDK = class {
 
 // src/env.ts
 function loadFromEnv() {
-  const authToken = process.env.CHANBAN_AUTH_TOKEN;
-  const channel = process.env.CHANBAN_CHANNEL;
+  const authToken = process.env.MCAST_AUTH_TOKEN;
+  const channel = process.env.MCAST_CHANNEL;
   if (!authToken) {
-    throw new Error("CHANBAN_AUTH_TOKEN environment variable is required");
+    throw new Error("MCAST_AUTH_TOKEN environment variable is required");
   }
   if (!channel) {
-    throw new Error("CHANBAN_CHANNEL environment variable is required");
+    throw new Error("MCAST_CHANNEL environment variable is required");
   }
-  const debug = process.env.CHANBAN_DEBUG === "true";
-  const autoReconnect = process.env.CHANBAN_AUTO_RECONNECT !== "false";
+  const debug = process.env.MCAST_DEBUG === "true";
+  const autoReconnect = process.env.MCAST_AUTO_RECONNECT !== "false";
   const maxReconnectAttempts = parseInt(
-    process.env.CHANBAN_MAX_RECONNECT_ATTEMPTS || "5",
+    process.env.MCAST_MAX_RECONNECT_ATTEMPTS || "5",
     10
   );
   const reconnectDelay = parseInt(
-    process.env.CHANBAN_RECONNECT_DELAY || "3000",
+    process.env.MCAST_RECONNECT_DELAY || "3000",
     10
   );
   return {
@@ -576,8 +576,8 @@ function loadFromEnv() {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ChanbanSDK,
   ConnectionState,
+  McastClient,
   TOPIC_ALL,
   loadFromEnv
 });

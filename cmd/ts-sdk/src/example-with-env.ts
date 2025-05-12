@@ -1,4 +1,4 @@
-import { ChanbanSDK, loadFromEnv } from "./index";
+import { McastClient, loadFromEnv } from "./index";
 
 // Try to load configuration from environment variables
 async function main() {
@@ -8,15 +8,15 @@ async function main() {
         console.log("Configuration loaded from environment:", config);
 
         // Initialize the SDK with the loaded configuration
-        const sdk = new ChanbanSDK(config);
+        const client = new McastClient(config);
 
         // Subscribe to a topic
-        await sdk.subscribe((topic, message) => {
+        await client.subscribe((topic, message) => {
             console.log(`Received message on topic '${topic}':`, message);
         }, "updates");
 
         // Publish a message
-        await sdk.publish("updates", {
+        await client.publish("updates", {
             id: `msg-${Date.now()}`,
             text: "This message was sent using environment-based configuration",
             timestamp: new Date().toISOString(),
@@ -27,7 +27,7 @@ async function main() {
         await new Promise((resolve) => setTimeout(resolve, 10000));
 
         // Clean up
-        sdk.disconnect();
+        client.disconnect();
         console.log("Disconnected");
     } catch (error) {
         console.error("Error:", error);

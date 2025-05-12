@@ -1,7 +1,7 @@
 /**
- * Configuration options for the ChanbanSDK
+ * Configuration options for the McastClient
  */
-interface ChanbanOptions {
+interface McastOptions {
     /**
      * Authentication token for the client
      */
@@ -105,11 +105,11 @@ interface AccountResponse {
 type MessageCallback = (topic: string, message: Record<string, any>) => void;
 
 /**
- * Chanban WebSocket SDK
+ * Mcast WebSocket Client
  *
- * Manages WebSocket connections to a Chanban server for real-time messaging
+ * Manages WebSocket connections to a Mcast server for real-time messaging
  */
-declare class ChanbanSDK {
+declare class McastClient {
     private baseUrl;
     private authToken;
     private channel;
@@ -128,11 +128,11 @@ declare class ChanbanSDK {
     private listeners;
     private stateChangeListeners;
     /**
-     * Creates a new instance of the ChanbanSDK
+     * Creates a new instance of the McastClient
      *
-     * @param options Configuration options for the SDK
+     * @param options Configuration options for the client
      */
-    constructor(options: ChanbanOptions);
+    constructor(options: McastOptions);
     /**
      * Handling storing the new auth token and updating headers
      *
@@ -257,11 +257,11 @@ declare class ChanbanSDK {
 }
 
 /**
- * Load SDK configuration from environment variables
+ * Load client configuration from environment variables
  *
- * @returns SDK options loaded from environment variables
+ * @returns Client options loaded from environment variables
  * @throws Error if required environment variables are missing
  */
-declare function loadFromEnv(): ChanbanOptions;
+declare function loadFromEnv(): McastOptions;
 
-export { type ChanbanOptions, ChanbanSDK, ConnectionState, type Message, type MessageCallback, type SerializedMessage, type StandardResponse, TOPIC_ALL, loadFromEnv };
+export { ConnectionState, McastClient, type McastOptions, type Message, type MessageCallback, type SerializedMessage, type StandardResponse, TOPIC_ALL, loadFromEnv };

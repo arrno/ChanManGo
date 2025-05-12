@@ -1,36 +1,36 @@
-# Chanban SDK
+# Mcast Client
 
-A TypeScript SDK for interacting with the Chanban WebSocket API for real-time messaging.
+A TypeScript client for interacting with the Mcast WebSocket API for real-time messaging.
 
 ## Installation
 
 ```bash
-npm install chanban-sdk
+npm install mcast-client
 ```
 
 ## Usage
 
-The SDK provides a clean interface for subscribing to topics and publishing messages using WebSockets.
+The client provides a clean interface for subscribing to topics and publishing messages using WebSockets.
 
 ### Basic Example
 
 ```typescript
-import { ChanbanSDK, ConnectionState } from "chanban-sdk";
+import { McastClient, ConnectionState } from "mcast-client";
 
-// Initialize the SDK
-const sdk = new ChanbanSDK({
+// Initialize the client
+const client = new McastClient({
     authToken: "your-auth-token",
     channel: "your-channel-name",
     debug: true, // Optional: enables debug logging
 });
 
 // Listen for connection state changes
-sdk.onStateChange((state, connectionType) => {
+client.onStateChange((state, connectionType) => {
     console.log(`${connectionType} connection state: ${state}`);
 });
 
 // Subscribe to topics
-await sdk.subscribe(
+await client.subscribe(
     (topic, message) => {
         console.log(`Received message on topic '${topic}':`, message);
     },
@@ -38,14 +38,14 @@ await sdk.subscribe(
 );
 
 // Publish a message
-await sdk.publish("updates", {
+await client.publish("updates", {
     id: "msg-123",
     text: "Hello world!",
     timestamp: new Date().toISOString(),
 });
 
 // When done, clean up
-sdk.disconnect();
+client.disconnect();
 ```
 
 ### Features
@@ -59,14 +59,14 @@ sdk.disconnect();
 
 ## API Reference
 
-### ChanbanSDK
+### McastClient
 
 The main class that handles WebSocket connections for publishing and subscribing.
 
 #### Constructor
 
 ```typescript
-constructor(options: ChanbanOptions)
+constructor(options: McastOptions)
 ```
 
 Parameters:
@@ -248,34 +248,34 @@ export interface AccountResponse {
 
 ## Error Handling
 
-The SDK methods that establish connections (`subscribe`, `publish`) are async functions that throw errors when connection fails. You should wrap calls in try/catch blocks to handle potential errors.
+The client methods that establish connections (`subscribe`, `publish`) are async functions that throw errors when connection fails. You should wrap calls in try/catch blocks to handle potential errors.
 
 ## Environment Variables
 
-The SDK provides a helper function to load configuration from environment variables:
+The client provides a helper function to load configuration from environment variables:
 
 ```typescript
-import { ChanbanSDK, loadFromEnv } from "chanban-sdk";
+import { McastClient, loadFromEnv } from "mcast-client";
 
 // Load configuration from environment variables
 const config = loadFromEnv();
-const sdk = new ChanbanSDK(config);
+const client = new McastClient(config);
 ```
 
 Supported environment variables:
 
 | Variable                       | Description                              | Required | Default |
 | ------------------------------ | ---------------------------------------- | -------- | ------- |
-| CHANBAN_AUTH_TOKEN             | Authentication token                     | Yes      | -       |
-| CHANBAN_CHANNEL                | Channel name                             | Yes      | -       |
-| CHANBAN_DEBUG                  | Enable debug logging                     | No       | false   |
-| CHANBAN_AUTO_RECONNECT         | Auto reconnect on disconnect             | No       | true    |
-| CHANBAN_MAX_RECONNECT_ATTEMPTS | Maximum reconnection attempts            | No       | 5       |
-| CHANBAN_RECONNECT_DELAY        | Delay between reconnection attempts (ms) | No       | 3000    |
+| MCAST_AUTH_TOKEN             | Authentication token                     | Yes      | -       |
+| MCAST_CHANNEL                | Channel name                             | Yes      | -       |
+| MCAST_DEBUG                  | Enable debug logging                     | No       | false   |
+| MCAST_AUTO_RECONNECT         | Auto reconnect on disconnect             | No       | true    |
+| MCAST_MAX_RECONNECT_ATTEMPTS | Maximum reconnection attempts            | No       | 5       |
+| MCAST_RECONNECT_DELAY        | Delay between reconnection attempts (ms) | No       | 3000    |
 
 ## Browser Support
 
-The SDK automatically detects the environment and uses the appropriate WebSocket implementation.
+The client automatically detects the environment and uses the appropriate WebSocket implementation.
 
 ## License
 

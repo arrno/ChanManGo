@@ -1,6 +1,6 @@
 import {
     AccountResponse,
-    ChanbanOptions,
+    McastOptions,
     ConnectionState,
     Message,
     MessageCallback,
@@ -17,11 +17,11 @@ const WebSocketImpl =
     typeof WebSocket !== "undefined" ? WebSocket : ws.WebSocket;
 
 /**
- * Chanban WebSocket SDK
+ * Mcast WebSocket Client
  *
- * Manages WebSocket connections to a Chanban server for real-time messaging
+ * Manages WebSocket connections to a Mcast server for real-time messaging
  */
-export class ChanbanSDK {
+export class McastClient {
     private baseUrl: string = "https://chanban-112482603531.us-east4.run.app";
     private authToken: string;
     private channel: string;
@@ -58,11 +58,11 @@ export class ChanbanSDK {
     > = [];
 
     /**
-     * Creates a new instance of the ChanbanSDK
+     * Creates a new instance of the McastClient
      *
-     * @param options Configuration options for the SDK
+     * @param options Configuration options for the client
      */
-    constructor(options: ChanbanOptions) {
+    constructor(options: McastOptions) {
         this.authToken = options.authToken;
         this.channel = options.channel;
 
@@ -663,9 +663,9 @@ export class ChanbanSDK {
     private logDebug(message: string, ...args: any[]): void {
         if (this.debug) {
             if (args.length > 0) {
-                console.debug(`[ChanbanSDK] ${message}`, ...args);
+                console.debug(`[McastClient] ${message}`, ...args);
             } else {
-                console.debug(`[ChanbanSDK] ${message}`);
+                console.debug(`[McastClient] ${message}`);
             }
         }
     }
