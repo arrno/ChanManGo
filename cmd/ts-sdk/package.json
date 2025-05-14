@@ -6,9 +6,7 @@
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+"files": ["dist", "src", "README.md"],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --watch",
@@ -25,7 +23,11 @@
     "messaging",
     "pubsub"
   ],
-  "author": "",
+  "author": {
+    "name": "Aaron Hough",
+    "email": "aaron@multicast.co",
+    "url": "https://multicast.co"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.14.0",
