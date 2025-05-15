@@ -1,6 +1,5 @@
 Deploy:
-- update/publish SDK
-- UI links/snippets
+- last end to end test with pub package/db/env
 - reset prod db
 
 Roadmap:
