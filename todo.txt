@@ -1,5 +1,6 @@
 Deploy:
-- last end to end test with pub package/db/env
+- better client async -> multiple concurrent pub/sub actions altering shared client ws state concurrently...
+- client websocket err cleanups
 - reset prod db
 
 Roadmap:
@@ -20,8 +21,13 @@ verify message-pruning
 
 L8er:
 SQL -> cleanup multi queries, joins, add WHERE archived IS NULL
-implement redis broker / rate-limiter
+implement redis broker / rate-limiter -> enables multiple compute instances, requires more specific channel worker state tracking
+better stateless usage tracking -> 
+  keep last record time in db, use scheduler to trigger prune jobs... 
+  prior to prune, check if last usage-agg is beyond window... 
+  if so, record usage first and update last record time
 manager healing
+take off training wheels -> unlock horizontal compute scaling, unlock restrictive rate limiting, boost db size, provide self service APIs
 
 [TESTING]
 Admin:
