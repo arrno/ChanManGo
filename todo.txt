@@ -8,9 +8,6 @@ Roadmap:
 ---
 [base-case]
 ---
-UI / stripe
-verify message-pruning
----
 [differentiators]
 ---
 [transforms]
@@ -27,6 +24,7 @@ better stateless usage tracking ->
   if so, record usage first and update last record time
 manager healing
 take off training wheels -> unlock horizontal compute scaling, unlock restrictive rate limiting, boost db size, provide self service APIs
+payment processing
 
 [TESTING]
 Admin:
