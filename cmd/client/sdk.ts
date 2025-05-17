@@ -55,7 +55,7 @@ export async function sdk() {
         console.error("Error:", error);
     } finally {
         // Clean up
-        client.disconnect();
+        await client.disconnect();
         console.log("Disconnected");
     }
 }

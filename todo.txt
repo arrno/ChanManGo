@@ -1,6 +1,5 @@
 Deploy:
-- better client async -> multiple concurrent pub/sub actions altering shared client ws state concurrently...
-- client websocket err cleanups
+- test client updates -> concurrency/error-disconnect
 - reset prod db
 
 Roadmap:
