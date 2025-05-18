@@ -1,6 +1,3 @@
-Deploy:
-- reset prod db
-
 Roadmap:
 
 [prototype] -done
