@@ -8,7 +8,7 @@ const newClient = (): McastClient => {
     });
 };
 
-async function run(): Promise<void> {
+async function base(): Promise<void> {
     // Initialize the client
     const client = newClient();
 
@@ -69,25 +69,15 @@ async function multiProducer(): Promise<void> {
             ["updates", "notifications"]
         );
 
-        // blows up due to shared state
-        // await Promise.all(
-        //     Array.from({ length: 10 }, (_, i) =>
-        //         client.publish("updates", {
-        //             id: `${i}`,
-        //             text: "Hello world!",
-        //             timestamp: new Date().toISOString(),
-        //         })
-        //     )
-        // );
-
-        // Expected to work
-        for (let i = 0; i < 10; i++) {
-            await client.publish("updates", {
-                id: `${i}`,
-                text: "Hello world!",
-                timestamp: new Date().toISOString(),
-            });
-        }
+        await Promise.all(
+            Array.from({ length: 10 }, (_, i) =>
+                client.publish("updates", {
+                    id: `${i}`,
+                    text: "Hello world!",
+                    timestamp: new Date().toISOString(),
+                })
+            )
+        );
 
         await new Promise((resolve) => {
             setTimeout(() => resolve("Ok"), 3000);
@@ -194,32 +184,19 @@ async function multiConsumer(): Promise<void> {
     let client = newClient();
     try {
         // blows up due to shared state
-        // await Promise.all(
-        //     Array.from({ length: 10 }, (_, i) => {
-        //         client.subscribe(
-        //             (topic, message) => {
-        //                 console.log(
-        //                     `Received message on topic '${topic}':`,
-        //                     message
-        //                 );
-        //             },
-        //             ["updates", "notifications"]
-        //         );
-        //     })
-        // );
-
-        // works
-        for (let i = 0; i < 10; i++) {
-            await client.subscribe(
-                (topic, message) => {
-                    console.log(
-                        `Received message on topic '${topic}':`,
-                        message
-                    );
-                },
-                ["updates", "notifications"]
-            );
-        }
+        await Promise.all(
+            Array.from({ length: 10 }, (_, i) => {
+                client.subscribe(
+                    (topic, message) => {
+                        console.log(
+                            `Received message on topic '${topic}':`,
+                            message
+                        );
+                    },
+                    ["updates", "notifications"]
+                );
+            })
+        );
 
         // Listen for connection state changes
         client.onStateChange((state, connectionType) => {
@@ -243,4 +220,4 @@ async function multiConsumer(): Promise<void> {
     }
 }
 
-multiConsumer();
+base();

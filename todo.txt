@@ -1,5 +1,4 @@
 Deploy:
-- test client updates -> concurrency/error-disconnect
 - reset prod db
 
 Roadmap:
